@@ -1,0 +1,464 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Stok Yönetimi{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 200px; /* Sabit yükseklik */
+}
+
+.dashboard-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+.dashboard-card .card-body {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.dashboard-card .card-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: white;
+    margin-bottom: 0.75rem;
+}
+
+.icon-success { background: linear-gradient(135deg, #28a745, #20c997); }
+.icon-danger { background: linear-gradient(135deg, #dc3545, #e83e8c); }
+.icon-warning { background: linear-gradient(135deg, #fd7e14, #ffc107); }
+.icon-info { background: linear-gradient(135deg, #17a2b8, #6f42c1); }
+.icon-primary { background: linear-gradient(135deg, #007bff, #6610f2); }
+
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.stats-card .card-body {
+    position: relative;
+    z-index: 2;
+}
+
+.stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.1);
+    z-index: 1;
+}
+
+.kritik-stok {
+    background: linear-gradient(135deg, #ff7b7b 0%, #c93c3c 100%);
+}
+
+.recent-activity {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    padding: 0.75rem;
+    border-left: 4px solid transparent;
+    margin-bottom: 0.5rem;
+    border-radius: 0 8px 8px 0;
+    background: #f8f9fa;
+}
+
+.activity-giris { border-left-color: #28a745; }
+.activity-cikis { border-left-color: #dc3545; }
+.activity-duzeltme { border-left-color: #fd7e14; }
+.activity-sayim { border-left-color: #6f42c1; }
+
+.btn-dashboard {
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    transition: all 0.3s ease;
+    margin-top: 0.5rem;
+}
+
+.btn-dashboard:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+}
+
+.dashboard-card .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.dashboard-card .card-text {
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+/* Responsive kartlar için yeni grid sistemi */
+.stok-islemleri-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+    .stok-islemleri-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .dashboard-card {
+        height: 180px;
+    }
+    
+    .dashboard-card .card-body {
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .stok-islemleri-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .dashboard-card .card-title {
+        font-size: 0.9rem;
+    }
+    
+    .btn-dashboard {
+        font-size: 0.75rem;
+        padding: 0.5rem 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-warehouse text-primary"></i> Stok Yönetimi
+                    </h1>
+                    <p class="text-muted mb-0">Stok hareketlerinizi buradan yönetin</p>
+                </div>
+                <div>
+                    <span class="badge bg-primary fs-6">
+                        <i class="fas fa-clock"></i> 
+                        {{ "now"|date:"d.m.Y H:i" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- İstatistik Kartları -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card stats-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-8">
+                            <h4 class="fw-bold">{{ toplam_urun }}</h4>
+                            <p class="mb-0">Toplam Ürün</p>
+                        </div>
+                        <div class="col-4 text-end">
+                            <i class="fas fa-boxes fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card stats-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-8">
+                            <h4 class="fw-bold">{{ toplam_varyant }}</h4>
+                            <p class="mb-0">Toplam Varyant</p>
+                        </div>
+                        <div class="col-4 text-end">
+                            <i class="fas fa-layer-group fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card stats-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-8">
+                            <h4 class="fw-bold">{{ toplam_stok|floatformat:0 }}</h4>
+                            <p class="mb-0">Toplam Stok</p>
+                        </div>
+                        <div class="col-4 text-end">
+                            <i class="fas fa-cubes fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card kritik-stok">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-8">
+                            <h4 class="fw-bold">{{ kritik_stoklar|length }}</h4>
+                            <p class="mb-0">Kritik Stok</p>
+                        </div>
+                        <div class="col-4 text-end">
+                            <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stok İşlemleri -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="fas fa-tools"></i> Stok İşlemleri
+            </h4>
+        </div>
+        
+        <div class="col-12">
+            <div class="stok-islemleri-grid">
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <div class="card-icon icon-warning mx-auto">
+                            <i class="fas fa-minus-circle"></i>
+                        </div>
+                        <h5 class="card-title">Sayım Eksiği</h5>
+                        <p class="card-text text-muted">Stok azalt</p>
+                        <a href="{% url 'urun:sayim_eksigi' %}" class="btn btn-warning btn-dashboard">
+                            STOK AZALT
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <div class="card-icon icon-success mx-auto">
+                            <i class="fas fa-plus-circle"></i>
+                        </div>
+                        <h5 class="card-title">Sayım Fazlası</h5>
+                        <p class="card-text text-muted">Stok ekle</p>
+                        <a href="{% url 'urun:sayim_fazlasi' %}" class="btn btn-success btn-dashboard">
+                            STOK EKLE
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <div class="card-icon icon-primary mx-auto">
+                            <i class="fas fa-list-alt"></i>
+                        </div>
+                        <h5 class="card-title">Hareket Listesi</h5>
+                        <p class="card-text text-muted">Tüm hareketleri görün</p>
+                        <a href="{% url 'urun:stok_hareket_listesi' %}" class="btn btn-primary btn-dashboard">
+                            LİSTELE
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <div class="card-icon icon-primary mx-auto">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <h5 class="card-title">Ürün Listesi</h5>
+                        <p class="card-text text-muted">Tüm ürünleri yönetin</p>
+                        <a href="{% url 'urun:liste' %}" class="btn btn-outline-primary btn-dashboard">
+                            ÜRÜNLER
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Son Hareketler -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Son Stok Hareketleri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if son_hareketler %}
+                        <div class="recent-activity">
+                            {% for hareket in son_hareketler %}
+                                <div class="activity-item activity-{{ hareket.hareket_tipi|slice:':6' }}">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">{{ hareket.varyant.urun.ad }}</h6>
+                                            <p class="mb-1 text-muted small">{{ hareket.varyant.varyasyon_adi }}</p>
+                                            <p class="mb-0 small">{{ hareket.aciklama|truncatechars:50 }}</p>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge bg-{% if hareket.hareket_tipi == 'giris' %}success{% elif hareket.hareket_tipi == 'cikis' %}danger{% elif 'duzeltme' in hareket.hareket_tipi %}warning{% else %}info{% endif %}">
+                                                {% if hareket.hareket_tipi == 'giris' %}+{% elif hareket.hareket_tipi == 'cikis' %}-{% elif 'duzeltme' in hareket.hareket_tipi %}±{% else %}※{% endif %}{{ hareket.miktar }}
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">{{ hareket.olusturma_tarihi|date:"d.m H:i" }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="{% url 'urun:stok_hareket_listesi' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-eye"></i> Tüm Hareketleri Görüntüle
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Henüz stok hareketi yok</h5>
+                            <p class="text-muted">İlk stok hareketinizi yaparak başlayın</p>
+                            <a href="{% url 'urun:sayim_fazlasi' %}" class="btn btn-success">
+                                <i class="fas fa-plus-circle"></i> İlk Stok Ekle
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Kritik Stoklar -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Kritik Stok Uyarısı
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if kritik_stoklar %}
+                        {% for varyant in kritik_stoklar %}
+                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <div>
+                                    <h6 class="mb-0">{{ varyant.urun.ad }}</h6>
+                                    <small class="text-muted">{{ varyant.varyasyon_adi }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-danger">{{ varyant.stok_miktari }}</span>
+                                    <br>
+                                    <small class="text-muted">Min: {{ varyant.urun.kritik_stok_seviyesi }}</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <div class="text-center mt-3">
+                            <a href="{% url 'urun:sayim_fazlasi' %}" class="btn btn-outline-danger">
+                                <i class="fas fa-plus-circle"></i> Stok Ekle
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <h6 class="text-success">Kritik stok yok!</h6>
+                            <p class="text-muted small mb-0">Tüm stoklar yeterli seviyede</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Bu Ay Hareket İstatistikleri -->
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar"></i> Bu Ay Hareketler
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-2">
+                            <h5 class="text-success mb-0">{{ hareket_istatistikleri.giris|default:0 }}</h5>
+                            <small>Giriş</small>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <h5 class="text-danger mb-0">{{ hareket_istatistikleri.cikis|default:0 }}</h5>
+                            <small>Çıkış</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-warning mb-0">
+                                {{ hareket_istatistikleri.duzeltme|default:0 }}
+                            </h5>
+                            <small>Düzeltme</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-info mb-0">
+                                {{ hareket_istatistikleri.sayim_fazla|default:0|add:hareket_istatistikleri.sayim_eksik|default:0 }}
+                            </h5>
+                            <small>Sayım</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Kartlara hover efekti
+    $('.dashboard-card').hover(
+        function() {
+            $(this).find('.card-icon').addClass('animate__animated animate__pulse');
+        },
+        function() {
+            $(this).find('.card-icon').removeClass('animate__animated animate__pulse');
+        }
+    );
+
+    // Auto-refresh (5 dakikada bir)
+    setInterval(function() {
+        // Sadece ana sayfa açıksa refresh et
+        if (!document.hidden) {
+            location.reload();
+        }
+    }, 300000); // 5 dakika
+});
+</script>
+{% endblock %}

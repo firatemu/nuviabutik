@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Günlük Satış Raporu{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Günlük Satış Raporu</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'rapor:gunluk_satis_excel' %}?tarih={{ tarih }}" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Excel İndir
+            </a>
+            <a href="{% url 'rapor:gunluk_satis_pdf' %}?tarih={{ tarih }}" class="btn btn-danger">
+                <i class="fas fa-file-pdf"></i> PDF İndir
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarih Seçici -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-auto">
+                    <label class="form-label">Rapor Tarihi:</label>
+                    <input type="date" name="tarih" class="form-control" value="{{ tarih }}" onchange="this.form.submit()">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Özet Kartlar -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h5>Toplam Satış</h5>
+                    <h3>{{ toplam_satis|floatformat:2 }} ₺</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h5>Satış Adedi</h5>
+                    <h3>{{ satis_sayisi }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h5>Ortalama Satış</h5>
+                    <h3>{{ ortalama_satis|floatformat:2 }} ₺</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h5>Toplam Ürün</h5>
+                    <h3>{{ toplam_urun_adet }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Satış Listesi -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">{{ tarih|date:'d.m.Y' }} Tarihli Satışlar</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Saat</th>
+                            <th>Satış No</th>
+                            <th>Müşteri</th>
+                            <th>Ürün Sayısı</th>
+                            <th>Toplam</th>
+                            <th>Satıcı</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for satis in satislar %}
+                        <tr>
+                            <td>{{ satis.satis_tarihi|time:'H:i' }}</td>
+                            <td>{{ satis.satis_no }}</td>
+                            <td>{{ satis.musteri.ad_soyad|default:"Perakende" }}</td>
+                            <td>{{ satis.satisdetay_set.count }}</td>
+                            <td>{{ satis.toplam_tutar|floatformat:2 }} ₺</td>
+                            <td>{{ satis.satici.get_full_name }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">Bu tarihte satış bulunamadı.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Satılan Ürünler Detayı -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-shopping-cart text-success"></i>
+                Satılan Ürünler Detayı
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Saat</th>
+                            <th>Satış No</th>
+                            <th>Ürün Adı</th>
+                            <th>Varyasyon</th>
+                            <th>Kategori</th>
+                            <th>Marka</th>
+                            <th>Cinsiyet</th>
+                            <th>Adet</th>
+                            <th>Birim Fiyat</th>
+                            <th>Toplam</th>
+                            <th>Müşteri</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detay in satis_detaylari %}
+                        <tr>
+                            <td>{{ detay.satis.satis_tarihi|time:'H:i' }}</td>
+                            <td>
+                                <span class="badge bg-primary">{{ detay.satis.satis_no }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ detay.varyant.urun.ad }}</strong>
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {% if detay.varyant.renk %}{{ detay.varyant.renk.ad }}{% endif %}
+                                    {% if detay.varyant.renk and detay.varyant.beden %} - {% endif %}
+                                    {% if detay.varyant.beden %}{{ detay.varyant.beden.ad }}{% endif %}
+                                    {% if not detay.varyant.renk and not detay.varyant.beden %}Standart{% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ detay.varyant.urun.kategori.ad }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ detay.varyant.urun.marka.ad|default:"-" }}</span>
+                            </td>
+                            <td>
+                                <span class="badge {% if detay.varyant.urun.cinsiyet == 'kadin' %}bg-pink{% elif detay.varyant.urun.cinsiyet == 'erkek' %}bg-blue{% else %}bg-purple{% endif %}">
+                                    {% if detay.varyant.urun.cinsiyet == 'kadin' %}
+                                        <i class="fas fa-venus"></i> Kadın
+                                    {% elif detay.varyant.urun.cinsiyet == 'erkek' %}
+                                        <i class="fas fa-mars"></i> Erkek
+                                    {% else %}
+                                        <i class="fas fa-venus-mars"></i> Unisex
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning text-dark">{{ detay.miktar }}</span>
+                            </td>
+                            <td>
+                                <span class="text-primary fw-bold">{{ detay.satis_fiyati|floatformat:2 }} ₺</span>
+                            </td>
+                            <td>
+                                <span class="text-success fw-bold">{{ detay.toplam_fiyat|floatformat:2 }} ₺</span>
+                            </td>
+                            <td>
+                                <small>{{ detay.satis.musteri.ad_soyad|default:"Perakende" }}</small>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="11" class="text-center">Bu tarihte satılan ürün bulunamadı.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bg-pink {
+    background-color: #e91e63 !important;
+}
+.bg-blue {
+    background-color: #2196f3 !important;
+}
+.bg-purple {
+    background-color: #9c27b0 !important;
+}
+.table th {
+    border-top: none;
+}
+.badge {
+    font-size: 0.8em;
+}
+</style>
+{% endblock %}

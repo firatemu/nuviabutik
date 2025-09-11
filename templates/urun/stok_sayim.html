@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Stok Sayım{% endblock %}
+
+{% block extra_css %}
+<style>
+.stok-card {
+    border-left: 4px solid #6f42c1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-control:focus {
+    border-color: #6f42c1;
+    box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25);
+}
+
+.btn-purple {
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+    color: white;
+}
+
+.btn-purple:hover {
+    background-color: #5a32a3;
+    border-color: #4e2a87;
+    color: white;
+}
+
+.required-field::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.alert-info {
+    border-left: 4px solid #0dcaf0;
+}
+
+.sayim-result {
+    background: linear-gradient(135deg, #e7f3ff 0%, #c3e6ff 100%);
+    border-left: 4px solid #6f42c1;
+}
+
+.difference-positive {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border-left: 4px solid #28a745;
+}
+
+.difference-negative {
+    background: linear-gradient(135deg, #f8d7da 0%, #f1b0b7 100%);
+    border-left: 4px solid #dc3545;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-clipboard-check text-purple"></i> Stok Sayım</h2>
+                <div>
+                    <a href="{% url 'urun:stok_hareket_listesi' %}" class="btn btn-outline-info">
+                        <i class="fas fa-list"></i> Hareket Listesi
+                    </a>
+                    <a href="{% url 'urun:liste' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Ürün Listesi
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <!-- Bilgilendirme Mesajı -->
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Stok Sayım:</strong> Fiziksel sayım sonucunu sisteme kayıtlı stok ile karşılaştırarak farkları düzeltir.
+                    </div>
+
+                    <div class="card stok-card">
+                        <div class="card-header text-white" style="background-color: #6f42c1;">
+                            <h5 class="mb-0"><i class="fas fa-clipboard-check"></i> Stok Sayım İşlemi</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" novalidate>
+                                {% csrf_token %}
+                                
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.varyant.id_for_label }}" class="form-label required-field">
+                                            <i class="fas fa-cube"></i> Ürün Varyantı
+                                        </label>
+                                        {{ form.varyant }}
+                                        {% if form.varyant.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.varyant.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-text">Sayım yapılacak ürün varyantını seçin</div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-database"></i> Sisteme Kayıtlı
+                                        </label>
+                                        <input type="text" class="form-control" value="Varyant seçtikten sonra görünecek" readonly id="mevcut-stok">
+                                        <div class="form-text">Sistemdeki mevcut stok</div>
+                                    </div>
+                                    
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ form.sayim_miktari.id_for_label }}" class="form-label required-field">
+                                            <i class="fas fa-clipboard-check"></i> Sayım Sonucu
+                                        </label>
+                                        {{ form.sayim_miktari }}
+                                        {% if form.sayim_miktari.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.sayim_miktari.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-text">Fiziksel sayım sonucu</div>
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-exchange-alt"></i> Fark
+                                        </label>
+                                        <input type="text" class="form-control" value="Değer girdikten sonra hesaplanacak" readonly id="fark-miktar">
+                                        <div class="form-text">Sayım farkı</div>
+                                    </div>
+                                </div>
+
+                                <!-- Sayım Sonuç Bilgisi -->
+                                <div class="alert sayim-result d-none" id="sayim-uyari">
+                                    <i class="fas fa-calculator"></i>
+                                    <span id="sayim-uyari-mesaj"></span>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.aciklama.id_for_label }}" class="form-label required-field">
+                                            <i class="fas fa-comment-alt"></i> Açıklama
+                                        </label>
+                                        {{ form.aciklama }}
+                                        {% if form.aciklama.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.aciklama.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-text">Sayım işlemi için açıklama (zorunlu)</div>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <a href="{% url 'urun:liste' %}" class="btn btn-outline-secondary me-md-2">
+                                        <i class="fas fa-times"></i> İptal
+                                    </a>
+                                    <button type="submit" class="btn btn-purple" id="submit-btn">
+                                        <i class="fas fa-clipboard-check"></i> Sayım Kaydet
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Bilgilendirme Kartı -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0"><i class="fas fa-info-circle"></i> Stok Sayım Hakkında</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="mb-0">
+                                <li><strong>Stok Sayım:</strong> Fiziksel envanter ile sistem kayıtlarını karşılaştırır</li>
+                                <li><strong>Fark Varsa:</strong> Sistem otomatik olarak düzeltme hareketini kaydeder</li>
+                                <li><strong>Fark Yoksa:</strong> Sadece sayım kaydı tutulur, stok değişmez</li>
+                                <li><strong>Pozitif Fark:</strong> Sistem stoğunu fiziksel sayıma göre artırır</li>
+                                <li><strong>Negatif Fark:</strong> Sistem stoğunu fiziksel sayıma göre azaltır</li>
+                                <li><strong>Kayıt:</strong> Tüm sayım hareketleri tarih ve kullanıcı bilgisi ile saklanır</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Sayım İpuçları -->
+                    <div class="card mt-4">
+                        <div class="card-header text-white" style="background-color: #6f42c1;">
+                            <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Sayım İpuçları</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-check-circle text-success"></i> Doğru Sayım İçin:</h6>
+                                    <ul class="small">
+                                        <li>Ürünleri temiz ve düzenli alanda sayın</li>
+                                        <li>Farklı renk/beden varyantlarını ayrı sayın</li>
+                                        <li>Sayımı tek seferde tamamlayın</li>
+                                        <li>İkinci kişi ile kontrol edin</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-exclamation-triangle text-warning"></i> Dikkat Edilecekler:</h6>
+                                    <ul class="small">
+                                        <li>Hasarlı ürünleri ayrı değerlendirin</li>
+                                        <li>Rezerve edilen ürünleri dahil edin</li>
+                                        <li>Sayım sırasında satış yapmayın</li>
+                                        <li>Fark nedenini açıklama kısmına yazın</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    var mevcutStokMiktari = 0;
+
+    // Select2 başlat
+    $('#{{ form.varyant.id_for_label }}').select2({
+        placeholder: 'Ürün varyantı seçin...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Varyant seçildiğinde mevcut stok bilgisini göster
+    $('#{{ form.varyant.id_for_label }}').on('change', function() {
+        var selectedOption = $(this).find('option:selected');
+        if (selectedOption.val()) {
+            var text = selectedOption.text();
+            // Text içinden stok bilgisini çıkar (örn: "Ürün Adı - S - Kırmızı (Stok: 10)")
+            var stokMatch = text.match(/\(Stok:\s*(\d+)\)/);
+            if (stokMatch) {
+                mevcutStokMiktari = parseInt(stokMatch[1]);
+                $('#mevcut-stok').val(mevcutStokMiktari + ' adet');
+                
+                // Sayım miktarı alanı doldurulmuşsa farkı hesapla
+                hesaplaFark();
+            } else {
+                mevcutStokMiktari = 0;
+                $('#mevcut-stok').val('Bilgi yok');
+                $('#sayim-uyari').addClass('d-none');
+                $('#fark-miktar').val('Değer girdikten sonra hesaplanacak');
+            }
+        } else {
+            mevcutStokMiktari = 0;
+            $('#mevcut-stok').val('Varyant seçtikten sonra görünecek');
+            $('#sayim-uyari').addClass('d-none');
+            $('#fark-miktar').val('Değer girdikten sonra hesaplanacak');
+        }
+    });
+
+    // Sayım miktarı değiştiğinde farkı hesapla
+    $('#{{ form.sayim_miktari.id_for_label }}').on('input', function() {
+        hesaplaFark();
+    });
+
+    function hesaplaFark() {
+        var sayimMiktari = parseInt($('#{{ form.sayim_miktari.id_for_label }}').val()) || 0;
+        
+        if (mevcutStokMiktari >= 0 && sayimMiktari >= 0 && $('#{{ form.sayim_miktari.id_for_label }}').val() !== '') {
+            var fark = sayimMiktari - mevcutStokMiktari;
+            
+            if (fark === 0) {
+                $('#fark-miktar').val('Fark yok (Tutarlı)');
+                $('#sayim-uyari').removeClass('d-none difference-positive difference-negative').addClass('sayim-result');
+                $('#sayim-uyari-mesaj').html(`<strong>Tutarlı Sayım:</strong> Fiziksel sayım ile sistem kaydı aynı (${mevcutStokMiktari} adet)`);
+            } else if (fark > 0) {
+                $('#fark-miktar').val(`+${fark} adet (Fazla)`);
+                $('#sayim-uyari').removeClass('d-none sayim-result difference-negative').addClass('difference-positive');
+                $('#sayim-uyari-mesaj').html(`<strong>Fazla Tespit:</strong> Fiziksel sayımda ${fark} adet fazla bulundu. Stok artırılacak (${mevcutStokMiktari} → ${sayimMiktari})`);
+            } else {
+                $('#fark-miktar').val(`${fark} adet (Eksik)`);
+                $('#sayim-uyari').removeClass('d-none sayim-result difference-positive').addClass('difference-negative');
+                $('#sayim-uyari-mesaj').html(`<strong>Eksik Tespit:</strong> Fiziksel sayımda ${Math.abs(fark)} adet eksik bulundu. Stok azaltılacak (${mevcutStokMiktari} → ${sayimMiktari})`);
+            }
+        } else {
+            $('#fark-miktar').val('Değer girdikten sonra hesaplanacak');
+            $('#sayim-uyari').addClass('d-none');
+        }
+    }
+
+    // Form validasyonu
+    $('form').on('submit', function(e) {
+        var varyant = $('#{{ form.varyant.id_for_label }}').val();
+        var sayimMiktari = $('#{{ form.sayim_miktari.id_for_label }}').val();
+        var aciklama = $('#{{ form.aciklama.id_for_label }}').val().trim();
+
+        if (!varyant) {
+            e.preventDefault();
+            alert('Lütfen bir ürün varyantı seçin!');
+            return false;
+        }
+
+        if (sayimMiktari === '' || sayimMiktari < 0) {
+            e.preventDefault();
+            alert('Lütfen geçerli bir sayım miktarı girin!');
+            return false;
+        }
+
+        if (!aciklama) {
+            e.preventDefault();
+            alert('Lütfen açıklama girin!');
+            return false;
+        }
+
+        // Fark hesapla ve onay sor
+        var fark = parseInt(sayimMiktari) - mevcutStokMiktari;
+        var onayMesaji;
+        
+        if (fark === 0) {
+            onayMesaji = `Sayım tutarlı (${mevcutStokMiktari} adet). Sadece sayım kaydı tutulacak. Onaylıyor musunuz?`;
+        } else if (fark > 0) {
+            onayMesaji = `${fark} adet FAZLA tespit edildi. Stok ${mevcutStokMiktari}'den ${sayimMiktari}'e ARTACAK. Onaylıyor musunuz?`;
+        } else {
+            onayMesaji = `${Math.abs(fark)} adet EKSİK tespit edildi. Stok ${mevcutStokMiktari}'den ${sayimMiktari}'e AZALACAK. Onaylıyor musunuz?`;
+        }
+        
+        if (!confirm(onayMesaji)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

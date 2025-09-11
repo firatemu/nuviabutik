@@ -1,0 +1,274 @@
+﻿{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}İade Fişi - {{ hediye_ceki.kod }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    body {
+        font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .iade-fisi-container {
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 20px 0;
+    }
+    
+    .fis-card {
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    
+    .fis-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+    
+    .fis-kod {
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: 3px;
+        margin: 10px 0;
+        padding: 15px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 10px;
+        border: 2px dashed rgba(255,255,255,0.8);
+    }
+    
+    .fis-body {
+        padding: 40px;
+        background: white;
+    }
+    
+    .bilgi-satir {
+        padding: 12px 0;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .bilgi-satir:last-child {
+        border-bottom: none;
+    }
+    
+    .bilgi-etiket {
+        font-weight: 600;
+        color: #555;
+        font-size: 14px;
+    }
+    
+    .bilgi-deger {
+        font-weight: 500;
+        color: #333;
+        font-size: 14px;
+    }
+    
+    .tutar-highlight {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #667eea;
+    }
+    
+    .kuralllar-box {
+        background: #f8f9ff;
+        border: 2px solid #667eea;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 30px 0;
+    }
+    
+    .kurallar-baslik {
+        color: #667eea;
+        font-weight: 700;
+        font-size: 16px;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    
+    .kurallar-liste {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .kurallar-liste li {
+        padding: 8px 0;
+        padding-left: 25px;
+        position: relative;
+        font-size: 14px;
+        color: #555;
+    }
+    
+    .kurallar-liste li:before {
+        content: "";
+        position: absolute;
+        left: 0;
+        color: #667eea;
+        font-weight: bold;
+    }
+    
+    .fis-footer {
+        background: #f8f9fa;
+        padding: 25px;
+        text-align: center;
+        border-top: 1px solid #eee;
+    }
+    
+    .magaza-info {
+        color: #666;
+        font-size: 14px;
+        margin: 15px 0;
+    }
+    
+    .btn-custom {
+        padding: 12px 25px;
+        font-weight: 600;
+        border-radius: 8px;
+        margin: 0 5px;
+    }
+    
+    @media print {
+        .iade-fisi-container {
+            background: white;
+            padding: 0;
+        }
+        .no-print {
+            display: none !important;
+        }
+        .fis-card {
+            box-shadow: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="iade-fisi-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-10">
+                <div class="card fis-card">
+                    <!-- Başlık -->
+                    <div class="fis-header">
+                        <h2><i class="fas fa-gift me-3"></i>İADE FİŞİ</h2>
+                        <div class="fis-kod">{{ hediye_ceki.kod }}</div>
+                        <p class="mb-0">Bu fiş {{ hediye_ceki.tutar|floatformat:2 }} ₺ değerindedir</p>
+                    </div>
+                    
+                    <!-- İçerik -->
+                    <div class="fis-body">
+                        <h5 class="text-primary mb-4">
+                            <i class="fas fa-info-circle me-2"></i>Hediye Çeki Bilgileri
+                        </h5>
+                        
+                        <div class="bilgi-satir">
+                            <span class="bilgi-etiket">Hediye Çeki Kodu:</span>
+                            <span class="bilgi-deger">{{ hediye_ceki.kod }}</span>
+                        </div>
+                        
+                        <div class="bilgi-satir">
+                            <span class="bilgi-etiket">Toplam Tutar:</span>
+                            <span class="bilgi-deger tutar-highlight">{{ hediye_ceki.tutar|floatformat:2 }} ₺</span>
+                        </div>
+                        
+                        <div class="bilgi-satir">
+                            <span class="bilgi-etiket">Kalan Tutar:</span>
+                            <span class="bilgi-deger">{{ hediye_ceki.kalan_tutar|floatformat:2 }} ₺</span>
+                        </div>
+                        
+                        <div class="bilgi-satir">
+                            <span class="bilgi-etiket">Oluşturma Tarihi:</span>
+                            <span class="bilgi-deger">{{ hediye_ceki.olusturma_tarihi|date:"d.m.Y H:i" }}</span>
+                        </div>
+                        
+                        <div class="bilgi-satir">
+                            <span class="bilgi-etiket">Geçerlilik Tarihi:</span>
+                            <span class="bilgi-deger">{{ hediye_ceki.gecerlilik_tarihi|date:"d.m.Y" }}</span>
+                        </div>
+                        
+                        {% if hediye_ceki.musteri %}
+                        <div class="bilgi-satir">
+                            <span class="bilgi-etiket">Müşteri:</span>
+                            <span class="bilgi-deger">{{ hediye_ceki.musteri.ad }} {{ hediye_ceki.musteri.soyad }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="bilgi-satir">
+                            <span class="bilgi-etiket">Durum:</span>
+                            <span class="bilgi-deger">
+                                <span class="badge bg-success">{{ hediye_ceki.get_durum_display }}</span>
+                            </span>
+                        </div>
+                        
+                        <!-- Kullanım Kuralları -->
+                        <div class="kuralllar-box">
+                            <div class="kurallar-baslik">
+                                <i class="fas fa-check-circle me-2"></i>Kullanım Kuralları
+                            </div>
+                            <ul class="kurallar-liste">
+                                <li>Bu hediye çeki sadece mağazamızda kullanılabilir</li>
+                                <li>Geçerlilik tarihi: <strong>{{ hediye_ceki.gecerlilik_tarihi|date:"d.m.Y" }}</strong></li>
+                                <li>Para üstü verilmez</li>
+                                <li>Satış sırasında bu kodu kasiyere gösteriniz</li>
+                                <li>Bu fiş kaybolduğunda yenisi verilmez</li>
+                                <li>Sadece bir kez kullanılabilir</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="magaza-info">
+                            <i class="fas fa-store me-2"></i>
+                            <strong>NUVIA PREMIUM WEAR</strong><br>
+                            Alışverişiniz için teşekkür ederiz.
+                        </div>
+                    </div>
+                    
+                    <!-- Alt Kısım -->
+                    <div class="fis-footer no-print">
+                        <a href="{% url 'satis:liste' %}" class="btn btn-secondary btn-custom">
+                            <i class="fas fa-arrow-left me-2"></i>Satış Listesi
+                        </a>
+                        <button onclick="window.print()" class="btn btn-primary btn-custom">
+                            <i class="fas fa-print me-2"></i>Yazdır
+                        </button>
+                        {% if hediye_ceki.pk %}
+                        <a href="{% url 'satis:iade_fisi_pdf' hediye_ceki.pk %}" class="btn btn-success btn-custom" target="_blank">
+                            <i class="fas fa-file-pdf me-2"></i>PDF İndir
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Yazdırma için özel ayarlar
+window.addEventListener('beforeprint', function() {
+    document.title = 'İade Fişi - ' + '{{ hediye_ceki.kod }}';
+});
+
+// Escape tuşu ile geri dön
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        window.history.back();
+    }
+});
+
+// Hediye çeki kodunu kopyalama
+function copyCode() {
+    navigator.clipboard.writeText('{{ hediye_ceki.kod }}').then(function() {
+        alert('Hediye çeki kodu kopyalandı: {{ hediye_ceki.kod }}');
+    });
+}
+</script>
+{% endblock %}

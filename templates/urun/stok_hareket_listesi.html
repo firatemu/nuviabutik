@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Stok Hareketleri{% endblock %}
+
+{% block extra_css %}
+<style>
+.hareket-card {
+    border-left: 4px solid #17a2b8;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.hareket-giris {
+    border-left-color: #28a745;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+}
+
+.hareket-cikis {
+    border-left-color: #dc3545;
+    background: linear-gradient(135deg, #f8d7da 0%, #f1b0b7 100%);
+}
+
+.hareket-duzeltme-artis {
+    border-left-color: #ffc107;
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+}
+
+.hareket-duzeltme-azalis {
+    border-left-color: #fd7e14;
+    background: linear-gradient(135deg, #ffe8cc 0%, #ffdbaa 100%);
+}
+
+.hareket-sayim-fazla {
+    border-left-color: #20c997;
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+}
+
+.hareket-sayim-eksik {
+    border-left-color: #e83e8c;
+    background: linear-gradient(135deg, #f8d7da 0%, #f1b0b7 100%);
+}
+
+.filter-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+}
+
+.hareket-icon {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: white;
+    font-size: 12px;
+}
+
+.icon-giris { background-color: #28a745; }
+.icon-cikis { background-color: #dc3545; }
+.icon-duzeltme { background-color: #ffc107; }
+.icon-sayim { background-color: #6f42c1; }
+
+.pagination .page-link {
+    color: #17a2b8;
+}
+
+.pagination .page-link:hover {
+    color: #138496;
+    background-color: #e3f2fd;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+}
+
+.table-responsive {
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.badge {
+    font-size: 0.75em;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-list-alt text-info"></i> Stok Hareketleri</h2>
+                <div>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'urun:sayim_eksigi' %}" class="btn btn-warning btn-sm">
+                            <i class="fas fa-minus-circle"></i> Sayım Eksiği
+                        </a>
+                        <a href="{% url 'urun:sayim_fazlasi' %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-plus-circle"></i> Sayım Fazlası
+                        </a>
+                        <a href="{% url 'urun:stok_yonetimi' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-warehouse"></i> Stok Ana
+                        </a>
+                    </div>
+                    <a href="{% url 'urun:liste' %}" class="btn btn-outline-secondary btn-sm ms-2">
+                        <i class="fas fa-arrow-left"></i> Ürün Listesi
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filtreleme Bölümü -->
+            <div class="card filter-card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-filter"></i> Filtreleme</h6>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="hareket_tipi" class="form-label">Hareket Tipi</label>
+                            <select name="hareket_tipi" id="hareket_tipi" class="form-select">
+                                <option value="">Tüm Hareketler</option>
+                                {% for value, label in hareket_tipleri %}
+                                    <option value="{{ value }}" {% if hareket_tipi == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="barkod" class="form-label">
+                                <i class="fas fa-barcode me-1"></i>Barkod
+                            </label>
+                            <input type="text" name="barkod" id="barkod" class="form-control" 
+                                   placeholder="Barkod numarası girin..." value="{{ barkod }}"
+                                   autocomplete="off" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="urun_adi" class="form-label">
+                                <i class="fas fa-box me-1"></i>Ürün Adı
+                            </label>
+                            <input type="text" name="urun_adi" id="urun_adi" class="form-control" 
+                                   placeholder="Ürün adı girin..." value="{{ urun_adi }}"
+                                   autocomplete="off">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search"></i> Filtrele
+                            </button>
+                            <a href="{% url 'urun:stok_hareket_listesi' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Temizle
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Hareket Listesi -->
+            <div class="card hareket-card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list-alt"></i> Stok Hareketleri 
+                        <span class="badge bg-light text-dark ms-2">{{ page_obj.paginator.count }} kayıt</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if page_obj %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th><i class="fas fa-calendar-alt"></i> Tarih</th>
+                                        <th><i class="fas fa-cube"></i> Ürün</th>
+                                        <th><i class="fas fa-exchange-alt"></i> Hareket</th>
+                                        <th class="text-end"><i class="fas fa-sort-numeric-up"></i> Miktar</th>
+                                        <th><i class="fas fa-comment-alt"></i> Açıklama</th>
+                                        <th><i class="fas fa-user"></i> Kullanıcı</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for hareket in page_obj %}
+                                        <tr class="{% cycle 'table-light' '' %}">
+                                            <td class="text-nowrap">
+                                                <small class="text-muted">
+                                                    {{ hareket.olusturma_tarihi|date:"d.m.Y H:i" }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold">{{ hareket.varyant.urun.ad }}</div>
+                                                <small class="text-muted">{{ hareket.varyant.varyasyon_adi }}</small>
+                                            </td>
+                                            <td>
+                                                {% if hareket.hareket_tipi == 'giris' %}
+                                                    <span class="hareket-icon icon-giris">
+                                                        <i class="fas fa-plus"></i>
+                                                    </span>
+                                                    <span class="badge bg-success ms-2">Giriş</span>
+                                                {% elif hareket.hareket_tipi == 'cikis' %}
+                                                    <span class="hareket-icon icon-cikis">
+                                                        <i class="fas fa-minus"></i>
+                                                    </span>
+                                                    <span class="badge bg-danger ms-2">Çıkış</span>
+                                                {% elif hareket.hareket_tipi == 'duzeltme' %}
+                                                    <span class="hareket-icon icon-duzeltme">
+                                                        <i class="fas fa-edit"></i>
+                                                    </span>
+                                                    <span class="badge bg-warning ms-2">Düzeltme</span>
+                                                    <span class="badge bg-warning ms-2">Düzeltme -</span>
+                                                {% elif hareket.hareket_tipi == 'sayim_fazla' %}
+                                                    <span class="hareket-icon icon-sayim">
+                                                        <i class="fas fa-plus"></i>
+                                                    </span>
+                                                    <span class="badge text-white ms-2" style="background-color: #6f42c1;">Sayım +</span>
+                                                {% elif hareket.hareket_tipi == 'sayim_eksik' %}
+                                                    <span class="hareket-icon icon-sayim">
+                                                        <i class="fas fa-minus"></i>
+                                                    </span>
+                                                    <span class="badge text-white ms-2" style="background-color: #6f42c1;">Sayım -</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ hareket.get_hareket_tipi_display }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end">
+                                                <span class="fw-bold {% if hareket.hareket_tipi in 'giris,sayim_fazla' %}text-success{% else %}text-danger{% endif %}">
+                                                    {% if hareket.hareket_tipi in 'giris,sayim_fazla' %}+{% else %}-{% endif %}{{ hareket.miktar }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ hareket.aciklama }}">
+                                                    {{ hareket.aciklama }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {{ hareket.kullanici.get_full_name|default:hareket.kullanici.username }}
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Sayfalama -->
+                        {% if page_obj.has_other_pages %}
+                            <div class="card-footer">
+                                <nav aria-label="Stok hareketleri sayfalama">
+                                    <ul class="pagination justify-content-center mb-0">
+                                        {% if page_obj.has_previous %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page=1{% if hareket_tipi %}&hareket_tipi={{ hareket_tipi }}{% endif %}{% if secili_urun %}&urun={{ secili_urun }}{% endif %}" aria-label="İlk">
+                                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                                </a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if hareket_tipi %}&hareket_tipi={{ hareket_tipi }}{% endif %}{% if secili_urun %}&urun={{ secili_urun }}{% endif %}" aria-label="Önceki">
+                                                    <span aria-hidden="true">&laquo;</span>
+                                                </a>
+                                            </li>
+                                        {% endif %}
+
+                                        {% for num in page_obj.paginator.page_range %}
+                                            {% if page_obj.number == num %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ num }}</span>
+                                                </li>
+                                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ num }}{% if hareket_tipi %}&hareket_tipi={{ hareket_tipi }}{% endif %}{% if secili_urun %}&urun={{ secili_urun }}{% endif %}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% if page_obj.has_next %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if hareket_tipi %}&hareket_tipi={{ hareket_tipi }}{% endif %}{% if secili_urun %}&urun={{ secili_urun }}{% endif %}" aria-label="Sonraki">
+                                                    <span aria-hidden="true">&raquo;</span>
+                                                </a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if hareket_tipi %}&hareket_tipi={{ hareket_tipi }}{% endif %}{% if secili_urun %}&urun={{ secili_urun }}{% endif %}" aria-label="Son">
+                                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                                
+                                <div class="text-center mt-2">
+                                    <small class="text-muted">
+                                        Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 
+                                        ({{ page_obj.start_index }}-{{ page_obj.end_index }} / {{ page_obj.paginator.count }} kayıt)
+                                    </small>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="card-body text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Stok hareketi bulunamadı</h5>
+                            <p class="text-muted">Henüz hiç stok hareketi kaydı bulunmuyor.</p>
+                            <a href="{% url 'urun:sayim_fazlasi' %}" class="btn btn-success">
+                                <i class="fas fa-plus-circle"></i> İlk Stok Ekle
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- İstatistik Bilgileri -->
+            {% if page_obj %}
+                <div class="row mt-4">
+                    <div class="col-md-3">
+                        <div class="card text-center border-success">
+                            <div class="card-body">
+                                <h5 class="card-title text-success">
+                                    <i class="fas fa-plus-circle"></i> Giriş
+                                </h5>
+                                <p class="card-text">
+                                    <span class="badge bg-success fs-6">{{ page_obj|length }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center border-danger">
+                            <div class="card-body">
+                                <h5 class="card-title text-danger">
+                                    <i class="fas fa-minus-circle"></i> Çıkış
+                                </h5>
+                                <p class="card-text">
+                                    <span class="badge bg-danger fs-6">{{ page_obj|length }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center border-warning">
+                            <div class="card-body">
+                                <h5 class="card-title text-warning">
+                                    <i class="fas fa-edit"></i> Düzeltme
+                                </h5>
+                                <p class="card-text">
+                                    <span class="badge bg-warning fs-6">{{ page_obj|length }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center" style="border-color: #6f42c1;">
+                            <div class="card-body">
+                                <h5 class="card-title" style="color: #6f42c1;">
+                                    <i class="fas fa-clipboard-check"></i> Sayım
+                                </h5>
+                                <p class="card-text">
+                                    <span class="badge text-white fs-6" style="background-color: #6f42c1;">{{ page_obj|length }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Select2 başlat (sadece select elementleri için)
+    $('#hareket_tipi').select2({
+        width: '100%'
+    });
+
+    // Barkod input'una otomatik odaklan
+    $('#barkod').focus();
+
+    // Enter tuşu ile arama
+    $('#barkod, #urun_adi').on('keypress', function(e) {
+        if (e.which === 13) { // Enter tuşu
+            e.preventDefault();
+            $(this).closest('form').submit();
+        }
+    });
+
+    // Tooltip aktif et
+    $('[title]').tooltip();
+
+    // Hareket kartlarına hover efekti
+    $('.table tbody tr').hover(
+        function() {
+            $(this).addClass('table-active');
+        },
+        function() {
+            $(this).removeClass('table-active');
+        }
+    );
+});
+</script>
+{% endblock %}

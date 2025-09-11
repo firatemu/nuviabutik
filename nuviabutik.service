@@ -1,0 +1,25 @@
+# Systemd service file for NuviaButik Django application
+# Save this as: /etc/systemd/system/nuviabutik.service
+
+[Unit]
+Description=NuviaButik Django Application
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=exec
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/nuviabutik
+Environment=DJANGO_SETTINGS_MODULE=production_settings
+EnvironmentFile=/var/www/nuviabutik/.env
+ExecStart=/var/www/nuviabutik/venv/bin/gunicorn --config /var/www/nuviabutik/gunicorn.conf.py stoktakip.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=3
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

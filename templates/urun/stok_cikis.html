@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Stok Çıkış{% endblock %}
+
+{% block extra_css %}
+<style>
+.stok-card {
+    border-left: 4px solid #dc3545;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-control:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+.required-field::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.alert-warning {
+    border-left: 4px solid #ffc107;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-minus-circle text-danger"></i> Stok Çıkış</h2>
+                <div>
+                    <a href="{% url 'urun:stok_hareket_listesi' %}" class="btn btn-outline-info">
+                        <i class="fas fa-list"></i> Hareket Listesi
+                    </a>
+                    <a href="{% url 'urun:liste' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Ürün Listesi
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <!-- Uyarı Mesajı -->
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Dikkat!</strong> Stok çıkış işlemi ürünün stok miktarını azaltır. İşlem sonrası geri alınamaz.
+                    </div>
+
+                    <div class="card stok-card">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0"><i class="fas fa-minus-circle"></i> Stok Çıkış İşlemi</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" novalidate>
+                                {% csrf_token %}
+                                
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.varyant.id_for_label }}" class="form-label required-field">
+                                            <i class="fas fa-cube"></i> Ürün Varyantı
+                                        </label>
+                                        {{ form.varyant }}
+                                        {% if form.varyant.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.varyant.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-text">Stok çıkış yapılacak ürün varyantını seçin</div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.miktar.id_for_label }}" class="form-label required-field">
+                                            <i class="fas fa-sort-numeric-down"></i> Çıkış Miktarı
+                                        </label>
+                                        {{ form.miktar }}
+                                        {% if form.miktar.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.miktar.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-text">Çıkış yapılacak ürün adedi</div>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-info-circle"></i> Mevcut Stok
+                                        </label>
+                                        <input type="text" class="form-control" value="Varyant seçtikten sonra görünecek" readonly id="mevcut-stok">
+                                        <div class="form-text">Seçilen varyantın mevcut stok miktarı</div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.aciklama.id_for_label }}" class="form-label required-field">
+                                            <i class="fas fa-comment-alt"></i> Açıklama
+                                        </label>
+                                        {{ form.aciklama }}
+                                        {% if form.aciklama.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.aciklama.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-text">Stok çıkış işlemi için açıklama (zorunlu)</div>
+                                    </div>
+                                </div>
+
+                                <!-- Stok Kontrol Uyarısı -->
+                                <div class="alert alert-info d-none" id="stok-uyari">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span id="stok-uyari-mesaj"></span>
+                                </div>
+
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <a href="{% url 'urun:liste' %}" class="btn btn-outline-secondary me-md-2">
+                                        <i class="fas fa-times"></i> İptal
+                                    </a>
+                                    <button type="submit" class="btn btn-danger" id="submit-btn">
+                                        <i class="fas fa-minus-circle"></i> Stok Çıkış Yap
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Bilgilendirme Kartı -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0"><i class="fas fa-info-circle"></i> Stok Çıkış Hakkında</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="mb-0">
+                                <li>Stok çıkış işlemi, seçilen varyantın stok miktarını <strong>azaltır</strong></li>
+                                <li>Mevcut stoktan <strong>fazla çıkış yapılamaz</strong></li>
+                                <li>Her stok hareketi sistem tarafından <strong>otomatik olarak kaydedilir</strong></li>
+                                <li>Açıklama alanı <strong>zorunludur</strong> ve raporlarda görüntülenir</li>
+                                <li>İşlem tamamlandıktan sonra <strong>geri alınamaz</strong></li>
+                                <li>Tüm stok hareketleri <strong>tarih ve kullanıcı bilgisi</strong> ile saklanır</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Select2 başlat
+    $('#{{ form.varyant.id_for_label }}').select2({
+        placeholder: 'Ürün varyantı seçin...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Varyant seçildiğinde mevcut stok bilgisini göster
+    $('#{{ form.varyant.id_for_label }}').on('change', function() {
+        var selectedOption = $(this).find('option:selected');
+        if (selectedOption.val()) {
+            var text = selectedOption.text();
+            // Text içinden stok bilgisini çıkar (örn: "Ürün Adı - S - Kırmızı (Stok: 10)")
+            var stokMatch = text.match(/\(Stok:\s*(\d+)\)/);
+            if (stokMatch) {
+                var mevcutStok = parseInt(stokMatch[1]);
+                $('#mevcut-stok').val(mevcutStok + ' adet');
+                
+                // Miktar alanı değiştiğinde kontrol et
+                checkStokYeterlilik();
+            } else {
+                $('#mevcut-stok').val('Bilgi yok');
+                $('#stok-uyari').addClass('d-none');
+            }
+        } else {
+            $('#mevcut-stok').val('Varyant seçtikten sonra görünecek');
+            $('#stok-uyari').addClass('d-none');
+        }
+    });
+
+    // Miktar değiştiğinde stok yeterliliğini kontrol et
+    $('#{{ form.miktar.id_for_label }}').on('input', function() {
+        checkStokYeterlilik();
+    });
+
+    function checkStokYeterlilik() {
+        var mevcutStokText = $('#mevcut-stok').val();
+        var miktar = parseInt($('#{{ form.miktar.id_for_label }}').val()) || 0;
+        
+        if (mevcutStokText && mevcutStokText !== 'Varyant seçtikten sonra görünecek' && mevcutStokText !== 'Bilgi yok') {
+            var mevcutStok = parseInt(mevcutStokText.replace(' adet', ''));
+            
+            if (miktar > mevcutStok) {
+                $('#stok-uyari').removeClass('d-none alert-info').addClass('alert-danger');
+                $('#stok-uyari-mesaj').text(`Yetersiz stok! Maksimum ${mevcutStok} adet çıkış yapabilirsiniz.`);
+                $('#submit-btn').prop('disabled', true);
+            } else if (miktar === mevcutStok && miktar > 0) {
+                $('#stok-uyari').removeClass('d-none alert-danger').addClass('alert-warning');
+                $('#stok-uyari-mesaj').text(`Dikkat! Tüm stok çıkış yapılıyor. İşlem sonrası stok 0 olacak.`);
+                $('#submit-btn').prop('disabled', false);
+            } else if (miktar > 0) {
+                $('#stok-uyari').removeClass('d-none alert-danger alert-warning').addClass('alert-info');
+                $('#stok-uyari-mesaj').text(`İşlem sonrası kalan stok: ${mevcutStok - miktar} adet`);
+                $('#submit-btn').prop('disabled', false);
+            } else {
+                $('#stok-uyari').addClass('d-none');
+                $('#submit-btn').prop('disabled', false);
+            }
+        }
+    }
+
+    // Form validasyonu
+    $('form').on('submit', function(e) {
+        var varyant = $('#{{ form.varyant.id_for_label }}').val();
+        var miktar = $('#{{ form.miktar.id_for_label }}').val();
+        var aciklama = $('#{{ form.aciklama.id_for_label }}').val().trim();
+
+        if (!varyant) {
+            e.preventDefault();
+            alert('Lütfen bir ürün varyantı seçin!');
+            return false;
+        }
+
+        if (!miktar || miktar <= 0) {
+            e.preventDefault();
+            alert('Lütfen geçerli bir miktar girin!');
+            return false;
+        }
+
+        if (!aciklama) {
+            e.preventDefault();
+            alert('Lütfen açıklama girin!');
+            return false;
+        }
+
+        // Stok yeterlilik kontrolü
+        var mevcutStokText = $('#mevcut-stok').val();
+        if (mevcutStokText && mevcutStokText !== 'Varyant seçtikten sonra görünecek' && mevcutStokText !== 'Bilgi yok') {
+            var mevcutStok = parseInt(mevcutStokText.replace(' adet', ''));
+            if (parseInt(miktar) > mevcutStok) {
+                e.preventDefault();
+                alert(`Yetersiz stok! Maksimum ${mevcutStok} adet çıkış yapabilirsiniz.`);
+                return false;
+            }
+        }
+
+        // Onay sor
+        if (!confirm(`${miktar} adet stok çıkış işlemi yapılacak. Onaylıyor musunuz?`)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

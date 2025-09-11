@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ sayfa_baslik }} - Stok Yönetimi{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Başlık -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                {% if islem_tipi == 'eksik' %}
+                    <i class="fas fa-minus-circle text-warning me-2"></i>{{ sayfa_baslik }}
+                {% else %}
+                    <i class="fas fa-plus-circle text-success me-2"></i>{{ sayfa_baslik }}
+                {% endif %}
+            </h1>
+            <p class="text-muted mb-0">{{ sayfa_aciklama }}</p>
+        </div>
+        <a href="{% url 'urun:stok_yonetimi' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Geri Dön
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Arama Formu -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-search me-2"></i>Ürün Ara
+                    </h5>
+                    
+                    <form method="post" class="mb-3">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   name="arama_terimi" 
+                                   placeholder="Barkod numarası veya ürün adı girin..." 
+                                   value="{{ request.POST.arama_terimi }}"
+                                   autofocus>
+                            <button type="submit" name="arama" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i>Ara
+                            </button>
+                        </div>
+                    </form>
+                    
+                    {% if arama_yapildi and not varyant %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Aradığınız ürün bulunamadı. Lütfen barkod numarasını veya ürün adını kontrol edin.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Ürün Bilgileri ve İşlem -->
+        <div class="col-lg-7">
+            {% if varyant %}
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-box me-2"></i>Ürün Bilgileri
+                        </h5>
+                        
+                        <!-- Ürün Bilgisi -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Ürün Adı</h6>
+                                <p class="fw-bold">{{ varyant.urun.ad }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Varyasyon</h6>
+                                <p class="fw-bold">{{ varyant.varyasyon_adi }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Barkod</h6>
+                                <p class="font-monospace">{{ varyant.barkod }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Mevcut Stok</h6>
+                                <p class="fs-4 fw-bold {% if varyant.stok_miktari > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ varyant.stok_miktari }} adet
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- İşlem Formu -->
+                        <div class="border-top pt-4">
+                            <h6 class="mb-3">
+                                {% if islem_tipi == 'eksik' %}
+                                    <i class="fas fa-minus-circle text-warning me-2"></i>Stok Azalt
+                                {% else %}
+                                    <i class="fas fa-plus-circle text-success me-2"></i>Stok Ekle
+                                {% endif %}
+                            </h6>
+                            
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="varyant_id" value="{{ varyant.id }}">
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="miktar" class="form-label">
+                                            {% if islem_tipi == 'eksik' %}
+                                                Azaltılacak Miktar
+                                            {% else %}
+                                                Eklenecek Miktar
+                                            {% endif %}
+                                        </label>
+                                        <input type="number" 
+                                               class="form-control form-control-lg" 
+                                               id="miktar" 
+                                               name="miktar" 
+                                               min="1" 
+                                               {% if islem_tipi == 'eksik' %}max="{{ varyant.stok_miktari }}"{% endif %}
+                                               required>
+                                        {% if islem_tipi == 'eksik' %}
+                                            <div class="form-text">Maksimum: {{ varyant.stok_miktari }} adet</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="aciklama" class="form-label">Açıklama *</label>
+                                        <input type="text" 
+                                               class="form-control form-control-lg" 
+                                               id="aciklama" 
+                                               name="aciklama" 
+                                               placeholder="İşlem açıklaması..."
+                                               required>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3 d-flex gap-2">
+                                    <button type="submit" name="islem" class="btn {% if islem_tipi == 'eksik' %}btn-warning{% else %}btn-success{% endif %} btn-lg">
+                                        {% if islem_tipi == 'eksik' %}
+                                            <i class="fas fa-minus me-2"></i>Stok Azalt
+                                        {% else %}
+                                            <i class="fas fa-plus me-2"></i>Stok Ekle
+                                        {% endif %}
+                                    </button>
+                                    <a href="{% if islem_tipi == 'eksik' %}{% url 'urun:sayim_eksigi' %}{% else %}{% url 'urun:sayim_fazlasi' %}{% endif %}" class="btn btn-outline-secondary btn-lg">
+                                        <i class="fas fa-refresh me-2"></i>Yeni Arama
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% elif not arama_yapildi %}
+                <!-- İlk durumda gösterilecek bilgi -->
+                <div class="card shadow-sm border-0 bg-light">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            {% if islem_tipi == 'eksik' %}
+                                <i class="fas fa-minus-circle fa-4x text-warning"></i>
+                            {% else %}
+                                <i class="fas fa-plus-circle fa-4x text-success"></i>
+                            {% endif %}
+                        </div>
+                        <h5 class="text-muted">{{ sayfa_baslik }} İşlemi</h5>
+                        <p class="text-muted">
+                            Sol taraftaki arama formunu kullanarak ürün arayın ve 
+                            {% if islem_tipi == 'eksik' %}stok azaltma{% else %}stok ekleme{% endif %} işlemini gerçekleştirin.
+                        </p>
+                        <div class="mt-4">
+                            <small class="text-muted">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                <strong>İpucu:</strong> Barkod okuyucu kullanarak hızlı arama yapabilirsiniz.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Arama input'una otomatik odaklan
+    const aramInput = document.querySelector('input[name="arama_terimi"]');
+    if (aramInput) {
+        aramInput.focus();
+        
+        // Enter tuşu ile arama
+        aramInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.closest('form').submit();
+            }
+        });
+    }
+    
+    // Miktar input'unda maksimum değer kontrolü
+    const miktarInput = document.querySelector('input[name="miktar"]');
+    if (miktarInput) {
+        miktarInput.addEventListener('input', function() {
+            const max = parseInt(this.getAttribute('max'));
+            const value = parseInt(this.value);
+            
+            if (max && value > max) {
+                this.value = max;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

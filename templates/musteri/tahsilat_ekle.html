@@ -1,0 +1,758 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Yeni Tahsilat{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tahsilat-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .form-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .form-header {
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(10px);
+        padding: 2rem;
+        text-align: center;
+        color: white;
+    }
+    
+    .form-body {
+        background: white;
+        padding: 2rem;
+    }
+    
+    .custom-select {
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .custom-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        outline: none;
+    }
+    
+    .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .musteri-card {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+    
+    .musteri-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .payment-methods {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .payment-method {
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .payment-method:hover {
+        border-color: #667eea;
+        transform: translateY(-2px);
+    }
+    
+    .payment-method.active {
+        border-color: #667eea;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .payment-method i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .extra-fields {
+        margin-top: 1.5rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        display: none;
+    }
+    
+    #creditCardFields {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    #creditCardFields .form-label {
+        color: white;
+        font-weight: 600;
+    }
+    
+    #creditCardFields .form-control,
+    #creditCardFields .form-select {
+        background: rgba(255,255,255,0.9);
+        border: none;
+        color: #333;
+    }
+    
+    #creditCardFields .alert-info {
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: white;
+    }
+    
+    .amount-display {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        color: white;
+        margin: 1.5rem 0;
+    }
+    
+    .amount-input {
+        font-size: 1.5rem;
+        font-weight: bold;
+        text-align: center;
+        border: none;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border-radius: 8px;
+        padding: 0.5rem;
+    }
+    
+    /* Number input spinner'larını gizle */
+    .amount-input::-webkit-outer-spin-button,
+    .amount-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    .amount-input[type=number] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+    
+    .amount-input::placeholder {
+        color: rgba(255,255,255,0.7);
+    }
+    
+    .loading-spinner {
+        display: none;
+        text-align: center;
+        padding: 2rem;
+    }
+    
+    .success-animation {
+        display: none;
+        text-align: center;
+        padding: 2rem;
+    }
+    
+    .success-checkmark {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: #28a745;
+        margin: 0 auto 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    
+    .musteri-search {
+        position: relative;
+    }
+    
+    .musteri-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+    
+    .musteri-item {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        transition: background 0.3s ease;
+    }
+    
+    .musteri-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .musteri-item:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="tahsilat-container">
+        <!-- Form Card -->
+        <div class="form-card">
+            <div class="form-header">
+                <h2 class="mb-0">
+                    <i class="fas fa-money-bill-wave me-2"></i>
+                    Yeni Tahsilat
+                </h2>
+                <p class="mb-0 mt-2 opacity-75">Müşteriden ödeme tahsil edin</p>
+            </div>
+            
+            <div class="form-body">
+                <!-- Müşteri Seçimi -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-user me-2"></i>Müşteri Seçin
+                        </label>
+                        <div class="musteri-search">
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="musteriArama" 
+                                   placeholder="Müşteri adı, telefon veya firma adı ile arayın..."
+                                   autocomplete="off">
+                            <div class="musteri-dropdown" id="musteriDropdown"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seçilen Müşteri Bilgisi -->
+                <div id="selectedMusteriCard" class="musteri-card" style="display: none;">
+                    <div class="musteri-info">
+                        <div>
+                            <h5 class="mb-1" id="musteriAdi"></h5>
+                            <p class="mb-0" id="musteriTelefon"></p>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold">Açık Hesap Borcu</div>
+                            <div class="fs-4" id="musteriBorc">0.00 ₺</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form id="tahsilatForm" style="display: none;">
+                    {% csrf_token %}
+                    <input type="hidden" id="selectedMusteriId" name="musteri_id">
+                    
+                    <!-- Tutar Girişi -->
+                    <div class="amount-display">
+                        <label class="form-label fw-bold mb-3">
+                            ₺ Tahsilat Tutarı
+                        </label>
+                        <input type="number" 
+                               class="amount-input form-control" 
+                               id="tahsilatTutar" 
+                               name="tutar" 
+                               step="0.01" 
+                               min="0.01" 
+                               placeholder="0.00"
+                               required>
+                    </div>
+                    
+                    <!-- Ödeme Yöntemleri -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-credit-card me-2"></i>Ödeme Yöntemi
+                        </label>
+                        <div class="payment-methods">
+                            <div class="payment-method" data-method="nakit">
+                                <i class="fas fa-money-bill-alt text-success"></i>
+                                <div class="fw-bold">Nakit</div>
+                                <small class="text-muted">Peşin ödeme</small>
+                            </div>
+                            <div class="payment-method" data-method="kart">
+                                <i class="fas fa-credit-card text-primary"></i>
+                                <div class="fw-bold">Kredi Kartı</div>
+                                <small class="text-muted">Pos cihazı</small>
+                            </div>
+                            <div class="payment-method" data-method="havale">
+                                <i class="fas fa-university text-info"></i>
+                                <div class="fw-bold">Havale/EFT</div>
+                                <small class="text-muted">Banka transferi</small>
+                            </div>
+                            <div class="payment-method" data-method="cek">
+                                <i class="fas fa-file-invoice text-warning"></i>
+                                <div class="fw-bold">Çek</div>
+                                <small class="text-muted">Vadeli ödeme</small>
+                            </div>
+                            <div class="payment-method" data-method="senet">
+                                <i class="fas fa-scroll text-secondary"></i>
+                                <div class="fw-bold">Senet</div>
+                                <small class="text-muted">Vadeli ödeme</small>
+                            </div>
+                        </div>
+                        <input type="hidden" id="odemeYontemi" name="tahsilat_tipi" required>
+                    </div>
+
+                    <!-- Kredi Kartı Taksit Bilgileri -->
+                    <div id="creditCardFields" class="extra-fields">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-list-ol me-2"></i>Taksit Sayısı
+                                </label>
+                                <select class="form-select" id="taksitSayisi" name="taksit_sayisi">
+                                    <option value="1">Peşin (1 Taksit)</option>
+                                    <option value="2">2 Taksit</option>
+                                    <option value="3">3 Taksit</option>
+                                    <option value="4">4 Taksit</option>
+                                    <option value="5">5 Taksit</option>
+                                    <option value="6">6 Taksit</option>
+                                    <option value="9">9 Taksit</option>
+                                    <option value="12">12 Taksit</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Taksit Bilgisi:</strong> <span id="taksitBilgisi">Peşin ödeme</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Açıklama -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-comment me-2"></i>Açıklama <small class="text-muted">(isteğe bağlı)</small>
+                        </label>
+                        <textarea class="form-control" 
+                                  id="aciklama" 
+                                  name="aciklama" 
+                                  rows="3" 
+                                  placeholder="Tahsilat ile ilgili notlarınızı yazabilirsiniz..."></textarea>
+                    </div>
+                    
+                    <!-- Butonlar -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'musteri:tahsilat_listesi' %}" class="btn btn-outline-secondary me-md-2">
+                            <i class="fas fa-arrow-left me-2"></i>İptal
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="kaydetBtn">
+                            <i class="fas fa-save me-2"></i>Tahsilatı Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+            <p class="mt-3">Tahsilat kaydediliyor...</p>
+        </div>
+        
+        <!-- Success Animation -->
+        <div class="success-animation" id="successAnimation">
+            <div class="success-checkmark">
+                <i class="fas fa-check text-white fs-1"></i>
+            </div>
+            <h4 class="text-success">Tahsilat Başarıyla Kaydedildi!</h4>
+            <p class="text-muted">Tahsilat No: <span id="tahsilatNo"></span></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+class TahsilatModule {
+    constructor() {
+        this.selectedMusteri = null;
+        this.selectedPaymentMethod = null;
+        this.init();
+    }
+    
+    init() {
+        this.bindEvents();
+        this.setupValidation();
+    }
+    
+    bindEvents() {
+        // Müşteri arama
+        $('#musteriArama').on('input', (e) => {
+            this.searchMusteri(e.target.value);
+        });
+        
+        // Müşteri dropdown kapanması için document click
+        $(document).on('click', (e) => {
+            if (!$(e.target).closest('.musteri-search').length) {
+                $('#musteriDropdown').hide();
+            }
+        });
+        
+        // Ödeme yöntemi seçimi
+        $('.payment-method').on('click', (e) => {
+            this.selectPaymentMethod($(e.currentTarget).data('method'));
+        });
+        
+        // Form submit
+        $('#tahsilatForm').on('submit', (e) => {
+            e.preventDefault();
+            this.submitForm();
+        });
+        
+        // Tutar girişi validation
+        $('#tahsilatTutar').on('input', (e) => {
+            this.validateAmount(e.target.value);
+            // Kredi kartı seçiliyse taksit bilgisini güncelle
+            if (this.selectedPaymentMethod === 'kart') {
+                this.updateTaksitBilgisi();
+            }
+        });
+        
+        // Taksit sayısı değişikliği
+        $('#taksitSayisi').on('change', () => {
+            this.updateTaksitBilgisi();
+        });
+    }
+    
+    async searchMusteri(query) {
+        if (query.length < 2) {
+            $('#musteriDropdown').hide();
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/musteri/ajax/musteri-ara/?q=${encodeURIComponent(query)}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // API yanıtını kontrol et - musteri API'si musteriler key'i kullanıyor
+            const results = data.musteriler || data.results || [];
+            
+            this.renderMusteriDropdown(results);
+        } catch (error) {
+            console.error('Müşteri arama hatası:', error);
+            this.showError('Müşteri arama sırasında bir hata oluştu.');
+            $('#musteriDropdown').hide();
+        }
+    }
+    
+    renderMusteriDropdown(musteriler) {
+        const dropdown = $('#musteriDropdown');
+        dropdown.empty();
+        
+        // Array kontrolü
+        if (!Array.isArray(musteriler) || musteriler.length === 0) {
+            dropdown.html('<div class="musteri-item text-muted">Müşteri bulunamadı</div>');
+        } else {
+            musteriler.forEach(musteri => {
+                // Müşteri verilerini kontrol et
+                const musteriAd = musteri.ad || '';
+                const musteriSoyad = musteri.soyad || '';
+                const musteriTelefon = musteri.telefon || '';
+                const musteriFirma = musteri.firma_adi || 'Bireysel';
+                const musteriBorc = musteri.acik_hesap_bakiye || 0;
+                
+                const item = $(`
+                    <div class="musteri-item" data-musteri='${JSON.stringify(musteri)}'>
+                        <div class="fw-bold">${musteriAd} ${musteriSoyad}</div>
+                        <div class="text-muted small">${musteriTelefon} - ${musteriFirma}</div>
+                        <div class="text-${musteriBorc > 0 ? 'danger' : 'success'} small">
+                            Borç: ${musteriBorc.toFixed(2)} ₺
+                        </div>
+                    </div>
+                `);
+                
+                item.on('click', () => {
+                    this.selectMusteri(musteri);
+                });
+                
+                dropdown.append(item);
+            });
+        }
+        
+        dropdown.show();
+    }
+    
+    selectMusteri(musteri) {
+        // Müşteri verisini kontrol et
+        if (!musteri || !musteri.id) {
+            this.showError('Geçersiz müşteri verisi.');
+            return;
+        }
+        
+        this.selectedMusteri = musteri;
+        
+        // Güvenli veri çekimi
+        const musteriAd = musteri.ad || '';
+        const musteriSoyad = musteri.soyad || '';
+        const musteriTelefon = musteri.telefon || '';
+        const musteriBorc = musteri.acik_hesap_bakiye || 0;
+        
+        // Arama inputunu güncelle
+        $('#musteriArama').val(`${musteriAd} ${musteriSoyad}`);
+        $('#musteriDropdown').hide();
+        
+        // Müşteri kartını göster
+        $('#musteriAdi').text(`${musteriAd} ${musteriSoyad}`);
+        $('#musteriTelefon').text(musteriTelefon);
+        $('#musteriBorc').text(`${musteriBorc.toFixed(2)} ₺`);
+        $('#selectedMusteriId').val(musteri.id);
+        
+        $('#selectedMusteriCard').show();
+        $('#tahsilatForm').show();
+        
+        // Borç miktarını varsayılan tutar olarak ayarla
+        if (musteriBorc > 0) {
+            $('#tahsilatTutar').val(musteriBorc.toFixed(2));
+        }
+    }
+    
+    selectPaymentMethod(method) {
+        this.selectedPaymentMethod = method;
+        
+        // Görsel güncelleme
+        $('.payment-method').removeClass('active');
+        $(`.payment-method[data-method="${method}"]`).addClass('active');
+        
+        $('#odemeYontemi').val(method);
+        
+        // Kredi kartı alanlarını göster/gizle
+        if (method === 'kart') {
+            $('#creditCardFields').show();
+            $('#taksitSayisi').attr('required', true);
+            
+            // Taksit bilgisini güncelle
+            this.updateTaksitBilgisi();
+        } else {
+            $('#creditCardFields').hide();
+            $('#taksitSayisi').removeAttr('required');
+        }
+    }
+
+    updateTaksitBilgisi() {
+        const tutar = parseFloat($('#tahsilatTutar').val()) || 0;
+        const taksitSayisi = parseInt($('#taksitSayisi').val()) || 1;
+        
+        if (tutar > 0) {
+            if (taksitSayisi === 1) {
+                $('#taksitBilgisi').text(`Peşin ödeme: ${tutar.toFixed(2)} ₺`);
+            } else {
+                const taksitTutari = tutar / taksitSayisi;
+                $('#taksitBilgisi').text(`${taksitSayisi} taksit × ${taksitTutari.toFixed(2)} ₺`);
+            }
+        } else {
+            $('#taksitBilgisi').text('Peşin ödeme');
+        }
+    }
+    
+    
+    validateAmount(amount) {
+        const tutar = parseFloat(amount);
+        const musteriBorc = this.selectedMusteri ? (this.selectedMusteri.acik_hesap_bakiye || 0) : 0;
+        
+        if (isNaN(tutar)) {
+            return false;
+        }
+        
+        if (tutar > musteriBorc && musteriBorc > 0) {
+            this.showWarning(`Girilen tutar müşteri borcundan (${musteriBorc.toFixed(2)} ₺) büyük!`);
+        }
+        
+        return tutar > 0;
+    }
+    
+    async submitForm() {
+        if (!this.validateForm()) {
+            return;
+        }
+        
+        // Loading göster
+        this.showLoading();
+        
+        try {
+            const formData = new FormData($('#tahsilatForm')[0]);
+            
+            const response = await fetch('/musteri/tahsilat/ekle/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showSuccess(result.tahsilat_no);
+                setTimeout(() => {
+                    window.location.href = `/musteri/tahsilat/${result.tahsilat_id}/`;
+                }, 2000);
+            } else {
+                this.hideLoading();
+                this.showError(result.message || 'Tahsilat kaydedilirken bir hata oluştu.');
+            }
+        } catch (error) {
+            this.hideLoading();
+            console.error('Form gönderme hatası:', error);
+            this.showError('Bağlantı hatası. Lütfen tekrar deneyin.');
+        }
+    }
+    
+    validateForm() {
+        if (!this.selectedMusteri) {
+            this.showError('Lütfen bir müşteri seçin.');
+            return false;
+        }
+        
+        if (!this.selectedPaymentMethod) {
+            this.showError('Lütfen bir ödeme yöntemi seçin.');
+            return false;
+        }
+        
+        const tutar = parseFloat($('#tahsilatTutar').val());
+        if (!tutar || tutar <= 0) {
+            this.showError('Lütfen geçerli bir tutar girin.');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    showLoading() {
+        $('.form-card').hide();
+        $('#loadingSpinner').show();
+    }
+    
+    hideLoading() {
+        $('#loadingSpinner').hide();
+        $('.form-card').show();
+    }
+    
+    showSuccess(tahsilatNo) {
+        $('#loadingSpinner').hide();
+        $('#tahsilatNo').text(tahsilatNo);
+        $('#successAnimation').show();
+    }
+    
+    showError(message) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Hata!',
+            text: message,
+            confirmButtonColor: '#667eea'
+        });
+    }
+    
+    showWarning(message) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Uyarı!',
+            text: message,
+            confirmButtonColor: '#667eea'
+        });
+    }
+    
+    setupValidation() {
+        // Form validation kuralları
+        $('#tahsilatForm').on('submit', (e) => {
+            if (!this.validateForm()) {
+                e.preventDefault();
+            }
+        });
+    }
+}
+
+// Sayfa yüklendiğinde modülü başlat
+$(document).ready(() => {
+    const tahsilatModule = new TahsilatModule();
+    
+    // URL parametresinden müşteri ID'sini kontrol et
+    const urlParams = new URLSearchParams(window.location.search);
+    const musteriId = urlParams.get('musteri');
+    
+    if (musteriId) {
+        // Müşteri bilgilerini getir ve ön seç
+        fetch(`/musteri/ajax/detay/${musteriId}/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.musteri) {
+                    tahsilatModule.selectMusteri(data.musteri);
+                } else {
+                    console.warn('Müşteri verisi alınamadı:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Müşteri bilgisi alınırken hata:', error);
+                // Hata durumunda sessizce devam et
+            });
+    }
+});
+</script>
+{% endblock %}

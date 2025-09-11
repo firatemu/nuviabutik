@@ -1,0 +1,32 @@
+{% extends "admin/login.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+.admin-warning {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    text-align: center;
+}
+.admin-warning .icon {
+    font-size: 24px;
+    margin-bottom: 10px;
+    display: block;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-warning">
+    <span class="icon">🔐</span>
+    <strong>YÖNETİCİ PANELİ</strong><br>
+    Bu alan sadece sistem yöneticileri için tasarlanmıştır.<br>
+    Yetkili kullanıcı bilgileriniz ile giriş yapabilirsiniz.
+</div>
+{{ block.super }}
+{% endblock %}

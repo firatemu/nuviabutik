@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Barkod Sorgula{% endblock %}
+
+{% block content %}
+<div class=" container-fluid\>
+ <div class=\row\>
+ <div class=\col-12\>
+ <div class=\card\>
+ <div class=\card-header bg-info text-white\>
+ <h4><i class=\fas fa-barcode\></i> Barkod Sorgula</h4>
+ </div>
+ <div class=\card-body\>
+ <!-- Barkod Arama Formu -->
+ <form method=\get\ class=\mb-4\ id=\barkodForm\>
+ <div class=\row\>
+ <div class=\col-md-6\>
+ <div class=\input-group\>
+ <span class=\input-group-text\>
+ <i class=\fas fa-barcode\></i>
+ </span>
+ <input type=\text\ class=\form-control form-control-lg\ 
+ name=\barkod\ id=\barkodInput\ value=" -encodedCommand ewAgAGIAYQByAGsAbwBkAHwAZABlAGYAYQB1AGwAdAA6ACcAJwAgAH0A \
+                                           placeholder=\Barkod okutun veya yazın...\
+                                           autofocus autocomplete=\off\>
+                                </div>
+                            </div>
+                            <div class=\col-md-3\>
+                                <button type=\button\ class=\btn btn-success btn-lg w-100\ id=\cameraBtn\ title=\Kamera ile Barkod Oku\>
+                                    <i class=\fas fa-camera\></i>
+                                    <span class=\d-none d-md-inline\>Kamera</span>
+                                    <span class=\d-md-none\></span>
+                                </button>
+                            </div>
+                            <div class=\col-md-3\>
+                                <button type=\submit\ class=\btn btn-primary btn-lg w-100\>       
+                                    <i class=\fas fa-search\></i> Sorgula
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Kamera Alanı -->
+                    <div class=\row mb-4 d-none\ id=\cameraArea\>
+                        <div class=\col-12\>
+                            <div class=\card border-success\>
+                                <div class=\card-header bg-success text-white d-flex justify-content-between align-items-center\>
+                                    <h6 class=\mb-0\>
+                                        <i class=\fas fa-camera\></i> Kamera ile Barkod Okuma     
+                                    </h6>
+                                    <button type=\button\ class=\btn btn-sm btn-light\ id=\stopCameraBtn\>
+                                        <i class=\fas fa-times\></i> Kapat
+                                    </button>
+                                </div>
+                                <div class=\card-body p-2 text-center\>
+                                    <div class=\camera-container\>
+                                        <video id=\preview\ autoplay playsinline webkit-playsinline muted
+                                               style=\transform: scaleX -1 -inputFormat xml -outputFormat text

@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Günlük Rapor{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-chart-line"></i> Günlük Rapor</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'gunluk_rapor_pdf' %}?tarih={{ secili_tarih|date:'Y-m-d' }}" class="btn btn-danger">
+                <i class="fas fa-file-pdf"></i> PDF İndir
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarih Seçici -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-auto">
+                    <label class="form-label">Rapor Tarihi:</label>
+                    <input type="date" name="tarih" class="form-control" value="{{ secili_tarih|date:'Y-m-d' }}" onchange="this.form.submit()">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Özet Kartlar -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h5><i class="fas fa-lira-sign"></i> Toplam Satış</h5>
+                    <h3>{{ satis_ozeti.toplam_satis_tutari|floatformat:2 }} ₺</h3>
+                    <small>{{ satis_ozeti.toplam_satis_sayisi }} adet satış</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h5><i class="fas fa-money-bill-wave"></i> Toplam Gider</h5>
+                    <h3>{{ gider_ozeti.toplam_gider_tutari|floatformat:2 }} ₺</h3>
+                    <small>{{ gider_ozeti.toplam_gider_sayisi }} adet gider</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h5><i class="fas fa-chart-pie"></i> Net Kar</h5>
+                    <h3>{{ net_kar|floatformat:2 }} ₺</h3>
+                    <small>Gider çıkarıldıktan sonra</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h5><i class="fas fa-calculator"></i> Brüt Kar</h5>
+                    <h3>{{ brut_kar|floatformat:2 }} ₺</h3>
+                    <small>Gider hariç</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ödeme Yöntemleri -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-money-bill"></i> Nakit Satışlar</h6>
+                </div>
+                <div class="card-body text-center">
+                    <h4>{{ nakit_satislar.toplam|floatformat:2 }} ₺</h4>
+                    <small class="text-muted">{{ nakit_satislar.adet }} adet</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-credit-card"></i> Kart Satışları</h6>
+                </div>
+                <div class="card-body text-center">
+                    <h4>{{ kart_satislar.toplam|floatformat:2 }} ₺</h4>
+                    <small class="text-muted">{{ kart_satislar.adet }} adet</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h6 class="mb-0"><i class="fas fa-gift"></i> Hediye Çeki</h6>
+                </div>
+                <div class="card-body text-center">
+                    <h4>{{ hediye_ceki_satislar.toplam|floatformat:2 }} ₺</h4>
+                    <small class="text-muted">{{ hediye_ceki_satislar.adet }} adet</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- En Çok Satan Ürünler -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-fire"></i> En Çok Satan Ürünler</h5>
+                </div>
+                <div class="card-body">
+                    {% if cok_satan_urunler %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Ürün</th>
+                                        <th>Miktar</th>
+                                        <th>Ciro</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in cok_satan_urunler %}
+                                    <tr>
+                                        <td>{{ item.urun.ad }}</td>
+                                        <td><span class="badge bg-primary">{{ item.toplam_miktar }}</span></td>
+                                        <td>{{ item.toplam_ciro|floatformat:2 }} ₺</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">Bu tarihte satış bulunamadı.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Son Satışlar -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-clock"></i> Son Satışlar</h5>
+                </div>
+                <div class="card-body">
+                    {% if son_satislar %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Saat</th>
+                                        <th>Müşteri</th>
+                                        <th>Tutar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for satis in son_satislar %}
+                                    <tr>
+                                        <td>{{ satis.satis_tarihi|time:'H:i' }}</td>
+                                        <td>{{ satis.musteri.ad_soyad|default:"Perakende" }}</td>
+                                        <td>{{ satis.toplam_tutar|floatformat:2 }} ₺</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">Bu tarihte satış bulunamadı.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kasa Durumu -->
+    {% if kasa_durumu %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cash-register"></i> Kasa Durumu</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Kasa Adı</th>
+                                    <th>Günlük Giriş</th>
+                                    <th>Günlük Çıkış</th>
+                                    <th>Günlük Net</th>
+                                    <th>Mevcut Bakiye</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for kasa_item in kasa_durumu %}
+                                <tr>
+                                    <td><strong>{{ kasa_item.kasa.ad }}</strong></td>
+                                    <td class="text-success">+{{ kasa_item.gunluk_giris|floatformat:2 }} ₺</td>
+                                    <td class="text-danger">-{{ kasa_item.gunluk_cikis|floatformat:2 }} ₺</td>
+                                    <td class="{% if kasa_item.gunluk_net >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ kasa_item.gunluk_net|floatformat:2 }} ₺
+                                    </td>
+                                    <td><strong>{{ kasa_item.mevcut_bakiye|floatformat:2 }} ₺</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Günlük Giderler -->
+    {% if gunluk_giderler %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-receipt"></i> Günlük Giderler</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Saat</th>
+                                    <th>Kategori</th>
+                                    <th>Açıklama</th>
+                                    <th>Tutar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for gider in gunluk_giderler %}
+                                <tr>
+                                    <td>{{ gider.tarih|time:'H:i' }}</td>
+                                    <td>{{ gider.kategori.ad }}</td>
+                                    <td>{{ gider.aciklama }}</td>
+                                    <td class="text-danger">{{ gider.tutar|floatformat:2 }} ₺</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

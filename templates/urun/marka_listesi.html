@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Marka Listesi{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-tags text-primary"></i> Marka Listesi</h2>
+                <div class="d-flex gap-2">
+                    <!-- Görünüm Toggle -->
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary" id="gridView" title="Kart Görünümü">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="listView" title="Liste Görünümü">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                    <a href="{% url 'urun:marka_ekle' %}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Yeni Marka Ekle
+                    </a>
+                </div>
+            </div>
+
+            <!-- Arama -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" name="q" 
+                                       value="{{ query|default:'' }}" 
+                                       placeholder="Marka adı ara...">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Ara
+                            </button>
+                            <a href="{% url 'urun:marka_listesi' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Temizle
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Marka Listesi - Kart Görünümü -->
+            <div class="row" id="cardView">
+                {% for marka in markalar %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                {% if marka.logo %}
+                                    <img src="{{ marka.logo.url }}" alt="{{ marka.ad }}" 
+                                         class="me-3 rounded" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                    <div class="me-3 bg-light rounded d-flex align-items-center justify-content-center" 
+                                         style="width: 50px; height: 50px;">
+                                        <i class="fas fa-image text-muted"></i>
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <h5 class="card-title mb-1">{{ marka.ad }}</h5>
+                                    <span class="badge bg-primary">{{ marka.urun_sayisi }} ürün</span>
+                                </div>
+                            </div>
+                            
+                            {% if marka.aciklama %}
+                            <p class="card-text text-muted small">{{ marka.aciklama|truncatewords:15 }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="btn-group w-100" role="group">
+                                <a href="{% url 'urun:marka_duzenle' marka.pk %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-edit"></i> Düzenle
+                                </a>
+                                <a href="{% url 'urun:liste' %}?marka={{ marka.pk }}" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-eye"></i> Ürünler
+                                </a>
+                                {% if marka.urun_sayisi == 0 %}
+                                <a href="{% url 'urun:marka_sil' marka.pk %}" class="btn btn-outline-danger btn-sm">
+                                    <i class="fas fa-trash"></i> Sil
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        <h4><i class="fas fa-info-circle"></i> Marka Bulunamadı</h4>
+                        {% if query %}
+                            <p>"{{ query }}" aramasına uygun marka bulunamadı.</p>
+                        {% else %}
+                            <p>Henüz hiç marka eklenmemiş.</p>
+                        {% endif %}
+                        <a href="{% url 'urun:marka_ekle' %}" class="btn btn-success">
+                            <i class="fas fa-plus"></i> İlk Markayı Ekleyin
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Marka Listesi - Tablo Görünümü -->
+            <div class="table-responsive d-none" id="tableView">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Logo</th>
+                            <th>Marka Adı</th>
+                            <th>Açıklama</th>
+                            <th>Ürün Sayısı</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for marka in markalar %}
+                        <tr>
+                            <td>
+                                {% if marka.logo %}
+                                    <img src="{{ marka.logo.url }}" alt="{{ marka.ad }}" 
+                                         class="rounded" style="width: 40px; height: 40px; object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="fas fa-image text-muted"></i>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ marka.ad }}</strong>
+                            </td>
+                            <td>
+                                <span class="text-muted">{{ marka.aciklama|truncatewords:10|default:"Açıklama yok" }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ marka.urun_sayisi }} ürün</span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'urun:marka_duzenle' marka.pk %}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'urun:liste' %}?marka={{ marka.pk }}" class="btn btn-outline-info btn-sm">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if marka.urun_sayisi == 0 %}
+                                    <a href="{% url 'urun:marka_sil' marka.pk %}" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">
+                                <div class="alert alert-info mb-0">
+                                    <h5><i class="fas fa-info-circle"></i> Marka Bulunamadı</h5>
+                                    {% if query %}
+                                        <p>"{{ query }}" aramasına uygun marka bulunamadı.</p>
+                                    {% else %}
+                                        <p>Henüz hiç marka eklenmemiş.</p>
+                                    {% endif %}
+                                    <a href="{% url 'urun:marka_ekle' %}" class="btn btn-success">
+                                        <i class="fas fa-plus"></i> İlk Markayı Ekleyin
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- İstatistikler -->
+            {% if markalar %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar"></i> Özet İstatistikler</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <h4>{{ markalar.count }}</h4>
+                                    <p>Toplam Marka</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h4>{{ markalar|length }}</h4>
+                                    <p>Aktif Marka</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <h4>{{ markalar.0.urun_sayisi|default:0 }}</h4>
+                                    <p>En Çok Ürünlü</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card {
+    transition: transform 0.2s ease;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+.badge {
+    font-size: 0.75rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gridViewBtn = document.getElementById('gridView');
+    const listViewBtn = document.getElementById('listView');
+    const cardView = document.getElementById('cardView');
+    const tableView = document.getElementById('tableView');
+    
+    // Görünüm değiştirme fonksiyonu
+    function toggleView(viewType) {
+        if (viewType === 'grid') {
+            cardView.classList.remove('d-none');
+            tableView.classList.add('d-none');
+            gridViewBtn.classList.add('active');
+            listViewBtn.classList.remove('active');
+            localStorage.setItem('markaViewType', 'grid');
+        } else {
+            cardView.classList.add('d-none');
+            tableView.classList.remove('d-none');
+            listViewBtn.classList.add('active');
+            gridViewBtn.classList.remove('active');
+            localStorage.setItem('markaViewType', 'list');
+        }
+    }
+    
+    // Event listeners
+    gridViewBtn.addEventListener('click', () => toggleView('grid'));
+    listViewBtn.addEventListener('click', () => toggleView('list'));
+    
+    // Kaydedilmiş görünümü yükle
+    const savedView = localStorage.getItem('markaViewType') || 'grid';
+    toggleView(savedView);
+});
+</script>
+{% endblock %}

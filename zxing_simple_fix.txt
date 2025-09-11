@@ -1,0 +1,33 @@
+// ZXing ile basit kamera başlatma
+if (typeof ZXing === 'undefined') {
+    alert('ZXing kütüphanesi yüklenemedi');
+    return;
+}
+
+const codeReader = new ZXing.BrowserMultiFormatReader();
+
+codeReader.decodeFromVideoDevice(undefined, 'preview', (result, err) => {
+    if (result) {
+        const code = result.getText();
+        console.log('Barkod okundu:', code);
+        
+        if (navigator.vibrate) {
+            navigator.vibrate([200, 100, 200]);
+        }
+        
+        scannedCode.textContent = code;
+        scanResult.classList.remove('d-none');
+        barkodInput.value = code;
+        
+        stopCamera();
+        setTimeout(() => barkodForm.submit(), 1500);
+    }
+    if (err && !(err instanceof ZXing.NotFoundException)) {
+        console.error('Okuma hatası:', err);
+    }
+});
+
+isScanning = true;
+cameraBtn.innerHTML = '<i class=" fas fa-camera\></i> <span class=\d-none d-md-inline\>Kamera Açık</span>';
+cameraBtn.classList.remove('btn-success');
+cameraBtn.classList.add('btn-warning');
