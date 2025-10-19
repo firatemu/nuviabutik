@@ -87,14 +87,14 @@ def custom_login_view(request):
             if user is not None:
                 login(request, user)
                 debug_info.append("Login successful!")
-                messages.success(request, f'DEBUG: Login successful for {username}')
+                messages.success(request, f'Hoşgeldiniz {username}')
                 return redirect('dashboard')
             else:
                 debug_info.append("Authentication failed")
-                messages.error(request, f'DEBUG: Auth failed - {"; ".join(debug_info)}')
+                messages.error(request, 'Giriş başarısız. Kullanıcı adı veya şifre hatalı.')
         else:
             debug_info.append("Missing username or password")
-            messages.error(request, f'DEBUG: Missing data - {"; ".join(debug_info)}')
+            messages.error(request, 'Kullanıcı adı ve şifre alanları zorunludur.')
     
     # Debug bilgisini de gönder
     form = AuthenticationForm()
