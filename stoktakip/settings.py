@@ -113,31 +113,22 @@ WSGI_APPLICATION = 'stoktakip.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Development database configuration (SQLite)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'nuviabutik_db',
+        'USER': 'nuviabutik_user',
+        'PASSWORD': 'nuviabutik123',
+        'HOST': 'localhost',
+        'PORT': '5432',
+        'CONN_MAX_AGE': 600,  # Persistent connections (10 dakika)
+        'CONN_HEALTH_CHECKS': True,  # Bağlantı sağlık kontrolü
+        'OPTIONS': {
+            'connect_timeout': 10,
+            'options': '-c statement_timeout=30000'  # 30 saniye query timeout
+        },
     }
 }
-
-# Production database configuration (PostgreSQL)
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'nuviabutik_db',
-#         'USER': 'nuviabutik_user',
-#         'PASSWORD': 'nuviabutik123',
-#         'HOST': 'localhost',
-#         'PORT': '5432',
-#         'CONN_MAX_AGE': 600,  # Persistent connections (10 dakika)
-#         'CONN_HEALTH_CHECKS': True,  # Bağlantı sağlık kontrolü
-#         'OPTIONS': {
-#             'connect_timeout': 10,
-#             'options': '-c statement_timeout=30000'  # 30 saniye query timeout
-#         },
-#     }
-# }
 
 # Production database configuration via environment variables
 if 'DATABASE_URL' in os.environ:
