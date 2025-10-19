@@ -1,0 +1,32 @@
+from django.urls import path
+from . import views
+
+app_name = 'urun'
+
+urlpatterns = [
+    # Ürün yönetimi
+    path('', views.urun_listesi, name='urun_listesi'),
+    path('yeni/', views.urun_yeni, name='urun_yeni'),
+    path('<int:urun_id>/', views.urun_detay, name='urun_detay'),
+    path('<int:urun_id>/duzenle/', views.urun_duzenle, name='urun_duzenle'),
+    path('<int:urun_id>/sil/', views.urun_sil, name='urun_sil'),
+    path('ara/', views.urun_ara, name='urun_ara'),
+    
+    # Varyant yönetimi
+    path('<int:urun_id>/varyasyon/', views.varyasyon_yonetimi, name='varyasyon_yonet'),
+    path('varyant/<int:varyant_id>/sil/', views.varyant_sil, name='varyant_sil'),
+    path('<int:urun_id>/varyant/toplu-stok/', views.varyant_toplu_stok_guncelle, name='varyant_toplu_stok'),
+    
+    # Etiket yazdırma
+    path('etiket/<int:varyant_id>/', views.etiket_tek_yazdir, name='etiket_tek'),
+    path('etiket/toplu/', views.etiket_toplu_yazdir, name='etiket_toplu'),
+    
+    # Barkod sorgulama
+    path('barkod/', views.barkod_sorgula, name='barkod_sorgula'),
+    
+    # Kategori yönetimi
+    path('kategori/', views.kategori_yonetimi, name='kategori'),
+    path('kategori/yeni/', views.kategori_yeni, name='kategori_yeni'),
+    path('kategori/<int:kategori_id>/duzenle/', views.kategori_duzenle, name='kategori_duzenle'),
+    path('kategori/<int:kategori_id>/sil/', views.kategori_sil, name='kategori_sil'),
+]

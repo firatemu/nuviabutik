@@ -8,58 +8,104 @@
     .product-detail-card {
         border: none;
         border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         overflow: hidden;
     }
-    
+
     .product-image-container {
         height: 400px;
         background: linear-gradient(135deg, #f8f9fa, #e9ecef);
         display: flex;
         align-items: center;
         justify-content: center;
+        border-radius: 15px 15px 0 0;
     }
-    
-    .product-image-container img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: cover;
-        border-radius: 8px;
-    }
-    
+
     .no-image {
-        font-size: 6rem;
         color: #6c757d;
+        font-size: 4rem;
     }
-    
+
+    .product-info {
+        padding: 2rem;
+    }
+
     .variant-card {
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
-        padding: 1rem;
-        margin-bottom: 0.5rem;
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .variant-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .stock-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    .stock-high {
+        background-color: #d1edce;
+        color: #155724;
+    }
+
+    .stock-medium {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .stock-low {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .stock-out {
+        background-color: #f5c6cb;
+        color: #721c24;
+    }
+
+    /* Varyant İşlem Butonları */
+    .variant-card .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border-radius: 6px;
         transition: all 0.3s ease;
     }
-    
-    .variant-card:hover {
-        border-color: #007bff;
-        box-shadow: 0 2px 8px rgba(0,123,255,0.15);
+
+    .variant-card .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
-    
-    .stock-badge {
-        font-size: 0.875rem;
+
+    /* Kart görünümü buton container */
+    .variant-card .d-flex.gap-2 .btn {
+        flex: 1;
         padding: 0.375rem 0.75rem;
-        border-radius: 20px;
+        font-size: 0.8rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
     }
-    
-    .stock-high { background-color: #d4edda; color: #155724; }
-    .stock-medium { background-color: #fff3cd; color: #856404; }
-    .stock-low { background-color: #f8d7da; color: #721c24; }
-    .stock-out { background-color: #f5c6cb; color: #721c24; }
+
+    .variant-card .d-flex.gap-2 .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
+    <!-- CSRF Token for AJAX -->
+    {% csrf_token %}
+
     <!-- Sayfa Başlığı -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -81,6 +127,18 @@
                 <i class="fas fa-palette me-1"></i>Varyasyon Yönet
             </a>
             {% endif %}
+
+            <!-- Etiket Yazdırma Butonları -->
+            <button type="button" class="btn btn-success me-2" data-print-product="{{ urun.id }}">
+                <i class="fas fa-print me-1"></i>Etiket Yazdır
+            </button>
+            <!-- Temporarily disabled: ZPL Download functionality 
+            <a href="{% comment %}{% url 'urun:etiket_toplu_websocket' urun.id %}{% endcomment %}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-download me-1"></i>ZPL İndir
+            </a>
+            -->
+            -->
+
             <a href="{% url 'urun:duzenle' urun.id %}" class="btn btn-warning me-2">
                 <i class="fas fa-edit me-1"></i>Düzenle
             </a>
@@ -100,17 +158,17 @@
                         <div class="col-md-6">
                             <div class="product-image-container">
                                 {% if urun.resim %}
-                                    <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}">
+                                <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}">
                                 {% else %}
-                                    <i class="fas fa-image no-image"></i>
+                                <i class="fas fa-image no-image"></i>
                                 {% endif %}
                             </div>
                         </div>
-                        
+
                         <!-- Ürün Detayları -->
                         <div class="col-md-6">
                             <h3 class="mb-3">{{ urun.ad }}</h3>
-                            
+
                             <!-- Temel Bilgiler -->
                             <div class="mb-4">
                                 <h5 class="text-muted mb-3">Temel Bilgiler</h5>
@@ -147,15 +205,15 @@
                                         <td><strong>Varyasyonlu:</strong></td>
                                         <td>
                                             {% if urun.varyasyonlu %}
-                                                <span class="badge bg-success">Evet</span>
+                                            <span class="badge bg-success">Evet</span>
                                             {% else %}
-                                                <span class="badge bg-secondary">Hayır</span>
+                                            <span class="badge bg-secondary">Hayır</span>
                                             {% endif %}
                                         </td>
                                     </tr>
                                 </table>
                             </div>
-                            
+
                             <!-- Fiyat Bilgileri -->
                             <div class="mb-4">
                                 <h5 class="text-muted mb-3">Fiyat Bilgileri</h5>
@@ -181,7 +239,7 @@
                                     <small class="text-muted">Kar Oranı: %{{ urun.kar_orani }}</small>
                                 </div>
                             </div>
-                            
+
                             <!-- Açıklama -->
                             {% if urun.aciklama %}
                             <div class="mb-4">
@@ -194,7 +252,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Stok Özeti -->
         <div class="col-lg-4">
             <div class="card">
@@ -206,255 +264,388 @@
                         <h3 class="text-primary">{{ urun.toplam_stok }}</h3>
                         <small class="text-muted">Toplam Stok</small>
                     </div>
-                    
-                    {% if urun.toplam_stok <= urun.kritik_stok_seviyesi %}
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Kritik stok seviyesi!
-                        </div>
-                    {% endif %}
-                    
-                    <hr>
-                    
-                    <div class="mb-2">
-                        <small class="text-muted">Kritik Stok Seviyesi</small>
-                        <div class="fw-bold">{{ urun.kritik_stok_seviyesi }} adet</div>
-                    </div>
-                    
-                    <div class="mb-2">
-                        <small class="text-muted">Stok Takibi</small>
-                        <div>
-                            {% if urun.stok_takibi %}
-                                <span class="badge bg-success">Aktif</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Pasif</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
+
+                    {% if urun.toplam_stok <= urun.kritik_stok_seviyesi %} <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Kritik stok seviyesi!
+                </div>
+                {% endif %}
+
+                <hr>
+
+                <div class="mb-2">
+                    <small class="text-muted">Kritik Stok Seviyesi</small>
+                    <div class="fw-bold">{{ urun.kritik_stok_seviyesi }} adet</div>
+                </div>
+
+                <div class="mb-2">
+                    <small class="text-muted">Stok Takibi</small>
                     <div>
-                        <small class="text-muted">Durum</small>
-                        <div>
-                            {% if urun.aktif %}
-                                <span class="badge bg-success">Aktif</span>
-                            {% else %}
-                                <span class="badge bg-danger">Pasif</span>
-                            {% endif %}
-                        </div>
+                        {% if urun.stok_takibi %}
+                        <span class="badge bg-success">Aktif</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Pasif</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <small class="text-muted">Durum</small>
+                    <div>
+                        {% if urun.aktif %}
+                        <span class="badge bg-success">Aktif</span>
+                        {% else %}
+                        <span class="badge bg-danger">Pasif</span>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Varyantlar -->
-    {% if urun.varyasyonlu and varyantlar %}
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-palette me-2"></i>
-                        Ürün Varyantları ({{ varyantlar.count }} adet)
-                    </h5>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <input type="radio" class="btn-check" name="viewMode" id="gridView" autocomplete="off" checked>
-                        <label class="btn btn-outline-primary" for="gridView">
-                            <i class="fas fa-th"></i> Kart
-                        </label>
-                        <input type="radio" class="btn-check" name="viewMode" id="listView" autocomplete="off">
-                        <label class="btn btn-outline-primary" for="listView">
-                            <i class="fas fa-list"></i> Liste
-                        </label>
-                    </div>
+</div>
+
+<!-- Varyantlar -->
+{% if urun.varyasyonlu and varyantlar %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-palette me-2"></i>
+                    Ürün Varyantları ({{ varyantlar.count }} adet)
+                </h5>
+                <div class="btn-group btn-group-sm" role="group">
+                    <input type="radio" class="btn-check" name="viewMode" id="gridView" autocomplete="off" checked>
+                    <label class="btn btn-outline-primary" for="gridView">
+                        <i class="fas fa-th"></i> Kart
+                    </label>
+                    <input type="radio" class="btn-check" name="viewMode" id="listView" autocomplete="off">
+                    <label class="btn btn-outline-primary" for="listView">
+                        <i class="fas fa-list"></i> Liste
+                    </label>
                 </div>
-                <div class="card-body">
-                    <!-- Kart Görünümü -->
-                    <div id="gridViewContent">
-                        <div class="row">
-                            {% for varyant in varyantlar %}
-                            <div class="col-lg-6 col-xl-4 mb-3">
-                                <div class="variant-card">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <h6 class="mb-0">{{ varyant.varyasyon_adi }}</h6>
-                                        {% if varyant.stok_miktari == 0 %}
-                                            <span class="stock-badge stock-out">Tükendi</span>
-                                        {% elif varyant.stok_miktari <= 5 %}
-                                            <span class="stock-badge stock-low">Az</span>
-                                        {% elif varyant.stok_miktari <= 20 %}
-                                            <span class="stock-badge stock-medium">Orta</span>
-                                        {% else %}
+            </div>
+            <div class="card-body">
+                <!-- Kart Görünümü -->
+                <div id="gridViewContent">
+                    <div class="row">
+                        {% for varyant in varyantlar %}
+                        <div class="col-lg-6 col-xl-4 mb-3">
+                            <div class="variant-card">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="mb-0">{{ varyant.varyasyon_adi }}</h6>
+                                    {% if varyant.stok_miktari == 0 %}
+                                    <span class="stock-badge stock-out">Tükendi</span>
+                                    {% elif varyant.stok_miktari <= 5 %} <span class="stock-badge stock-low">Az</span>
+                                        {% elif varyant.stok_miktari <= 20 %} <span class="stock-badge stock-medium">
+                                            Orta</span>
+                                            {% else %}
                                             <span class="stock-badge stock-high">Yeterli</span>
-                                        {% endif %}
+                                            {% endif %}
+                                </div>
+
+                                <div class="row">
+                                    {% if varyant.renk %}
+                                    <div class="col-6">
+                                        <small class="text-muted">Renk</small>
+                                        <div class="fw-bold">{{ varyant.renk.ad }}</div>
                                     </div>
-                                    
-                                    <div class="row">
-                                        {% if varyant.renk %}
-                                        <div class="col-6">
-                                            <small class="text-muted">Renk</small>
-                                            <div class="fw-bold">{{ varyant.renk.ad }}</div>
-                                        </div>
-                                        {% endif %}
-                                        {% if varyant.beden %}
-                                        <div class="col-6">
-                                            <small class="text-muted">Beden</small>
-                                            <div class="fw-bold">{{ varyant.beden.ad }}</div>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                    
-                                    <div class="mt-2">
-                                        <small class="text-muted">Stok</small>
-                                        <div class="fw-bold text-primary">{{ varyant.stok_miktari }} adet</div>
-                                    </div>
-                                    
-                                    {% if varyant.barkod %}
-                                    <div class="mt-2">
-                                        <small class="text-muted">Barkod</small>
-                                        <div class="font-monospace">{{ varyant.barkod }}</div>
+                                    {% endif %}
+                                    {% if varyant.beden %}
+                                    <div class="col-6">
+                                        <small class="text-muted">Beden</small>
+                                        <div class="fw-bold">{{ varyant.beden.ad }}</div>
                                     </div>
                                     {% endif %}
                                 </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
 
-                    <!-- Liste Görünümü -->
-                    <div id="listViewContent" style="display: none;">
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>Varyant</th>
-                                        <th>Renk</th>
-                                        <th>Beden</th>
-                                        <th>Barkod</th>
-                                        <th>Stok</th>
-                                        <th>Durum</th>
-                                        <th>İşlemler</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for varyant in varyantlar %}
-                                    <tr>
-                                        <td class="fw-bold">{{ varyant.varyasyon_adi }}</td>
-                                        <td>{{ varyant.renk.ad|default:"-" }}</td>
-                                        <td>{{ varyant.beden.ad|default:"-" }}</td>
-                                        <td>
-                                            {% if varyant.barkod %}
-                                                <code>{{ varyant.barkod }}</code>
-                                            {% else %}
-                                                <span class="text-muted">-</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <span class="fw-bold text-primary">{{ varyant.stok_miktari }}</span>
-                                        </td>
-                                        <td>
-                                            {% if varyant.stok_miktari == 0 %}
-                                                <span class="badge bg-danger">Tükendi</span>
-                                            {% elif varyant.stok_miktari <= 5 %}
-                                                <span class="badge bg-warning">Az</span>
-                                            {% elif varyant.stok_miktari <= 20 %}
-                                                <span class="badge bg-info">Orta</span>
-                                            {% else %}
-                                                <span class="badge bg-success">Yeterli</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button type="button" class="btn btn-outline-primary btn-sm" 
-                                                        onclick="copyBarcode('{{ varyant.barkod }}')" 
-                                                        title="Barkodu Kopyala">
-                                                    <i class="fas fa-copy"></i>
-                                                </button>
-                                                {% if varyant.aktif %}
-                                                    <span class="badge bg-success ms-1">Aktif</span>
-                                                {% else %}
-                                                    <span class="badge bg-secondary ms-1">Pasif</span>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                                <div class="mt-2">
+                                    <small class="text-muted">Stok</small>
+                                    <div class="fw-bold text-primary">{{ varyant.stok_miktari }} adet</div>
+                                </div>
+
+                                {% if varyant.barkod %}
+                                <div class="mt-2">
+                                    <small class="text-muted">Barkod</small>
+                                    <div class="font-monospace">{{ varyant.barkod }}</div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Varyant İşlem Butonları -->
+                                <div class="mt-3 d-flex gap-2">
+                                    {% if varyant.barkod %}
+                                    <button type="button" class="btn btn-outline-info btn-sm copy-barcode-btn"
+                                        data-barcode="{{ varyant.barkod }}" title="Barkodu Kopyala">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-outline-success btn-sm"
+                                        data-print-variant="{{ varyant.id }}" title="Varyant Etiket Yazdır">
+                                        <i class="fas fa-print"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Liste Görünümü -->
+                <div id="listViewContent" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Varyant</th>
+                                    <th>Renk</th>
+                                    <th>Beden</th>
+                                    <th>Barkod</th>
+                                    <th>Stok</th>
+                                    <th>Durum</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for varyant in varyantlar %}
+                                <tr>
+                                    <td class="fw-bold">{{ varyant.varyasyon_adi }}</td>
+                                    <td>{{ varyant.renk.ad|default:"-" }}</td>
+                                    <td>{{ varyant.beden.ad|default:"-" }}</td>
+                                    <td>
+                                        {% if varyant.barkod %}
+                                        <code>{{ varyant.barkod }}</code>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-primary">{{ varyant.stok_miktari }}</span>
+                                    </td>
+                                    <td>
+                                        {% if varyant.stok_miktari == 0 %}
+                                        <span class="badge bg-danger">Tükendi</span>
+                                        {% elif varyant.stok_miktari <= 5 %} <span class="badge bg-warning">Az</span>
+                                            {% elif varyant.stok_miktari <= 20 %} <span class="badge bg-info">
+                                                Orta</span>
+                                                {% else %}
+                                                <span class="badge bg-success">Yeterli</span>
+                                                {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            {% if varyant.barkod %}
+                                            <button type="button" class="btn btn-outline-info btn-sm copy-barcode-btn"
+                                                data-barcode="{{ varyant.barkod }}" title="Barkodu Kopyala">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                            {% endif %}
+                                            <button type="button" class="btn btn-outline-success btn-sm"
+                                                data-print-variant="{{ varyant.id }}" title="Varyant Etiket Yazdır">
+                                                <i class="fas fa-print"></i>
+                                            </button>
+                                            <a href="{% url 'urun:varyant_duzenle' varyant.id %}"
+                                                class="btn btn-outline-warning btn-sm" title="Düzenle">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                        <div class="mt-1">
+                                            {% if varyant.aktif %}
+                                            <span class="badge bg-success">Aktif</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Pasif</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    {% endif %}
+</div>
+{% endif %}
 </div>
 
 <script>
-// Görünüm değiştirme
-document.addEventListener('DOMContentLoaded', function() {
-    const gridView = document.getElementById('gridView');
-    const listView = document.getElementById('listView');
-    const gridContent = document.getElementById('gridViewContent');
-    const listContent = document.getElementById('listViewContent');
-    
-    if (gridView && listView) {
-        gridView.addEventListener('change', function() {
-            if (this.checked) {
-                gridContent.style.display = 'block';
-                listContent.style.display = 'none';
-            }
-        });
-        
-        listView.addEventListener('change', function() {
-            if (this.checked) {
-                gridContent.style.display = 'none';
-                listContent.style.display = 'block';
-            }
-        });
-    }
-});
+    // Görünüm değiştirme
+    document.addEventListener('DOMContentLoaded', function () {
+        const gridView = document.getElementById('gridView');
+        const listView = document.getElementById('listView');
+        const gridContent = document.getElementById('gridViewContent');
+        const listContent = document.getElementById('listViewContent');
 
-// Barkod kopyalama
-function copyBarcode(barcode) {
-    if (barcode) {
-        navigator.clipboard.writeText(barcode).then(function() {
-            // Toast bildirimi göster
-            showToast('Barkod kopyalandı: ' + barcode, 'success');
-        }).catch(function(err) {
-            console.error('Barkod kopyalanamadı: ', err);
-            showToast('Barkod kopyalanamadı!', 'error');
-        });
-    }
-}
+        if (gridView && listView) {
+            gridView.addEventListener('change', function () {
+                if (this.checked) {
+                    gridContent.style.display = 'block';
+                    listContent.style.display = 'none';
+                }
+            });
 
-// Toast bildirimi
-function showToast(message, type = 'info') {
-    // Basit toast implementasyonu
-    const toast = document.createElement('div');
-    toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
-    toast.style.cssText = `
+            listView.addEventListener('change', function () {
+                if (this.checked) {
+                    gridContent.style.display = 'none';
+                    listContent.style.display = 'block';
+                }
+            });
+        }
+
+        // Barkod kopyalama işlevi (modern)
+        document.querySelectorAll('.copy-barcode-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const barcode = this.getAttribute('data-barcode');
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(barcode).then(function () {
+                        showCopySuccess(btn, 'Barkod kopyalandı!');
+                    }).catch(function (err) {
+                        console.error('Kopyalama hatası:', err);
+                        fallbackCopyText(barcode, btn);
+                    });
+                } else {
+                    fallbackCopyText(barcode, btn);
+                }
+            });
+        });
+
+        // Modern WebSocket tabanlı etiket yazdırma - Nuvia Print Manager kullanılacak
+        // Bu event listener'lar Nuvia Print Manager tarafından otomatik olarak yönetiliyor
+    });
+
+    // Fallback kopyalama fonksiyonu
+    function fallbackCopyText(text, btn) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            document.execCommand('copy');
+            showCopySuccess(btn, 'Barkod kopyalandı!');
+        } catch (err) {
+            console.error('Fallback kopyalama hatası:', err);
+            showToast('Kopyalama başarısız!', 'error');
+        } finally {
+            document.body.removeChild(textArea);
+        }
+    }
+
+    // Kopyalama başarı animasyonu
+    function showCopySuccess(btn, message) {
+        const originalIcon = btn.innerHTML;
+        const originalTitle = btn.title;
+
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        btn.title = message;
+        btn.classList.remove('btn-outline-info');
+        btn.classList.add('btn-success');
+
+        setTimeout(function () {
+            btn.innerHTML = originalIcon;
+            btn.title = originalTitle;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-info');
+        }, 2000);
+    }
+
+    // Yazdırma başarı animasyonu
+    function showPrintSuccess(btn) {
+        const originalIcon = btn.innerHTML;
+        const originalTitle = btn.title;
+
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        btn.title = 'Etiket gönderildi!';
+        btn.classList.remove('btn-outline-success');
+        btn.classList.add('btn-info');
+
+        setTimeout(function () {
+            btn.innerHTML = originalIcon;
+            btn.title = originalTitle;
+            btn.classList.remove('btn-info');
+            btn.classList.add('btn-outline-success');
+        }, 2000);
+    }
+
+    // Ürün yazdırma başarı animasyonu
+    function showProductPrintSuccess(btn) {
+        const originalIcon = btn.innerHTML;
+        const originalTitle = btn.title;
+
+        btn.innerHTML = '<i class="fas fa-check me-1"></i>Tamamlandı!';
+        btn.title = 'Tüm varyant etiketleri gönderildi!';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-info');
+
+        setTimeout(function () {
+            btn.innerHTML = originalIcon;
+            btn.title = originalTitle;
+            btn.classList.remove('btn-info');
+            btn.classList.add('btn-success');
+        }, 3000);
+    }
+
+    // Eski barkod kopyalama fonksiyonu (geriye uyumluluk için)
+    function copyBarcode(barcode) {
+        if (barcode) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(barcode).then(function () {
+                    showToast('Barkod kopyalandı: ' + barcode, 'success');
+                }).catch(function (err) {
+                    console.error('Barkod kopyalanamadı: ', err);
+                    showToast('Barkod kopyalanamadı!', 'error');
+                });
+            } else {
+                // Fallback metod
+                const textArea = document.createElement('textarea');
+                textArea.value = barcode;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('Barkod kopyalandı: ' + barcode, 'success');
+                } catch (err) {
+                    showToast('Barkod kopyalanamadı!', 'error');
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+    }
+
+    // Toast bildirimi
+    function showToast(message, type = 'info') {
+        // Basit toast implementasyonu
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+        toast.style.cssText = `
         top: 20px; 
         right: 20px; 
         z-index: 9999; 
         min-width: 300px;
         animation: slideIn 0.3s ease-out;
     `;
-    toast.innerHTML = `
+        toast.innerHTML = `
         <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} me-2"></i>
         ${message}
     `;
-    
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease-in';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
 
-// CSS animasyonları
-const style = document.createElement('style');
-style.textContent = `
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // CSS animasyonları
+    const style = document.createElement('style');
+    style.textContent = `
     @keyframes slideIn {
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
@@ -464,6 +655,524 @@ style.textContent = `
         to { transform: translateX(100%); opacity: 0; }
     }
 `;
-document.head.appendChild(style);
+    document.head.appendChild(style);
+</script>
+
+<!-- Modern WebSocket Print Manager -->
+<script>
+    /**
+     * NuviaButik WebSocket Print Manager v3.1
+     * Modern WebSocket tabanlı etiket yazdırma sistemi
+     */
+
+    class NuviaPrintManager {
+        constructor() {
+            this.websocket = null;
+            this.isConnected = false;
+            this.reconnectAttempts = 0;
+            this.maxReconnectAttempts = 5;
+            this.reconnectDelay = 3000;
+            this.printAgentUrl = 'ws://localhost:9876';
+            this.availablePorts = [9876, 9877, 9878, 9879, 9880]; // Port alternatifleri
+            this.currentPortIndex = 0;
+
+            // Event listeners
+            this.onConnected = null;
+            this.onDisconnected = null;
+            this.onPrintSuccess = null;
+            this.onError = null;
+
+            this.init();
+        }
+
+        init() {
+            this.checkPrintAgent();
+            this.createStatusIndicator();
+        }
+
+        createStatusIndicator() {
+            // Print Agent durum göstergesi oluştur
+            const indicator = document.createElement('div');
+            indicator.id = 'nuvia-print-status';
+            indicator.innerHTML = `
+            <div style="position: fixed; top: 20px; right: 20px; z-index: 10000; 
+                       background: #fff; border: 2px solid #dee2e6; border-radius: 8px; 
+                       padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: Arial;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div id="print-status-indicator" style="width: 12px; height: 12px; border-radius: 50%; background: #dc3545;"></div>
+                    <span id="print-status-text" style="font-size: 12px; font-weight: 600;">Print Agent Bağlantısı Yok</span>
+                </div>
+                <div id="print-retry-button" style="margin-top: 8px; display: none;">
+                    <button onclick="window.nuviaPrintManager.connectToPrintAgent()" 
+                            style="font-size: 11px; padding: 4px 8px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Yeniden Bağlan
+                    </button>
+                </div>
+            </div>
+        `;
+            document.body.appendChild(indicator);
+        }
+
+        updateStatus(status, message) {
+            const indicator = document.getElementById('print-status-indicator');
+            const text = document.getElementById('print-status-text');
+            const retryButton = document.getElementById('print-retry-button');
+
+            if (!indicator || !text) return;
+
+            switch (status) {
+                case 'connected':
+                    indicator.style.background = '#28a745';
+                    text.textContent = 'Print Agent Bağlı ✓';
+                    retryButton.style.display = 'none';
+                    break;
+                case 'connecting':
+                    indicator.style.background = '#ffc107';
+                    text.textContent = 'Bağlanıyor...';
+                    retryButton.style.display = 'none';
+                    break;
+                case 'disconnected':
+                    indicator.style.background = '#dc3545';
+                    text.textContent = message || 'Print Agent Bağlantısı Yok';
+                    retryButton.style.display = 'block';
+                    break;
+            }
+        }
+
+        async checkPrintAgent() {
+            // Print Agent'ın çalışıp çalışmadığını kontrol et
+            this.updateStatus('connecting', 'Print Agent kontrol ediliyor...');
+
+            try {
+                await this.connectToPrintAgent();
+            } catch (error) {
+                console.warn('Print Agent bulunamadı:', error);
+                this.updateStatus('disconnected', 'Print Agent Bulunamadı');
+                this.showPrintAgentGuide();
+            }
+        }
+
+        async findAvailablePort() {
+            // Kullanılabilir port bul
+            for (let i = 0; i < this.availablePorts.length; i++) {
+                const port = this.availablePorts[i];
+                try {
+                    const testUrl = `ws://localhost:${port}`;
+                    const testSocket = new WebSocket(testUrl);
+
+                    await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => {
+                            testSocket.close();
+                            reject(new Error('Timeout'));
+                        }, 1000);
+
+                        testSocket.onopen = () => {
+                            clearTimeout(timeout);
+                            testSocket.close();
+                            this.currentPortIndex = i;
+                            this.printAgentUrl = testUrl;
+                            resolve();
+                        };
+
+                        testSocket.onerror = () => {
+                            clearTimeout(timeout);
+                            reject(new Error('Connection failed'));
+                        };
+                    });
+
+                    console.log(`✅ Print Agent port bulundu: ${port}`);
+                    return port;
+
+                } catch (error) {
+                    continue;
+                }
+            }
+
+            throw new Error('Hiçbir portta Print Agent bulunamadı');
+        }
+
+        async connectToPrintAgent() {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    // Önce mevcut URL'i dene
+                    let connectionSuccessful = false;
+
+                    try {
+                        await this.attemptConnection(this.printAgentUrl);
+                        connectionSuccessful = true;
+                    } catch (error) {
+                        console.log('Varsayılan port başarısız, alternatif portlar deneniyor...');
+
+                        // Port taraması yap
+                        try {
+                            await this.findAvailablePort();
+                            await this.attemptConnection(this.printAgentUrl);
+                            connectionSuccessful = true;
+                        } catch (portError) {
+                            reject(new Error('Hiçbir portta Print Agent bulunamadı'));
+                            return;
+                        }
+                    }
+
+                    if (connectionSuccessful) {
+                        resolve();
+                    }
+
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        async attemptConnection(url) {
+            return new Promise((resolve, reject) => {
+                try {
+                    this.websocket = new WebSocket(url);
+
+                    this.websocket.onopen = () => {
+                        console.log(`🔗 Print Agent bağlantısı kuruldu: ${url}`);
+                        this.isConnected = true;
+                        this.reconnectAttempts = 0;
+                        this.updateStatus('connected');
+
+                        if (this.onConnected) this.onConnected();
+                        resolve();
+                    };
+
+                    this.websocket.onmessage = (event) => {
+                        this.handleMessage(JSON.parse(event.data));
+                    };
+
+                    this.websocket.onclose = () => {
+                        console.log('🔌 Print Agent bağlantısı kesildi');
+                        this.isConnected = false;
+                        this.updateStatus('disconnected');
+
+                        if (this.onDisconnected) this.onDisconnected();
+
+                        // Otomatik yeniden bağlanma
+                        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                            setTimeout(() => {
+                                this.reconnectAttempts++;
+                                this.connectToPrintAgent();
+                            }, this.reconnectDelay);
+                        }
+                    };
+
+                    this.websocket.onerror = (error) => {
+                        console.error('❌ WebSocket hatası:', error);
+                        this.updateStatus('disconnected', 'Bağlantı Hatası');
+                        reject(error);
+                    };
+
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        handleMessage(data) {
+            console.log('📨 Print Agent mesajı:', data);
+
+            switch (data.type) {
+                case 'connection':
+                    this.showToast('Print Agent bağlantısı kuruldu! ✓', 'success');
+                    break;
+
+                case 'print_success':
+                    this.showToast(`Etiket yazdırıldı: ${data.etiket_info?.varyant_adi || 'Bilinmeyen'}`, 'success');
+                    if (this.onPrintSuccess) this.onPrintSuccess(data);
+                    break;
+
+                case 'error':
+                    this.showToast(`Print Agent Hatası: ${data.message}`, 'error');
+                    if (this.onError) this.onError(data);
+                    break;
+
+                case 'printers':
+                    console.log('🖨️ Yazıcı listesi:', data.printers);
+                    break;
+            }
+        }
+
+        async printLabel(varyantId) {
+            if (!this.isConnected) {
+                this.showToast('Print Agent bağlantısı yok!', 'error');
+                this.showPrintAgentGuide();
+                return false;
+            }
+
+            try {
+                // Django'dan ZPL etiket kodunu al
+                const response = await fetch(`/api/varyant-etiket/${varyantId}/`, {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API hatası: HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const zplCode = await response.text();
+
+                if (!zplCode || zplCode.trim().length === 0) {
+                    this.showToast('Etiket verisi alınamadı!', 'error');
+                    return false;
+                }
+
+                // Print Agent'a gönder
+                const printMessage = {
+                    type: 'print_label',
+                    zpl_data: zplCode,
+                    etiket_info: {
+                        varyant_id: varyantId,
+                        source: 'varyant_etiket'
+                    }
+                };
+
+                this.websocket.send(JSON.stringify(printMessage));
+                this.showToast('Etiket yazıcıya gönderiliyor...', 'info');
+
+                return true;
+
+            } catch (error) {
+                console.error('❌ Yazdırma hatası:', error);
+                this.showToast(`❌ Hata! ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async printMultipleLabels(urunId) {
+            if (!this.isConnected) {
+                this.showToast('Print Agent bağlantısı yok!', 'error');
+                this.showPrintAgentGuide();
+                return false;
+            }
+
+            try {
+                // Django'dan ürün ZPL etiket kodunu al (tüm varyantlar için)
+                const response = await fetch(`/api/urun-etiket/${urunId}/`, {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API hatası: HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const zplCode = await response.text();
+
+                if (!zplCode || zplCode.trim().length === 0) {
+                    this.showToast('Ürün etiket verisi alınamadı!', 'error');
+                    return false;
+                }
+
+                // ZPL kodlarını ayır (her ^XZ ile biten bir etiket)
+                const zplBlocks = zplCode.split('^XZ')
+                    .filter(block => block.trim().length > 0)
+                    .map(block => block.trim() + '^XZ'); // ^XZ'yi geri ekle
+                
+                this.showToast(`${zplBlocks.length} adet varyant etiketi yazdırılıyor...`, 'info');
+
+                // Her ZPL bloğunu ayrı ayrı gönder
+                for (let i = 0; i < zplBlocks.length; i++) {
+                    const block = zplBlocks[i];
+                    
+                    // Print Agent'a gönder
+                    const printMessage = {
+                        type: 'print_label',
+                        zpl_data: block,
+                        etiket_info: {
+                            urun_id: urunId,
+                            varyant_index: i + 1,
+                            total_variants: zplBlocks.length,
+                            source: 'urun_toplu_etiket'
+                        }
+                    };
+
+                    this.websocket.send(JSON.stringify(printMessage));
+                    
+                    // Varyantlar arası kısa bekleme
+                    if (i < zplBlocks.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+
+                this.showToast(`Toplam ${zplBlocks.length} varyant etiketi yazıcıya gönderildi!`, 'success');
+                return true;
+
+            } catch (error) {
+                console.error('❌ Ürün etiket yazdırma hatası:', error);
+                this.showToast(`❌ Hata! ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        showPrintAgentGuide() {
+            // Print Agent kurulum rehberi göster
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.5); z-index: 10001; display: flex; 
+            align-items: center; justify-content: center;
+        `;
+
+            modal.innerHTML = `
+            <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; margin: 20px;">
+                <h3 style="color: #dc3545; margin-top: 0;">🖨️ Print Agent Gerekli</h3>
+                <p>Etiket yazdırmak için bilgisayarınızda <strong>NuviaButik Print Agent</strong> çalışıyor olmalıdır.</p>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <h4 style="margin-top: 0; color: #495057;">📋 Kurulum Adımları:</h4>
+                    <ol style="margin: 0; padding-left: 20px;">
+                        <li>Print Agent'ı indirin ve kurun</li>
+                        <li>Yazıcınızın bağlı olduğundan emin olun</li>
+                        <li>Print Agent'ı başlatın</li>
+                        <li>Port 9876'nın açık olduğunu kontrol edin</li>
+                    </ol>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                            style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px;">
+                        Tamam
+                    </button>
+                    <button onclick="window.nuviaPrintManager.connectToPrintAgent(); this.parentElement.parentElement.parentElement.remove();" 
+                            style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        Tekrar Dene
+                    </button>
+                </div>
+            </div>
+        `;
+
+            document.body.appendChild(modal);
+
+            // 10 saniye sonra otomatik kapat
+            setTimeout(() => {
+                if (modal.parentElement) {
+                    modal.remove();
+                }
+            }, 10000);
+        }
+
+        showToast(message, type = 'info') {
+            // Modern toast notification
+            const toast = document.createElement('div');
+            const colors = {
+                success: '#28a745',
+                error: '#dc3545',
+                warning: '#ffc107',
+                info: '#17a2b8'
+            };
+
+            toast.style.cssText = `
+            position: fixed; bottom: 20px; right: 20px; z-index: 10002;
+            background: ${colors[type] || colors.info}; color: white;
+            padding: 12px 20px; border-radius: 8px; font-family: Arial;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 400px;
+            transform: translateX(100%); transition: transform 0.3s ease;
+        `;
+
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            // Animasyon
+            setTimeout(() => {
+                toast.style.transform = 'translateX(0)';
+            }, 100);
+
+            // Otomatik kaldır
+            setTimeout(() => {
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.remove();
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        getCSRFToken() {
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+
+            return cookieValue || document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        }
+    }
+
+    // Global instance oluştur
+    window.nuviaPrintManager = new NuviaPrintManager();
+
+    // Modern etiket yazdırma fonksiyonları
+    window.printVariantLabel = async function (varyantId, buttonElement) {
+        if (buttonElement) {
+            const originalText = buttonElement.innerHTML;
+            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Yazdırılıyor...';
+            buttonElement.disabled = true;
+
+            const success = await window.nuviaPrintManager.printLabel(varyantId);
+
+            setTimeout(() => {
+                buttonElement.innerHTML = originalText;
+                buttonElement.disabled = false;
+            }, 2000);
+
+            return success;
+        }
+
+        return await window.nuviaPrintManager.printLabel(varyantId);
+    };
+
+    // Sayfa yüklendiğinde Print Agent bağlantısını kontrol et
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('🚀 NuviaButik Print Manager v3.1 yüklendi');
+
+        // Mevcut print butonlarını güncelle
+        document.querySelectorAll('[data-print-variant]').forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const varyantId = this.getAttribute('data-print-variant');
+                printVariantLabel(varyantId, this);
+            });
+        });
+        
+        // Ürün etiket yazdırma butonları
+        document.querySelectorAll('[data-print-product]').forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const urunId = this.getAttribute('data-print-product');
+                printProductLabels(urunId, this);
+            });
+        });
+    });
+    
+    // Ürün için toplu etiket yazdırma
+    window.printProductLabels = async function (urunId, buttonElement) {
+        if (buttonElement) {
+            const originalText = buttonElement.innerHTML;
+            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Tüm Varyantlar Yazdırılıyor...';
+            buttonElement.disabled = true;
+
+            const success = await window.nuviaPrintManager.printMultipleLabels(urunId);
+
+            setTimeout(() => {
+                buttonElement.innerHTML = originalText;
+                buttonElement.disabled = false;
+                
+                if (success) {
+                    // Başarı animasyonu
+                    showProductPrintSuccess(buttonElement);
+                }
+            }, 2000);
+
+            return success;
+        }
+
+        return await window.nuviaPrintManager.printMultipleLabels(urunId);
+    };
+
+    console.log('📦 NuviaButik Print Manager v3.1 loaded successfully');
 </script>
 {% endblock %}

@@ -16,6 +16,7 @@ def satis_ekrani(request):
     """Satış ekranı view'ı"""
     from django.db.models import Sum, Count
     from datetime import datetime, timedelta
+    from .models import SatisSiparisi
     
     # URL'den müşteri ID'sini al veya varsayılan müşteriyi seç
     musteri_id = request.GET.get('musteri')
@@ -26,6 +27,22 @@ def satis_ekrani(request):
             secili_musteri = Musteri.objects.get(id=musteri_id, aktif=True)
         except Musteri.DoesNotExist:
             messages.warning(request, 'Seçilen müşteri bulunamadı.')
+    
+    # URL'den sipariş ID'sini al (sipariş yükleme için)
+    siparis_id = request.GET.get('siparis_id')
+    yuklenecek_siparis = None
+    
+    if siparis_id:
+        try:
+            yuklenecek_siparis = SatisSiparisi.objects.get(
+                id=siparis_id, 
+                durum__in=['taslak', 'hazir']
+            )
+            # Siparişteki müşteriyi otomatik seç
+            if yuklenecek_siparis.musteri:
+                secili_musteri = yuklenecek_siparis.musteri
+        except SatisSiparisi.DoesNotExist:
+            messages.warning(request, 'Seçilen sipariş bulunamadı veya yüklenemez durumda.')
     
     # Eğer müşteri seçili değilse, veritabanındaki ilk aktif müşteriyi seç
     if not secili_musteri:
@@ -50,11 +67,23 @@ def satis_ekrani(request):
     # Sonraki sipariş numarasını preview olarak göster (sayacı artırmaz)
     siparis_no_preview = SiparisNumarasi.sonraki_numara_preview()
     
+    # Satış elemanları listesi (sadece satıcı rolündeki kullanıcılar, admin hariç)
+    from kullanici.models import CustomUser
+    satis_elemanlari = CustomUser.objects.filter(
+        is_active=True,
+        role='satici',
+        is_superuser=False  # Admin kullanıcıları hariç tut
+    ).exclude(
+        username__in=['admin', 'nuviaadmin']  # Belirli admin kullanıcıları kesinlikle hariç tut
+    ).order_by('first_name', 'last_name', 'username')
+    
     context = {
         'title': 'Satış Ekranı',
         'secili_musteri': secili_musteri,
         'siparis_no': siparis_no_preview,
         'bugunun_odeme_toplami': bugunun_odeme_toplami,
+        'satis_elemanlari': satis_elemanlari,
+        'yuklenecek_siparis': yuklenecek_siparis,
     }
     return render(request, 'satis/satis_ekrani.html', context)
 
@@ -227,6 +256,17 @@ def satis_tamamla(request):
             # Açıklama bilgisini al
             aciklama = data.get('aciklama', '').strip() if data else ''
             
+            # Satış elemanı bilgisini al
+            satici_id = data.get('satici_id')
+            if satici_id:
+                try:
+                    from kullanici.models import CustomUser
+                    satici = CustomUser.objects.get(pk=satici_id)
+                except CustomUser.DoesNotExist:
+                    satici = request.user
+            else:
+                satici = request.user
+            
             # Satış oluştur
             satis = Satis.objects.create(
                 musteri=musteri,
@@ -237,7 +277,7 @@ def satis_tamamla(request):
                 genel_toplam=genel_toplam,
                 toplam_tutar=genel_toplam,
                 durum='tamamlandi',
-                satici=request.user,
+                satici=satici,  # Seçilen satış elemanı
                 satis_tarihi=datetime.now(),
                 notlar=aciklama,  # Açıklama/not bilgisini kaydet
             )
@@ -289,6 +329,7 @@ def satis_tamamla(request):
                 SatisDetay.objects.create(
                     satis=satis,
                     urun=urun,
+                    varyant=varyant if varyant_id else None,  # Varyant bilgisini kaydet
                     miktar=miktar,
                     birim_fiyat=birim_fiyat,
                     indirim_tutari=indirim_tutari,
@@ -297,14 +338,42 @@ def satis_tamamla(request):
                 
                 # Varyant stoktan düş
                 if varyant_id:
+                    onceki_stok = varyant.stok_miktari
                     varyant.stok_miktari -= miktar
-                    varyant.save()
+                    varyant.save(stok_hareket_guncelleme=True)  # Satış işlemi - kilitli olsa da güncellenebilir
+                    
+                    # Stok hareket kaydı oluştur
+                    from urun.models import StokHareket
+                    StokHareket.objects.create(
+                        varyant=varyant,
+                        hareket_tipi='cikis',
+                        miktar=miktar,
+                        onceki_stok=onceki_stok,
+                        yeni_stok=varyant.stok_miktari,
+                        aciklama=f'Satış: {satis.satis_no}',
+                        referans_id=str(satis.id),
+                        kullanici=request.user
+                    )
                 else:
                     # İlk varyantın stokunu düş
                     first_variant = urun.varyantlar.filter(aktif=True, stok_miktari__gt=0).first()
                     if first_variant:
+                        onceki_stok = first_variant.stok_miktari
                         first_variant.stok_miktari -= miktar
-                        first_variant.save()
+                        first_variant.save(stok_hareket_guncelleme=True)  # Satış işlemi - kilitli olsa da güncellenebilir
+                        
+                        # Stok hareket kaydı oluştur
+                        from urun.models import StokHareket
+                        StokHareket.objects.create(
+                            varyant=first_variant,
+                            hareket_tipi='cikis',
+                            miktar=miktar,
+                            onceki_stok=onceki_stok,
+                            yeni_stok=first_variant.stok_miktari,
+                            aciklama=f'Satış: {satis.satis_no}',
+                            referans_id=str(satis.id),
+                            kullanici=request.user
+                        )
             
             # Ödeme kayıtlarını oluştur
             if odeme_detaylari.get('tip') == 'karma':
@@ -314,6 +383,10 @@ def satis_tamamla(request):
                 kart_tutar = Decimal(str(karma_detay.get('kart', 0)))
                 havale_tutar = Decimal(str(karma_detay.get('havale', 0)))
                 hediye_ceki_tutar = Decimal(str(karma_detay.get('hediye_ceki', 0)))
+                
+                # Karma ödeme kart detaylarını al
+                karma_kart_taksit = odeme_detaylari.get('karma_kart_taksit', 1)
+                karma_kart_banka = odeme_detaylari.get('karma_kart_banka', None)
                 
                 # Karma ödeme validasyonu
                 toplam_odeme = nakit_tutar + kart_tutar + havale_tutar + hediye_ceki_tutar
@@ -346,11 +419,19 @@ def satis_tamamla(request):
                 
                 # Kart ödeme kaydı
                 if kart_tutar > 0:
-                    Odeme.objects.create(
-                        satis=satis,
-                        odeme_tipi='kart',
-                        tutar=kart_tutar,
-                    )
+                    odeme_data = {
+                        'satis': satis,
+                        'odeme_tipi': 'kart',
+                        'tutar': kart_tutar,
+                    }
+                    
+                    # Karma ödemede kart için taksit ve banka bilgisi
+                    if karma_kart_taksit > 1:
+                        odeme_data['taksit_sayisi'] = karma_kart_taksit
+                    if karma_kart_banka:
+                        odeme_data['banka'] = karma_kart_banka
+                    
+                    Odeme.objects.create(**odeme_data)
                     # Kasa hareketi - POS kasasına giriş
                     pos_kasa = Kasa.objects.filter(tip='pos', aktif=True).first()
                     if pos_kasa:
@@ -446,6 +527,7 @@ def satis_tamamla(request):
                 # Tek ödeme
                 odeme_yontemi = odeme_detaylari.get('odeme_yontemi', 'nakit')
                 taksit_sayisi = odeme_detaylari.get('taksit_sayisi', 1)
+                banka = odeme_detaylari.get('banka', None)
                 
                 # Ödeme tipi dönüşümü
                 if odeme_yontemi in ['kart', 'kredi_karti']:
@@ -471,12 +553,19 @@ def satis_tamamla(request):
                 
                 # Veresiye satış değilse ödeme kaydı oluştur
                 if odeme_tipi != 'acik_hesap':
-                    Odeme.objects.create(
-                        satis=satis,
-                        odeme_tipi=odeme_tipi,
-                        tutar=genel_toplam,
-                        taksit_sayisi=taksit_sayisi if odeme_tipi == 'kart' and taksit_sayisi > 1 else None,
-                    )
+                    odeme_data = {
+                        'satis': satis,
+                        'odeme_tipi': odeme_tipi,
+                        'tutar': genel_toplam,
+                    }
+                    
+                    # Kart ödemesi için ek bilgiler
+                    if odeme_tipi == 'kart':
+                        odeme_data['taksit_sayisi'] = taksit_sayisi if taksit_sayisi > 1 else None
+                        if banka:
+                            odeme_data['banka'] = banka
+                    
+                    Odeme.objects.create(**odeme_data)
                     
                     # Kasa hareketi oluştur
                     kasa = None
@@ -518,6 +607,281 @@ def satis_tamamla(request):
             return JsonResponse({'success': False, 'message': f'Hata: {str(e)}'})
     
     return JsonResponse({'success': False, 'message': 'Geçersiz istek!'})
+
+
+@login_required
+def satici_rapor(request):
+    """Satış elemanı ana rapor sayfası"""
+    from django.db.models import Sum, Count
+    from datetime import datetime, timedelta
+    from kullanici.models import CustomUser
+    
+    # Bugünkü tarih
+    bugun = datetime.now().date()
+    
+    # Satış elemanları
+    satis_elemanlari = CustomUser.objects.filter(
+        is_active=True,
+        role__in=['admin', 'manager', 'cashier', 'satici']
+    ).order_by('first_name', 'last_name', 'username')
+    
+    # Her satış elemanı için özet bilgiler
+    satici_ozet = []
+    for elemanl in satis_elemanlari:
+        # Bu ayki satışlar
+        bugun_baslangic = datetime.combine(bugun, datetime.min.time())
+        ay_baslangic = bugun_baslangic.replace(day=1)
+        
+        satislar = Satis.objects.filter(
+            satici=elemanl,
+            siparis_tarihi__gte=ay_baslangic,
+            durum='tamamlandi'
+        )
+        
+        # İadeler (hediye çeki oluşturan işlemler)
+        from hediye.models import HediyeCeki
+        iadeler = HediyeCeki.objects.filter(
+            olusturan=elemanl,
+            olusturma_tarihi__gte=ay_baslangic,
+            aciklama__icontains='İade'
+        )
+        
+        toplam_satis = satislar.aggregate(
+            tutar=Sum('toplam_tutar'),
+            adet=Count('id')
+        )
+        
+        toplam_iade = iadeler.aggregate(
+            tutar=Sum('tutar'),
+            adet=Count('id')
+        )
+        
+        net_satis = (toplam_satis['tutar'] or 0) - (toplam_iade['tutar'] or 0)
+        
+        satici_ozet.append({
+            'elemanl': elemanl,
+            'satis_tutari': toplam_satis['tutar'] or 0,
+            'satis_adedi': toplam_satis['adet'] or 0,
+            'iade_tutari': toplam_iade['tutar'] or 0,
+            'iade_adedi': toplam_iade['adet'] or 0,
+            'net_satis': net_satis,
+        })
+    
+    context = {
+        'title': 'Satış Elemanı Raporları',
+        'satici_ozet': satici_ozet,
+        'bugun': bugun,
+    }
+    
+    return render(request, 'satis/satici_rapor.html', context)
+
+
+@login_required  
+def satici_gunluk(request):
+    """Satış elemanı günlük detay raporu"""
+    from django.db.models import Sum, Count
+    from datetime import datetime, timedelta
+    from kullanici.models import CustomUser
+    
+    # Tarih parametreleri
+    tarih_str = request.GET.get('tarih')
+    satici_id = request.GET.get('satici')
+    
+    if tarih_str:
+        try:
+            secili_tarih = datetime.strptime(tarih_str, '%Y-%m-%d').date()
+        except ValueError:
+            secili_tarih = datetime.now().date()
+    else:
+        secili_tarih = datetime.now().date()
+    
+    # Satış elemanı seçimi
+    secili_satici = None
+    if satici_id:
+        try:
+            secili_satici = CustomUser.objects.get(pk=satici_id)
+        except CustomUser.DoesNotExist:
+            pass
+    
+    # Satış elemanları listesi
+    satis_elemanlari = CustomUser.objects.filter(
+        is_active=True,
+        role__in=['admin', 'manager', 'cashier', 'satici']
+    ).order_by('first_name', 'last_name', 'username')
+    
+    # Günlük veriler
+    gun_baslangic = datetime.combine(secili_tarih, datetime.min.time())
+    gun_bitis = datetime.combine(secili_tarih, datetime.max.time())
+    
+    if secili_satici:
+        # Belirli satış elemanının günlük detayları
+        satislar = Satis.objects.filter(
+            satici=secili_satici,
+            siparis_tarihi__range=[gun_baslangic, gun_bitis],
+            durum='tamamlandi'
+        ).order_by('-siparis_tarihi')
+        
+        # İadeler
+        from hediye.models import HediyeCeki
+        iadeler = HediyeCeki.objects.filter(
+            olusturan=secili_satici,
+            olusturma_tarihi__range=[gun_baslangic, gun_bitis],
+            aciklama__icontains='İade'
+        ).order_by('-olusturma_tarihi')
+        
+        # Toplamlar
+        toplam_satis = satislar.aggregate(
+            tutar=Sum('toplam_tutar'),
+            adet=Count('id')
+        )
+        
+        toplam_iade = iadeler.aggregate(
+            tutar=Sum('tutar'),
+            adet=Count('id')
+        )
+        
+        net_satis = (toplam_satis['tutar'] or 0) - (toplam_iade['tutar'] or 0)
+        
+        gunluk_ozet = {
+            'satis_tutari': toplam_satis['tutar'] or 0,
+            'satis_adedi': toplam_satis['adet'] or 0,
+            'iade_tutari': toplam_iade['tutar'] or 0,
+            'iade_adedi': toplam_iade['adet'] or 0,
+            'net_satis': net_satis,
+        }
+    else:
+        satislar = []
+        iadeler = []
+        gunluk_ozet = {}
+
+    context = {
+        'title': 'Günlük Satış Raporu',
+        'satis_elemanlari': satis_elemanlari,
+        'secili_satici': secili_satici,
+        'secili_tarih': secili_tarih,
+        'satislar': satislar,
+        'iadeler': iadeler,
+        'gunluk_ozet': gunluk_ozet,
+    }
+    
+    return render(request, 'satis/satici_gunluk.html', context)
+
+
+@login_required
+def satici_aylik(request):
+    """Satış elemanı aylık analiz raporu"""
+    from django.db.models import Sum, Count
+    from datetime import datetime, timedelta
+    from kullanici.models import CustomUser
+    import calendar
+    
+    # Ay ve yıl parametreleri
+    yil = int(request.GET.get('yil', datetime.now().year))
+    ay = int(request.GET.get('ay', datetime.now().month))
+    satici_id = request.GET.get('satici')
+    
+    # Satış elemanı seçimi
+    secili_satici = None
+    if satici_id:
+        try:
+            secili_satici = CustomUser.objects.get(pk=satici_id)
+        except CustomUser.DoesNotExist:
+            pass
+    
+    # Satış elemanları listesi
+    satis_elemanlari = CustomUser.objects.filter(
+        is_active=True,
+        role__in=['admin', 'manager', 'cashier', 'satici']
+    ).order_by('first_name', 'last_name', 'username')
+    
+    # Ay aralığı
+    ay_baslangic = datetime(yil, ay, 1)
+    if ay == 12:
+        ay_bitis = datetime(yil + 1, 1, 1) - timedelta(days=1)
+    else:
+        ay_bitis = datetime(yil, ay + 1, 1) - timedelta(days=1)
+    
+    ay_bitis = datetime.combine(ay_bitis.date(), datetime.max.time())
+    
+    if secili_satici:
+        # Aylık satışlar
+        satislar = Satis.objects.filter(
+            satici=secili_satici,
+            siparis_tarihi__range=[ay_baslangic, ay_bitis],
+            durum='tamamlandi'
+        )
+        
+        # Aylık iadeler
+        from hediye.models import HediyeCeki
+        iadeler = HediyeCeki.objects.filter(
+            olusturan=secili_satici,
+            olusturma_tarihi__range=[ay_baslangic, ay_bitis],
+            aciklama__icontains='İade'
+        )
+        
+        # Günlük dağılım
+        gunluk_satislar = {}
+        for gun in range(1, calendar.monthrange(yil, ay)[1] + 1):
+            gun_baslangic = datetime(yil, ay, gun)
+            gun_bitis = datetime.combine(gun_baslangic.date(), datetime.max.time())
+            
+            gun_satislar = satislar.filter(
+                siparis_tarihi__range=[gun_baslangic, gun_bitis]
+            ).aggregate(
+                tutar=Sum('toplam_tutar'),
+                adet=Count('id')
+            )
+            
+            gun_iadeler = iadeler.filter(
+                olusturma_tarihi__range=[gun_baslangic, gun_bitis]
+            ).aggregate(
+                tutar=Sum('tutar'),
+                adet=Count('id')
+            )
+            
+            gunluk_satislar[gun] = {
+                'satis_tutari': gun_satislar['tutar'] or 0,
+                'satis_adedi': gun_satislar['adet'] or 0,
+                'iade_tutari': gun_iadeler['tutar'] or 0,
+                'iade_adedi': gun_iadeler['adet'] or 0,
+                'net_satis': (gun_satislar['tutar'] or 0) - (gun_iadeler['tutar'] or 0),
+            }
+        
+        # Toplam özet
+        toplam_satis = satislar.aggregate(
+            tutar=Sum('toplam_tutar'),
+            adet=Count('id')
+        )
+        
+        toplam_iade = iadeler.aggregate(
+            tutar=Sum('tutar'),
+            adet=Count('id')
+        )
+        
+        aylik_ozet = {
+            'satis_tutari': toplam_satis['tutar'] or 0,
+            'satis_adedi': toplam_satis['adet'] or 0,
+            'iade_tutari': toplam_iade['tutar'] or 0,
+            'iade_adedi': toplam_iade['adet'] or 0,
+            'net_satis': (toplam_satis['tutar'] or 0) - (toplam_iade['tutar'] or 0),
+            'ortalama_gunluk': ((toplam_satis['tutar'] or 0) - (toplam_iade['tutar'] or 0)) / calendar.monthrange(yil, ay)[1],
+        }
+    else:
+        gunluk_satislar = {}
+        aylik_ozet = {}
+
+    context = {
+        'title': 'Aylık Satış Analizi',
+        'satis_elemanlari': satis_elemanlari,
+        'secili_satici': secili_satici,
+        'yil': yil,
+        'ay': ay,
+        'ay_adi': calendar.month_name[ay],
+        'gunluk_satislar': gunluk_satislar,
+        'aylik_ozet': aylik_ozet,
+    }
+    
+    return render(request, 'satis/satici_aylik.html', context)
 
 
 @login_required
@@ -616,7 +980,7 @@ def satis_iade(request, pk):
                     # Miktar kontrolü
                     if iade_miktar > kalem.miktar:
                         messages.error(request, f'{kalem.urun.ad} için iade miktarı stok miktarından fazla olamaz!')
-                        return render(request, 'satis/satis_iade_yeni.html', {
+                        return render(request, 'satis/satis_iade.html', {
                             'satis': satis, 
                             'kalemler': kalemler
                         })
@@ -634,7 +998,7 @@ def satis_iade(request, pk):
             # Hiç ürün seçilmediyse hata ver
             if not iade_edilecek_urunler:
                 messages.error(request, 'İade edilecek en az bir ürün seçmelisiniz!')
-                return render(request, 'satis/satis_iade_yeni.html', {
+                return render(request, 'satis/satis_iade.html', {
                     'satis': satis, 
                     'kalemler': kalemler
                 })
@@ -666,8 +1030,22 @@ def satis_iade(request, pk):
                 urun = item['kalem'].urun
                 first_variant = urun.varyantlar.filter(aktif=True).first()
                 if first_variant:
+                    onceki_stok = first_variant.stok_miktari
                     first_variant.stok_miktari += item['miktar']
-                    first_variant.save()
+                    first_variant.save(stok_hareket_guncelleme=True)  # İade işlemi - kilitli olsa da güncellenebilir
+                    
+                    # Stok hareket kaydı oluştur
+                    from urun.models import StokHareket
+                    StokHareket.objects.create(
+                        varyant=first_variant,
+                        hareket_tipi='giris',
+                        miktar=item['miktar'],
+                        onceki_stok=onceki_stok,
+                        yeni_stok=first_variant.stok_miktari,
+                        aciklama=f'İade: {satis.satis_no} -> Hediye Çeki: {hediye_ceki.kod}',
+                        referans_id=str(hediye_ceki.id),
+                        kullanici=request.user
+                    )
                 
                 # Kalem güncelle
                 if item['miktar'] == item['kalem'].miktar:
@@ -694,13 +1072,13 @@ def satis_iade(request, pk):
         except Exception as e:
             print(f"❌ İade hatası: {str(e)}")
             messages.error(request, f'İade işlemi başarısız: {str(e)}')
-            return render(request, 'satis/satis_iade_yeni.html', {
+            return render(request, 'satis/satis_iade.html', {
                 'satis': satis, 
                 'kalemler': kalemler
             })
     
     # GET request - formu göster
-    return render(request, 'satis/satis_iade_yeni.html', {
+    return render(request, 'satis/satis_iade.html', {
         'satis': satis, 
         'kalemler': kalemler
     })
@@ -919,7 +1297,8 @@ def barkod_sorgula(request):
                         'beden': varyant.beden.ad if varyant.beden else 'Tek Beden',
                         'renk': varyant.renk.ad if varyant.renk else 'Standart',
                         'barkod': varyant.barkod,
-                        'satis_fiyati': str(urun.satis_fiyati),
+                        'fiyat': float(urun.satis_fiyati),  # JavaScript'te 'fiyat' olarak kullanılıyor
+                        'satis_fiyati': float(urun.satis_fiyati),  # Geriye dönük uyumluluk için
                         'stok_miktari': varyant.stok_miktari,
                         'kategori': str(urun.kategori)
                     }
@@ -962,9 +1341,11 @@ def urun_ara(request):
                 'renk': varyant.renk.ad if varyant.renk else 'Standart',
                 'barkod': varyant.barkod,
                 'urun_kodu': varyant.urun.urun_kodu,
-                'satis_fiyati': str(varyant.urun.satis_fiyati),
+                'fiyat': float(varyant.urun.satis_fiyati),  # JavaScript'te 'fiyat' olarak kullanılıyor
+                'satis_fiyati': float(varyant.urun.satis_fiyati),  # Geriye dönük uyumluluk için
                 'stok_miktari': varyant.stok_miktari,
-                'kategori': str(varyant.urun.kategori) if varyant.urun.kategori else 'Kategori Yok'
+                'kategori': str(varyant.urun.kategori) if varyant.urun.kategori else 'Kategori Yok',
+                'marka': str(varyant.urun.marka) if varyant.urun.marka else 'Marka Yok'
             })
         
         return JsonResponse({'success': True, 'urunler': data})
@@ -1327,3 +1708,367 @@ def tahsilat_rapor(request):
     }
     
     return render(request, 'satis/tahsilat_rapor.html', context)
+
+
+# Satış Siparişi View'ları
+
+@login_required
+def siparis_olustur(request):
+    """Yeni satış siparişi oluşturma ekranı"""
+    from .models import SatisSiparisi
+    from musteri.models import Musteri
+    from kullanici.models import CustomUser
+    from datetime import datetime
+    
+    # Sonraki sipariş numarasını preview olarak göster
+    siparis_no_preview = SatisSiparisi.sonraki_siparis_no()
+    
+    # Müşteri listesi
+    musteriler = Musteri.objects.filter(aktif=True).order_by('ad', 'soyad')
+    
+    # Satış elemanları
+    satis_elemanlari = CustomUser.objects.filter(
+        is_active=True,
+        role='satici'
+    ).exclude(
+        username__in=['admin', 'nuviaadmin']
+    ).order_by('first_name', 'last_name', 'username')
+    
+    context = {
+        'title': 'Yeni Satış Siparişi',
+        'siparis_no': siparis_no_preview,
+        'musteriler': musteriler,
+        'satis_elemanlari': satis_elemanlari,
+    }
+    return render(request, 'satis/siparis_olustur.html', context)
+
+
+@csrf_exempt
+@login_required
+def siparis_kaydet(request):
+    """Satış siparişi kaydetme"""
+    from .models import SatisSiparisi, SatisSiparisiDetay
+    from urun.models import Urun
+    from musteri.models import Musteri
+    from kullanici.models import CustomUser
+    from decimal import Decimal
+    from django.conf import settings
+    import json
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST metodu gereklidir'})
+    
+    try:
+        data = json.loads(request.body)
+        sepet = data.get('sepet', [])
+        musteri_id = data.get('musteri_id')
+        satici_id = data.get('satici_id')
+        odeme_detaylari = data.get('odeme_detaylari', {})
+        genel_indirim = Decimal(str(data.get('genel_indirim', 0)))
+        aciklama = data.get('aciklama', '')
+        durum = data.get('durum', 'taslak')  # taslak veya hazir
+        
+        if not sepet:
+            return JsonResponse({'success': False, 'message': 'Sepet boş olamaz'})
+        
+        # Müşteri kontrolü
+        musteri = None
+        if musteri_id:
+            try:
+                musteri = Musteri.objects.get(id=musteri_id, aktif=True)
+            except Musteri.DoesNotExist:
+                return JsonResponse({'success': False, 'message': 'Müşteri bulunamadı'})
+        
+        # Satıcı kontrolü
+        satici = None
+        if satici_id:
+            try:
+                satici = CustomUser.objects.get(id=satici_id, is_active=True)
+            except CustomUser.DoesNotExist:
+                satici = request.user
+        else:
+            satici = request.user
+        
+        # Sipariş numarası oluştur
+        siparis_no = SatisSiparisi.sonraki_siparis_no()
+        
+        # Toplam hesaplama - Frontend'deki gibi
+        ara_toplam = Decimal('0')
+        
+        for item in sepet:
+            miktar = int(item['miktar'])
+            birim_fiyat = Decimal(str(item['fiyat']))
+            urun_indirim = Decimal(str(item.get('indirim', 0)))
+            
+            satir_toplami = (birim_fiyat * miktar) - urun_indirim
+            ara_toplam += satir_toplami
+        
+        # Genel indirim uygula
+        indirim_sonrasi_toplam = ara_toplam - genel_indirim
+        
+        # KDV hesapla (KDV dahil olmayan toplam üzerinden)
+        kdv_orani = Decimal('18.00')
+        kdv_tutari = indirim_sonrasi_toplam * kdv_orani / Decimal('100')
+        genel_toplam = indirim_sonrasi_toplam + kdv_tutari
+        
+        # Sipariş oluştur
+        siparis = SatisSiparisi.objects.create(
+            siparis_no=siparis_no,
+            musteri=musteri,
+            ara_toplam=indirim_sonrasi_toplam,  # İndirim sonrası ara toplam
+            indirim_tutari=genel_indirim,
+            kdv_orani=kdv_orani,
+            kdv_tutari=kdv_tutari,
+            genel_toplam=genel_toplam,
+            durum=durum,
+            satici=satici,
+            odeme_yontemi=odeme_detaylari.get('odeme_yontemi') if odeme_detaylari else None,
+            odeme_detaylari=odeme_detaylari if odeme_detaylari else None,
+            notlar=aciklama
+        )
+        
+        # Sipariş detaylarını oluştur
+        for item in sepet:
+            try:
+                urun = Urun.objects.get(id=item.get('id', item.get('urun_id')))
+                miktar = int(item['miktar'])
+                birim_fiyat = Decimal(str(item['fiyat']))
+                urun_indirim = Decimal(str(item.get('indirim', 0)))
+                
+                SatisSiparisiDetay.objects.create(
+                    siparis=siparis,
+                    urun=urun,
+                    miktar=miktar,
+                    birim_fiyat=birim_fiyat,
+                    indirim_tutari=urun_indirim,
+                    toplam=(birim_fiyat * miktar) - urun_indirim
+                )
+            except Urun.DoesNotExist:
+                continue
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Sipariş başarıyla kaydedildi!',
+            'siparis_id': siparis.id,
+            'siparis_no': siparis.siparis_no,
+            'durum': siparis.get_durum_display()
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': 'Geçersiz JSON verisi'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Hata: {str(e)}'})
+
+
+@login_required
+def siparis_listesi(request):
+    """Satış siparişleri listesi"""
+    from .models import SatisSiparisi
+    from django.db.models import Sum, Count
+    from kullanici.models import CustomUser
+    from django.conf import settings
+    
+    siparisler = SatisSiparisi.objects.all().order_by('-olusturma_tarihi')
+    
+    # Filtreleme
+    durum_filter = request.GET.get('durum')
+    if durum_filter:
+        siparisler = siparisler.filter(durum=durum_filter)
+    
+    satici_filter = request.GET.get('satici')
+    if satici_filter:
+        siparisler = siparisler.filter(satici_id=satici_filter)
+    
+    # Arama
+    q = request.GET.get('q')
+    if q:
+        siparisler = siparisler.filter(
+            Q(siparis_no__icontains=q) |
+            Q(musteri__ad__icontains=q) |
+            Q(musteri__soyad__icontains=q) |
+            Q(notlar__icontains=q)
+        )
+    
+    # Sayfalama
+    paginator = Paginator(siparisler, 20)
+    page = request.GET.get('page')
+    page_obj = paginator.get_page(page)
+    
+    # İstatistikler
+    toplam_siparis = siparisler.count()
+    toplam_tutar = siparisler.aggregate(toplam=Sum('genel_toplam'))['toplam'] or 0
+    
+    # Durum dağılımı
+    durum_dagilimi = SatisSiparisi.objects.values('durum').annotate(
+        adet=Count('id'),
+        toplam_tutar=Sum('genel_toplam')
+    ).order_by('durum')
+    
+    # Satıcılar (listeye göre aktif satıcılar)
+    # Not: SatisSiparisi.satici alanında related_name tanımlı olmadığından
+    # ters ilişki adı 'satissiparisi_set' değildir; güvenli yol olarak siparisler üzerinden id listesi alınır.
+    satici_ids = siparisler.values_list('satici_id', flat=True).distinct()
+    saticilar = CustomUser.objects.filter(
+        is_active=True,
+        id__in=list(satici_ids)
+    ).order_by('first_name', 'last_name')
+    
+    context = {
+        'title': 'Satış Siparişleri',
+        'page_obj': page_obj,
+        'toplam_siparis': toplam_siparis,
+        'toplam_tutar': toplam_tutar,
+        'durum_dagilimi': durum_dagilimi,
+        'saticilar': saticilar,
+        'durum_filter': durum_filter,
+        'satici_filter': satici_filter,
+        'q': q,
+    }
+    
+    return render(request, 'satis/siparis_listesi.html', context)
+
+
+@login_required
+def siparis_detay(request, pk):
+    """Satış siparişi detayı"""
+    from .models import SatisSiparisi
+    
+    siparis = get_object_or_404(SatisSiparisi, pk=pk)
+    # İlişki: SatisSiparisiDetay.siparis -> related_name='detaylar'
+    detaylar = siparis.detaylar.all().select_related('urun')
+    
+    context = {
+        'title': f'Sipariş Detayı - {siparis.siparis_no}',
+        'siparis': siparis,
+        'detaylar': detaylar,
+    }
+    
+    return render(request, 'satis/siparis_detay.html', context)
+
+
+@csrf_exempt
+@login_required
+def siparis_satisa_donustur(request, pk):
+    """Siparişi satışa dönüştür"""
+    from .models import SatisSiparisi
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST metodu gereklidir'})
+    
+    try:
+        siparis = get_object_or_404(SatisSiparisi, pk=pk)
+        
+        if siparis.durum != 'hazir':
+            return JsonResponse({
+                'success': False, 
+                'message': 'Sadece "Satışa Hazır" durumundaki siparişler satışa dönüştürülebilir'
+            })
+        
+        satis = siparis.satisa_donustur(user=request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Sipariş başarıyla satışa dönüştürüldü!',
+            'satis_id': satis.id,
+            'siparis_no': satis.siparis_no
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Hata: {str(e)}'})
+
+
+@login_required 
+def siparis_satis_ekraninda_yukle(request):
+    """Siparişteki ürünleri satış ekranına yükle (AJAX)"""
+    from .models import SatisSiparisi
+    import json
+    
+    try:
+        siparis_id = request.GET.get('siparis_id')
+        siparis = SatisSiparisi.objects.get(
+            id=siparis_id,
+            durum__in=['taslak', 'hazir']
+        )
+        
+        # Sipariş detaylarını al
+        detaylar = siparis.detaylar.all().select_related('urun')
+        
+        detay_listesi = []
+        for detay in detaylar:
+            detay_listesi.append({
+                'urun': {
+                    'id': detay.urun.id,
+                    'kod': detay.urun.urun_kodu or '',
+                    'ad': detay.urun.ad,
+                    'barkod': '',  # Barkod varyant seviyesinde
+                    'kategori': detay.urun.kategori.ad if detay.urun.kategori else '',
+                    'kdv_orani': 18.0,  # Sabit KDV oranı
+                    'resim': detay.urun.resim.url if detay.urun.resim else None
+                },
+                'miktar': int(detay.miktar),
+                'birim_fiyat': float(detay.birim_fiyat),
+                'indirim_tutari': float(detay.indirim_tutari),
+                'toplam_tutar': float(detay.toplam)
+            })
+        
+        # Ödeme detaylarını parse et
+        odeme_detaylari = {}
+        if siparis.odeme_detaylari:
+            try:
+                odeme_detaylari = json.loads(siparis.odeme_detaylari)
+            except json.JSONDecodeError:
+                pass
+        
+        return JsonResponse({
+            'success': True,
+            'siparis': {
+                'id': siparis.id,
+                'siparis_no': siparis.siparis_no,
+                'musteri_id': siparis.musteri.id if siparis.musteri else None,
+                'musteri_ad': f"{siparis.musteri.ad} {siparis.musteri.soyad}" if siparis.musteri else 'Perakende',
+                'odeme_yontemi': siparis.odeme_yontemi,
+                'banka': odeme_detaylari.get('banka', ''),
+                'notlar': siparis.notlar or '',
+                'detaylar': detay_listesi
+            }
+        })
+        
+    except SatisSiparisi.DoesNotExist:
+        return JsonResponse({
+            'success': False, 
+            'message': 'Sipariş bulunamadı veya yüklenemez durumda'
+        })
+
+
+@csrf_exempt
+@login_required
+def siparis_sil(request, pk):
+    """Taslak durumundaki siparişi sil"""
+    from .models import SatisSiparisi
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST metodu gereklidir'})
+    
+    try:
+        siparis = get_object_or_404(SatisSiparisi, pk=pk)
+        
+        # Sadece taslak durumundaki siparişler silinebilir
+        if siparis.durum != 'taslak':
+            return JsonResponse({
+                'success': False, 
+                'message': 'Sadece taslak durumundaki siparişler silinebilir'
+            })
+        
+        # Sipariş numarasını kaydet
+        siparis_no = siparis.siparis_no
+        
+        # Siparişi sil (CASCADE ile detayları da silinir)
+        siparis.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Sipariş {siparis_no} başarıyla silindi!'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Hata: {str(e)}'})

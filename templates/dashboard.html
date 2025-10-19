@@ -3,6 +3,48 @@
 
 {% block title %}Dashboard - Stok Takip{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Dashboard Mobile Responsive CSS */
+    .stat-card {
+        transition: transform 0.2s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+    @media (max-width: 768px) {
+        .col-md-3 {
+            margin-bottom: 1rem;
+        }
+        .card-body h3 {
+            font-size: 1.5rem;
+        }
+        .quick-actions .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+        .d-flex.gap-2 {
+            flex-direction: column;
+            gap: 0.5rem !important;
+        }
+        .fa-2x {
+            font-size: 1.5em !important;
+        }
+    }
+    @media (max-width: 576px) {
+        .container-fluid {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        .card-body {
+            padding: 1rem;
+        }
+        .h3 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}\
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -17,7 +59,7 @@
             
             <div class="row">
                 <div class="col-md-3 mb-3">
-                    <div class="card bg-primary text-white">
+                    <div class="card bg-primary text-white stat-card">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
@@ -33,7 +75,7 @@
                 </div>
                 
                 <div class="col-md-3 mb-3">
-                    <div class="card bg-success text-white">
+                    <div class="card bg-success text-white stat-card">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
@@ -49,7 +91,7 @@
                 </div>
                 
                 <div class="col-md-3 mb-3">
-                    <div class="card bg-warning text-white">
+                    <div class="card bg-warning text-white stat-card">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
@@ -91,7 +133,7 @@
                             <p>Sistem başarıyla çalışıyor. Tarih: {{ bugun|date:"d F Y" }}</p>
                             <p>Kullanıcı yönetim sistemi aktif ve tüm modüller hazır.</p>
                             
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 quick-actions">
                                 <a href="{% url 'kullanici:user_list' %}" class="btn btn-primary">
                                     <i class="fas fa-users me-1"></i> Kullanıcılar
                                 </a>

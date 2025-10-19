@@ -1,4 +1,0 @@
-if (window.codeReader) {
-    window.codeReader.reset();
-}
-window.codeReader = null;

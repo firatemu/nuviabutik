@@ -3,6 +3,87 @@
 
 {% block title %}Barkod Sorgula{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Kamera CSS */
+    .camera-container {
+        position: relative;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    #barkodPreview {
+        width: 100%;
+        max-height: 300px;
+        object-fit: cover;
+        border-radius: 8px;
+        /* iOS Safari için özel ayarlar */
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0) scaleX(-1);
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        -webkit-perspective: 1000px;
+        perspective: 1000px;
+    }
+
+    /* Mobil için kamera ayarları */
+    @media (max-width: 767.98px) {
+        #barkodPreview {
+            max-height: 250px;
+        }
+
+        .camera-overlay {
+            width: 150px;
+            height: 75px;
+        }
+
+        .camera-container {
+            margin-bottom: 1rem;
+        }
+    }
+
+    .camera-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 200px;
+        height: 100px;
+        border: 2px solid #00ff00;
+        border-radius: 8px;
+        pointer-events: none;
+        z-index: 10;
+    }
+
+    .camera-overlay::before {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        border: 2px dashed rgba(0, 255, 0, 0.5);
+        border-radius: 8px;
+        animation: scan-line 2s linear infinite;
+    }
+
+    @keyframes scan-line {
+        0% {
+            border-color: rgba(0, 255, 0, 0.8);
+        }
+
+        50% {
+            border-color: rgba(0, 255, 0, 0.3);
+        }
+
+        100% {
+            border-color: rgba(0, 255, 0, 0.8);
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row justify-content-center">
@@ -30,12 +111,74 @@
                                 value="{{ barkod }}"
                                 autofocus
                             >
+                            <button type="button" class="btn btn-success" id="barkodKameraBtn"
+                                title="Kamera ile Barkod Oku">
+                                <i class="fas fa-camera"></i>
+                            </button>
                             <button class="btn btn-primary" type="submit">
                                 <i class="fas fa-search"></i>
                                 Sorgula
                             </button>
                         </div>
                     </form>
+
+                    <!-- Kamera Alanı -->
+                    <div class="row mt-3 d-none" id="barkodKameraArea">
+                        <div class="col-12">
+                            <div class="bg-white p-3 rounded border">
+                                <div class="row">
+                                    <div class="col-12 col-md-8 mb-3 mb-md-0">
+                                        <div class="camera-container">
+                                            <video id="barkodPreview" autoplay playsinline webkit-playsinline muted></video>
+                                            <div class="camera-overlay"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <div class="text-dark">
+                                            <h6 class="text-success">
+                                                <i class="fas fa-camera me-2"></i>Kamera Aktif
+                                            </h6>
+                                            <p class="small mb-3">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Barkodu yeşil çerçeve içine getirin
+                                            </p>
+
+                                            <div class="d-grid gap-2">
+                                                <button type="button" class="btn btn-danger btn-sm" id="barkodStopCamera">
+                                                    <i class="fas fa-stop me-1"></i>Kamerayı Durdur
+                                                </button>
+
+                                                <button type="button" class="btn btn-secondary btn-sm"
+                                                    id="barkodSwitchCamera">
+                                                    <i class="fas fa-sync me-1"></i>Kamerayı Değiştir
+                                                </button>
+                                            </div>
+
+                                            <div id="barkodScanResult" class="alert alert-success mt-3 d-none">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-check-circle me-2"></i>
+                                                    <div>
+                                                        <small><strong>Barkod Okundu:</strong></small><br>
+                                                        <code id="barkodScannedCode"></code>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-3">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-lightbulb me-1"></i>
+                                                    <strong>İpuçları:</strong><br>
+                                                    • Barkodu düz tutun<br>
+                                                    • Yeterli ışık sağlayın<br>
+                                                    • Kamerayı sabit tutun
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     {% if urun %}
                     <div class="alert alert-success">
@@ -150,8 +293,18 @@
     </div>
 </div>
 
+<!-- ZXing-js Kütüphanesi - Android uyumlu versiyon -->
+<script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Global değişkenler
+    let barkodScanning = false;
+    let codeReader = null;
+    let selectedDeviceId = null;
+    let cameraDevices = [];
+    let scanStream = null;
+
     // Barkod input'una otomatik odaklan
     const barkodInput = document.getElementById('barkodInput');
     if (barkodInput) {
@@ -164,6 +317,180 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.closest('form').submit();
             }
         });
+    }
+
+    // Kamera kontrolleri
+    $('#barkodKameraBtn').click(function () {
+        if (!barkodScanning) {
+            startBarkodCamera();
+        }
+    });
+
+    $('#barkodStopCamera').click(function () {
+        stopBarkodCamera();
+    });
+
+    $('#barkodSwitchCamera').click(function () {
+        switchBarkodCamera();
+    });
+
+    async function startBarkodCamera() {
+        try {
+            $('#barkodKameraArea').removeClass('d-none');
+            $('#barkodKameraBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Başlatılıyor...');
+
+            // Device detection
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const isMobile = isIOS || isAndroid || /webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+            console.log('Device detection:', { isIOS, isAndroid, isMobile });
+
+            // ZXing kütüphanesini başlat
+            codeReader = new ZXing.BrowserMultiFormatReader();
+
+            // Kamera listesi al
+            let videoInputDevices = [];
+            try {
+                if (isIOS) {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    videoInputDevices = devices.filter(device => device.kind === 'videoinput');
+                } else {
+                    videoInputDevices = await codeReader.listVideoInputDevices();
+                }
+            } catch (err) {
+                console.log('Kamera listesi alma hatası, fallback yöntem:', err);
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    videoInputDevices = devices.filter(device => device.kind === 'videoinput');
+                } catch (fallbackErr) {
+                    console.log('Fallback da başarısız, varsayılan kamerayı kullan');
+                    videoInputDevices = [{ deviceId: 'default', label: 'Varsayılan Kamera' }];
+                }
+            }
+
+            cameraDevices = videoInputDevices;
+
+            if (cameraDevices.length === 0) {
+                throw new Error('Hiç kamera bulunamadı');
+            }
+
+            console.log('Bulunan kameralar:', cameraDevices.map(d => ({ id: d.deviceId, label: d.label })));
+
+            // Arka kamera seçimi
+            if (isIOS) {
+                selectedDeviceId = cameraDevices.find(device =>
+                    device.label && (
+                        device.label.toLowerCase().includes('back') ||
+                        device.label.toLowerCase().includes('rear') ||
+                        device.label.toLowerCase().includes('environment') ||
+                        device.label.toLowerCase().includes('wide') ||
+                        device.label.toLowerCase().includes('main')
+                    )
+                )?.deviceId;
+
+                if (!selectedDeviceId && cameraDevices.length > 1) {
+                    selectedDeviceId = cameraDevices[cameraDevices.length - 1].deviceId;
+                } else if (!selectedDeviceId) {
+                    selectedDeviceId = cameraDevices[0].deviceId;
+                }
+            } else if (isAndroid) {
+                selectedDeviceId = cameraDevices.find(device =>
+                    device.label && (
+                        device.label.toLowerCase().includes('back') ||
+                        device.label.toLowerCase().includes('rear') ||
+                        device.label.toLowerCase().includes('environment') ||
+                        device.label.toLowerCase().includes('arka')
+                    )
+                )?.deviceId;
+
+                if (!selectedDeviceId) {
+                    selectedDeviceId = cameraDevices[cameraDevices.length - 1].deviceId;
+                }
+            } else {
+                selectedDeviceId = cameraDevices[0].deviceId;
+            }
+
+            console.log('Seçilen kamera ID:', selectedDeviceId);
+
+            // Kamera değiştir butonunu göster
+            if (cameraDevices.length > 1) {
+                $('#barkodSwitchCamera').show();
+            } else {
+                $('#barkodSwitchCamera').hide();
+            }
+
+            // Kamerayı başlat
+            const constraints = {
+                video: {
+                    deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
+                    facingMode: (isIOS || isAndroid) ? 'environment' : 'user',
+                    width: { ideal: isIOS ? 1920 : 1280 },
+                    height: { ideal: isIOS ? 1080 : 720 },
+                    frameRate: { ideal: 30, max: 30 }
+                }
+            };
+
+            const result = await codeReader.decodeFromVideoDevice(
+                selectedDeviceId,
+                'barkodPreview',
+                (result, err) => {
+                    if (result) {
+                        console.log('Barkod okundu:', result.getText());
+                        const barkodText = result.getText();
+                        
+                        // Sonucu göster
+                        $('#barkodScannedCode').text(barkodText);
+                        $('#barkodScanResult').removeClass('d-none');
+                        
+                        // Input'a yaz
+                        $('#barkodInput').val(barkodText);
+                        
+                        // Kamerayı durdur ve formu gönder
+                        setTimeout(() => {
+                            stopBarkodCamera();
+                            $('form').submit();
+                        }, 1000);
+                    }
+                    if (err && !(err instanceof ZXing.NotFoundException)) {
+                        console.error('Tarama hatası:', err);
+                    }
+                }
+            );
+
+            barkodScanning = true;
+            $('#barkodKameraBtn').html('<i class="fas fa-camera"></i> Aktif');
+            
+        } catch (err) {
+            console.error('Kamera başlatma hatası:', err);
+            alert('Kamera erişimi sağlanamadı: ' + err.message);
+            stopBarkodCamera();
+        }
+    }
+
+    function stopBarkodCamera() {
+        if (codeReader) {
+            codeReader.reset();
+            codeReader = null;
+        }
+        
+        $('#barkodKameraArea').addClass('d-none');
+        $('#barkodKameraBtn').prop('disabled', false).html('<i class="fas fa-camera"></i>');
+        $('#barkodScanResult').addClass('d-none');
+        barkodScanning = false;
+    }
+
+    function switchBarkodCamera() {
+        if (cameraDevices.length <= 1) return;
+        
+        const currentIndex = cameraDevices.findIndex(device => device.deviceId === selectedDeviceId);
+        const nextIndex = (currentIndex + 1) % cameraDevices.length;
+        selectedDeviceId = cameraDevices[nextIndex].deviceId;
+        
+        if (barkodScanning) {
+            stopBarkodCamera();
+            setTimeout(() => startBarkodCamera(), 500);
+        }
     }
 });
 </script>

@@ -1,0 +1,14 @@
+# NuviaButik Print Agent - Windows Requirements
+# Xprinter XP-470B için gerekli Python paketleri
+
+websockets>=11.0.3
+pywin32>=306
+tkinter  # Python ile birlikte gelir, ayrıca kurulum gerekmez
+
+# Alternatif kurulum komutları:
+# pip install websockets pywin32
+
+# Not: 
+# - tkinter Python 3.x ile birlikte gelir
+# - pywin32 Windows printer API'leri için gerekli
+# - websockets WebSocket sunucu için gerekli

@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report-header {
+        background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    .filter-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .summary-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #6f42c1;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-box {
+        text-align: center;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border-top: 4px solid #6f42c1;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-top: 8px;
+    }
+    
+    .daily-table {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .positive { color: #28a745; }
+    .negative { color: #dc3545; }
+    .neutral { color: #6c757d; }
+    
+    .table th {
+        background: #6f42c1;
+        color: white;
+        border: none;
+        font-weight: 600;
+    }
+    
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(111, 66, 193, 0.05);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Grafik verileri
+    const dailyData = {{ gunluk_satislar|safe }};
+    
+    // Günlük satış grafiği
+    if (Object.keys(dailyData).length > 0) {
+        const ctx = document.getElementById('dailySalesChart').getContext('2d');
+        const days = Object.keys(dailyData).map(d => parseInt(d));
+        const salesData = days.map(day => dailyData[day].satis_tutari);
+        const returnData = days.map(day => dailyData[day].iade_tutari);
+        const netData = days.map(day => dailyData[day].net_satis);
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: days,
+                datasets: [{
+                    label: 'Satış',
+                    data: salesData,
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    fill: true
+                }, {
+                    label: 'İade',
+                    data: returnData,
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    fill: true
+                }, {
+                    label: 'Net Satış',
+                    data: netData,
+                    borderColor: '#6f42c1',
+                    backgroundColor: 'rgba(111, 66, 193, 0.1)',
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '{{ ay_adi }} {{ yil }} - Günlük Performans'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('tr-TR', {
+                                    style: 'currency',
+                                    currency: 'TRY'
+                                }).replace('₺', '') + ' ₺';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="report-header">
+        <h2><i class="fas fa-chart-area me-3"></i>{{ title }}</h2>
+        <p class="mb-0">Aylık satış performans analizi ve trendler</p>
+    </div>
+
+    <!-- Filtreler -->
+    <div class="filter-card">
+        <h5><i class="fas fa-filter me-2"></i>Filtreler</h5>
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label for="satici" class="form-label">Satış Elemanı</label>
+                <select name="satici" id="satici" class="form-select">
+                    <option value="">Satış Elemanı Seçiniz</option>
+                    {% for elemanl in satis_elemanlari %}
+                    <option value="{{ elemanl.id }}" {% if secili_satici.id == elemanl.id %}selected{% endif %}>
+                        {{ elemanl.first_name }} {{ elemanl.last_name|default:elemanl.username }}
+                        {% if elemanl.role == 'admin' %} (Yönetici)
+                        {% elif elemanl.role == 'manager' %} (Müdür)
+                        {% elif elemanl.role == 'cashier' %} (Kasiyer)
+                        {% elif elemanl.role == 'satici' %} (Satış Elemanı)
+                        {% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="ay" class="form-label">Ay</label>
+                <select name="ay" id="ay" class="form-select">
+                    {% for i in "123456789012"|make_list %}
+                        <option value="{{ forloop.counter }}" {% if ay == forloop.counter %}selected{% endif %}>
+                            {{ forloop.counter|date:"F" }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="yil" class="form-label">Yıl</label>
+                <select name="yil" id="yil" class="form-select">
+                    {% for year in "2024 2025 2026"|make_list %}
+                        <option value="{{ year }}" {% if yil|stringformat:"s" == year %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Analiz Et
+                    </button>
+                    <a href="{% url 'satis:satici_rapor' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Ana Rapor
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {% if secili_satici %}
+    <!-- Aylık Özet -->
+    <div class="summary-card">
+        <h5><i class="fas fa-user-tie me-2"></i>{{ secili_satici.first_name }} {{ secili_satici.last_name|default:secili_satici.username }} - {{ ay_adi }} {{ yil }}</h5>
+        
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-value positive">{{ aylik_ozet.satis_tutari|floatformat:2 }} ₺</div>
+                <div class="stat-label">Toplam Satış</div>
+                <small class="text-muted">({{ aylik_ozet.satis_adedi }} işlem)</small>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value negative">{{ aylik_ozet.iade_tutari|floatformat:2 }} ₺</div>
+                <div class="stat-label">Toplam İade</div>
+                <small class="text-muted">({{ aylik_ozet.iade_adedi }} işlem)</small>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value {% if aylik_ozet.net_satis > 0 %}positive{% elif aylik_ozet.net_satis < 0 %}negative{% else %}neutral{% endif %}">
+                    {{ aylik_ozet.net_satis|floatformat:2 }} ₺
+                </div>
+                <div class="stat-label">Net Satış</div>
+                <small class="text-muted">
+                    {% if aylik_ozet.satis_tutari > 0 %}
+                        ({% widthratio aylik_ozet.net_satis aylik_ozet.satis_tutari 100 %}% net oran)
+                    {% endif %}
+                </small>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value neutral">{{ aylik_ozet.ortalama_gunluk|floatformat:2 }} ₺</div>
+                <div class="stat-label">Günlük Ortalama</div>
+                <small class="text-muted">Net satış bazlı</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grafik -->
+    {% if gunluk_satislar %}
+    <div class="chart-container">
+        <h5><i class="fas fa-chart-line me-2"></i>Günlük Performans Trendi</h5>
+        <canvas id="dailySalesChart" height="100"></canvas>
+    </div>
+
+    <!-- Günlük Detay Tablosu -->
+    <div class="daily-table">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Gün</th>
+                        <th>Satış Tutarı</th>
+                        <th>Satış Adedi</th>
+                        <th>İade Tutarı</th>
+                        <th>İade Adedi</th>
+                        <th>Net Satış</th>
+                        <th>Detay</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for gun, veri in gunluk_satislar.items %}
+                    {% if veri.satis_tutari > 0 or veri.iade_tutari > 0 %}
+                    <tr>
+                        <td><strong>{{ gun }} {{ ay_adi }}</strong></td>
+                        <td class="positive">{{ veri.satis_tutari|floatformat:2 }} ₺</td>
+                        <td>{{ veri.satis_adedi }}</td>
+                        <td class="negative">{{ veri.iade_tutari|floatformat:2 }} ₺</td>
+                        <td>{{ veri.iade_adedi }}</td>
+                        <td class="{% if veri.net_satis > 0 %}positive{% elif veri.net_satis < 0 %}negative{% else %}neutral{% endif %}">
+                            {{ veri.net_satis|floatformat:2 }} ₺
+                        </td>
+                        <td>
+                            <a href="{% url 'satis:satici_gunluk' %}?satici={{ secili_satici.id }}&tarih={{ yil }}-{{ ay|stringformat:"02d" }}-{{ gun|stringformat:"02d" }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i> Görüntüle
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        {{ ay_adi }} {{ yil }} ayında {{ secili_satici.first_name }} {{ secili_satici.last_name|default:secili_satici.username }} tarafından satış işlemi yapılmamıştır.
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="alert alert-warning">
+        <i class="fas fa-user-times me-2"></i>
+        Analiz görüntülemek için satış elemanı seçiniz.
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Grafik verileri JavaScript'e aktar
+    {% if gunluk_satislar %}
+    window.gunlukSatislar = {{ gunluk_satislar|safe }};
+    {% endif %}
+</script>
+{% endblock %}

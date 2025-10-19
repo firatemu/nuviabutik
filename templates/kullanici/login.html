@@ -15,87 +15,172 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
-        
+
         .login-container {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1rem;
         }
-    
-    .login-card {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-        padding: 2rem;
-        width: 100%;
-        max-width: 400px;
-    }
-    
-    .login-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    
-    .login-header h2 {
-        color: #333;
-        margin-bottom: 0.5rem;
-    }
-    
-    .login-header p {
-        color: #666;
-        margin: 0;
-    }
-    
-    .form-group {
-        margin-bottom: 1rem;
-    }
-    
-    .form-control {
-        border-radius: 8px;
-        border: 1px solid #ddd;
-        padding: 0.75rem 1rem;
-        font-size: 1rem;
-    }
-    
-    .form-control:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-    }
-    
-    .btn-login {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        color: white;
-        font-weight: 500;
-        width: 100%;
-        transition: transform 0.2s;
-    }
-    
-    .btn-login:hover {
-        transform: translateY(-2px);
-        color: white;
-    }
-    
-    .remember-me {
-        display: flex;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-    
-    .remember-me input {
-        margin-right: 0.5rem;
-    }
-    
-    .alert {
-        border-radius: 8px;
-        margin-bottom: 1rem;
-    }
-</style>
+
+        .login-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            margin: 1rem;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h2 {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 1.75rem;
+        }
+
+        .login-header p {
+            color: #666;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            outline: none;
+        }
+
+        .form-control:valid {
+            border-color: #28a745;
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: white;
+            font-weight: 500;
+            width: 100%;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            color: white;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .remember-me input {
+            margin-right: 0.5rem;
+        }
+
+        .alert {
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border: none;
+        }
+
+        .text-danger {
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .footer-text {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 576px) {
+            .login-card {
+                padding: 1.5rem;
+                margin: 0.5rem;
+                border-radius: 10px;
+            }
+            
+            .login-header h2 {
+                font-size: 1.5rem;
+            }
+            
+            .form-control {
+                padding: 0.875rem 1rem;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+            
+            .btn-login {
+                padding: 0.875rem 1rem;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .login-container {
+                padding: 0.5rem;
+            }
+            
+            .login-card {
+                padding: 1rem;
+                margin: 0.25rem;
+            }
+        }
+
+        /* Form validation styling */
+        .form-control.is-invalid {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+        }
+
+        .invalid-feedback {
+            display: block;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875rem;
+            color: #dc3545;
+        }
+    </style>
 </head>
 <body>
 
@@ -105,52 +190,72 @@
             <h2>Stok Takip Sistemi</h2>
             <p>Giriş yapın</p>
         </div>
-        
+
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                     {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             {% endfor %}
         {% endif %}
-        
-        <form method="post" action="{% url 'kullanici:login' %}">
+
+        <form method="post" action="{% url 'kullanici:login' %}" novalidate>
             {% csrf_token %}
-            
+
             {% if form.non_field_errors %}
                 <div class="alert alert-danger">
                     {{ form.non_field_errors }}
                 </div>
             {% endif %}
-            
+
             <div class="form-group">
                 <label for="{{ form.username.id_for_label }}" class="form-label">Kullanıcı Adı</label>
-                {{ form.username }}
+                <input type="text" 
+                       name="{{ form.username.name }}" 
+                       id="{{ form.username.id_for_label }}"
+                       class="form-control{% if form.username.errors %} is-invalid{% endif %}"
+                       value="{{ form.username.value|default:'' }}"
+                       required
+                       autocomplete="username">
                 {% if form.username.errors %}
-                    <div class="text-danger small">{{ form.username.errors }}</div>
+                    <div class="invalid-feedback">
+                        {{ form.username.errors.0 }}
+                    </div>
                 {% endif %}
             </div>
-            
+
             <div class="form-group">
                 <label for="{{ form.password.id_for_label }}" class="form-label">Şifre</label>
-                {{ form.password }}
+                <input type="password" 
+                       name="{{ form.password.name }}" 
+                       id="{{ form.password.id_for_label }}"
+                       class="form-control{% if form.password.errors %} is-invalid{% endif %}"
+                       required
+                       autocomplete="current-password">
                 {% if form.password.errors %}
-                    <div class="text-danger small">{{ form.password.errors }}</div>
+                    <div class="invalid-feedback">
+                        {{ form.password.errors.0 }}
+                    </div>
                 {% endif %}
             </div>
-            
+
+            {% if form.remember_me %}
             <div class="remember-me">
-                {{ form.remember_me }}
-                <label for="{{ form.remember_me.id_for_label }}" class="form-label mb-0">Beni hatırla</label>
+                <input type="checkbox" 
+                       name="{{ form.remember_me.name }}" 
+                       id="{{ form.remember_me.id_for_label }}"
+                       class="form-check-input">
+                <label for="{{ form.remember_me.id_for_label }}" class="form-check-label mb-0">Beni hatırla</label>
             </div>
-            
+            {% endif %}
+
             <button type="submit" class="btn btn-login">
                 <i class="fas fa-sign-in-alt me-2"></i>Giriş Yap
             </button>
         </form>
-        
-        <div class="text-center mt-3">
+
+        <div class="footer-text">
             <small class="text-muted">
                 © 2025 Stok Takip Sistemi. Tüm hakları saklıdır.
             </small>
@@ -163,35 +268,83 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Form validasyonu
+    // Form elements
     const form = document.querySelector('form');
     const username = document.querySelector('#id_username');
     const password = document.querySelector('#id_password');
-    
-    form.addEventListener('submit', function(e) {
-        let isValid = true;
-        
-        if (!username.value.trim()) {
-            isValid = false;
-            username.classList.add('is-invalid');
-        } else {
-            username.classList.remove('is-invalid');
+
+    // Auto-focus on username field
+    if (username) {
+        username.focus();
+    }
+
+    // Enhanced form validation
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            // Clear previous invalid states
+            document.querySelectorAll('.form-control').forEach(input => {
+                input.classList.remove('is-invalid');
+            });
+
+            // Validate username
+            if (username && !username.value.trim()) {
+                isValid = false;
+                username.classList.add('is-invalid');
+                showFieldError(username, 'Kullanıcı adı gereklidir.');
+            }
+
+            // Validate password
+            if (password && !password.value.trim()) {
+                isValid = false;
+                password.classList.add('is-invalid');
+                showFieldError(password, 'Şifre gereklidir.');
+            }
+
+            if (!isValid) {
+                e.preventDefault();
+            }
+        });
+
+        // Real-time validation
+        [username, password].forEach(input => {
+            if (input) {
+                input.addEventListener('input', function() {
+                    if (this.value.trim()) {
+                        this.classList.remove('is-invalid');
+                        hideFieldError(this);
+                    }
+                });
+            }
+        });
+    }
+
+    function showFieldError(input, message) {
+        hideFieldError(input);
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.textContent = message;
+        input.parentNode.appendChild(errorDiv);
+    }
+
+    function hideFieldError(input) {
+        const existingError = input.parentNode.querySelector('.invalid-feedback');
+        if (existingError) {
+            existingError.remove();
         }
-        
-        if (!password.value.trim()) {
-            isValid = false;
-            password.classList.add('is-invalid');
-        } else {
-            password.classList.remove('is-invalid');
-        }
-        
-        if (!isValid) {
-            e.preventDefault();
-        }
-    });
-    
-    // Auto-focus
-    username.focus();
+    }
+
+    // Loading state for submit button
+    const submitBtn = document.querySelector('.btn-login');
+    if (submitBtn && form) {
+        form.addEventListener('submit', function(e) {
+            if (form.checkValidity()) {
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Giriş yapılıyor...';
+                submitBtn.disabled = true;
+            }
+        });
+    }
 });
 </script>
 

@@ -33,6 +33,7 @@ def gunluk_satis(request):
         satis__durum='tamamlandi'
     ).select_related(
         'satis', 'satis__musteri', 'satis__satici',
+        'urun', 'urun__kategori', 'urun__marka',
         'varyant', 'varyant__urun', 
         'varyant__urun__kategori', 'varyant__urun__marka',
         'varyant__renk', 'varyant__beden'
@@ -48,6 +49,11 @@ def gunluk_satis(request):
         toplam_adet=Sum('miktar')
     )['toplam_adet'] or 0
     
+    # Ortalama satış hesapla
+    ortalama_satis = 0
+    if toplam_satis['adet'] and toplam_satis['adet'] > 0:
+        ortalama_satis = toplam_satis['toplam'] / toplam_satis['adet']
+
     context = {
         'satislar': satislar,
         'satis_detaylari': satis_detaylari,
@@ -55,6 +61,8 @@ def gunluk_satis(request):
         'toplam_satis': toplam_satis['toplam'] or 0,
         'satis_sayisi': toplam_satis['adet'] or 0,
         'toplam_urun_sayisi': toplam_urun_sayisi,
+        'ortalama_satis': ortalama_satis,
+        'toplam_urun_adet': toplam_urun_sayisi,  # Template'te bu isim kullanılıyor
     }
     return render(request, 'rapor/gunluk_satis.html', context)
 
@@ -412,3 +420,177 @@ def stok_hareketleri(request, varyant_id):
         'title': f'{varyant.urun.ad} - Stok Hareketleri'
     }
     return render(request, 'rapor/stok_hareketleri.html', context)
+
+
+@login_required
+@login_required
+def satici_raporu(request):
+    """Satış elemanlarının performans raporu"""
+    from django.contrib.auth import get_user_model
+    from django.db.models import Sum, Count, Avg
+    from datetime import datetime, timedelta, date
+    from decimal import Decimal
+    
+    User = get_user_model()
+    
+    # Tarih filtreleri
+    bugun = date.today()
+    filtre = request.GET.get('filtre', 'ay')  # gun, hafta, ay, ozel
+    
+    if filtre == 'gun':
+        baslangic = bugun
+        bitis = bugun
+        baslik = f"Günlük Satış Raporu - {bugun.strftime('%d.%m.%Y')}"
+    elif filtre == 'hafta':
+        # Bu haftanın başından bugüne
+        haftanin_basi = bugun - timedelta(days=bugun.weekday())
+        baslangic = haftanin_basi
+        bitis = bugun
+        baslik = f"Haftalık Satış Raporu - {haftanin_basi.strftime('%d.%m')} / {bugun.strftime('%d.%m.%Y')}"
+    elif filtre == 'ay':
+        # Bu ayın başından bugüne
+        ayin_basi = bugun.replace(day=1)
+        baslangic = ayin_basi
+        bitis = bugun
+        baslik = f"Aylık Satış Raporu - {ayin_basi.strftime('%B %Y')}"
+    else:  # ozel
+        baslangic_str = request.GET.get('baslangic', bugun.strftime('%Y-%m-%d'))
+        bitis_str = request.GET.get('bitis', bugun.strftime('%Y-%m-%d'))
+        
+        try:
+            baslangic = datetime.strptime(baslangic_str, '%Y-%m-%d').date()
+            bitis = datetime.strptime(bitis_str, '%Y-%m-%d').date()
+        except ValueError:
+            baslangic = bugun
+            bitis = bugun
+        
+        baslik = f"Özel Dönem Satış Raporu - {baslangic.strftime('%d.%m.%Y')} / {bitis.strftime('%d.%m.%Y')}"
+    
+    # Satış elemanlarını al (satış yapanları)
+    satici_listesi = User.objects.filter(
+        satis__satis_tarihi__date__range=[baslangic, bitis],
+        satis__durum='tamamlandi'
+    ).distinct()
+    
+    # Her satış elemanı için istatistikler
+    satici_stats = []
+    toplam_satis_tutari = Decimal('0')
+    toplam_satis_adedi = 0
+    toplam_urun_adedi = 0
+    
+    for satici in satici_listesi:
+        # Bu satıcının dönemdeki satışları
+        satislar = Satis.objects.filter(
+            satici=satici,
+            satis_tarihi__date__range=[baslangic, bitis],
+            durum='tamamlandi'
+        )
+        
+        # İstatistikler
+        stats = satislar.aggregate(
+            toplam_tutar=Sum('toplam_tutar'),
+            satis_sayisi=Count('id')
+        )
+        
+        # Ortalama satış tutarını ayrı hesapla
+        ortalama_satis = satislar.aggregate(ortalama=Avg('toplam_tutar'))['ortalama'] or Decimal('0')
+        
+        # Satılan ürün sayısı
+        urun_sayisi = SatisDetay.objects.filter(
+            satis__satici=satici,
+            satis__satis_tarihi__date__range=[baslangic, bitis],
+            satis__durum='tamamlandi'
+        ).aggregate(toplam_adet=Sum('miktar'))['toplam_adet'] or 0
+        
+        # En çok sattığı ürün
+        en_cok_satan = SatisDetay.objects.filter(
+            satis__satici=satici,
+            satis__satis_tarihi__date__range=[baslangic, bitis],
+            satis__durum='tamamlandi'
+        ).values(
+            'urun__ad'
+        ).annotate(
+            toplam_adet=Sum('miktar'),
+            toplam_tutar=Sum('toplam_fiyat')
+        ).order_by('-toplam_adet').first()
+        
+        if stats['toplam_tutar']:
+            satici_stats.append({
+                'satici': satici,
+                'toplam_tutar': stats['toplam_tutar'],
+                'satis_sayisi': stats['satis_sayisi'],
+                'urun_sayisi': urun_sayisi,
+                'ortalama_satis': ortalama_satis,
+                'en_cok_satan': en_cok_satan,
+                'yuzde_pay': Decimal('0')  # Sonra hesaplanacak
+            })
+            
+            toplam_satis_tutari += stats['toplam_tutar']
+            toplam_satis_adedi += stats['satis_sayisi']
+            toplam_urun_adedi += urun_sayisi
+    
+    # Yüzde paylarını hesapla
+    for stat in satici_stats:
+        if toplam_satis_tutari > 0:
+            stat['yuzde_pay'] = (stat['toplam_tutar'] / toplam_satis_tutari) * 100
+    
+    # Performansa göre sırala
+    satici_stats.sort(key=lambda x: x['toplam_tutar'], reverse=True)
+    
+    # Günlük detay için (sadece son 7 gün)
+    gunluk_detay = []
+    if filtre in ['gun', 'hafta']:
+        son_7_gun = []
+        for i in range(7):
+            tarih = bugun - timedelta(days=i)
+            if tarih >= baslangic:
+                son_7_gun.append(tarih)
+        
+        for tarih in reversed(son_7_gun):
+            gun_satislari = Satis.objects.filter(
+                satis_tarihi__date=tarih,
+                durum='tamamlandi'
+            ).aggregate(
+                toplam=Sum('toplam_tutar'),
+                adet=Count('id')
+            )
+            
+            gunluk_detay.append({
+                'tarih': tarih,
+                'toplam_tutar': gun_satislari['toplam'] or Decimal('0'),
+                'satis_adet': gun_satislari['adet'] or 0
+            })
+    
+    context = {
+        'title': 'Satış Elemanı Raporu',
+        'baslik': baslik,
+        'filtre': filtre,
+        'baslangic': baslangic,
+        'bitis': bitis,
+        'satici_stats': satici_stats,
+        'toplam_satis_tutari': toplam_satis_tutari,
+        'toplam_satis_adedi': toplam_satis_adedi,
+        'toplam_urun_adedi': toplam_urun_adedi,
+        'gunluk_detay': gunluk_detay,
+        'en_basarili_satici': satici_stats[0] if satici_stats else None,
+    }
+    
+    return render(request, 'rapor/satici_raporu.html', context)
+
+
+@login_required
+def satici_raporu_excel(request):
+    """Satıcı raporu Excel export"""
+    # Export mantığı için satici_raporu view'ini tekrar çağır
+    response = satici_raporu(request)
+    # Excel export implementasyonu burada olacak
+    return HttpResponse("Excel export yakında eklenecek")
+
+
+@login_required 
+def satici_raporu_pdf(request):
+    """Satıcı raporu PDF export"""
+    # Export mantığı için satici_raporu view'ini tekrar çağır
+    response = satici_raporu(request)
+    # PDF export implementasyonu burada olacak
+    return HttpResponse("PDF export yakında eklenecek")

@@ -120,6 +120,7 @@
                             <th>Saat</th>
                             <th>Satış No</th>
                             <th>Ürün Adı</th>
+                            <th>Barkod</th>
                             <th>Varyasyon</th>
                             <th>Kategori</th>
                             <th>Marka</th>
@@ -138,27 +139,34 @@
                                 <span class="badge bg-primary">{{ detay.satis.satis_no }}</span>
                             </td>
                             <td>
-                                <strong>{{ detay.varyant.urun.ad }}</strong>
+                                <strong>{{ detay.urun.ad }}</strong>
+                            </td>
+                            <td>
+                                {% if detay.varyant and detay.varyant.barkod %}
+                                    <code>{{ detay.varyant.barkod }}</code>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
                             </td>
                             <td>
                                 <small class="text-muted">
-                                    {% if detay.varyant.renk %}{{ detay.varyant.renk.ad }}{% endif %}
-                                    {% if detay.varyant.renk and detay.varyant.beden %} - {% endif %}
-                                    {% if detay.varyant.beden %}{{ detay.varyant.beden.ad }}{% endif %}
-                                    {% if not detay.varyant.renk and not detay.varyant.beden %}Standart{% endif %}
+                                    {% if detay.varyant and detay.varyant.renk %}{{ detay.varyant.renk.ad }}{% endif %}
+                                    {% if detay.varyant and detay.varyant.renk and detay.varyant.beden %} - {% endif %}
+                                    {% if detay.varyant and detay.varyant.beden %}{{ detay.varyant.beden.ad }}{% endif %}
+                                    {% if not detay.varyant or not detay.varyant.renk and not detay.varyant.beden %}Standart{% endif %}
                                 </small>
                             </td>
                             <td>
-                                <span class="badge bg-info">{{ detay.varyant.urun.kategori.ad }}</span>
+                                <span class="badge bg-info">{{ detay.urun.kategori.ad }}</span>
                             </td>
                             <td>
-                                <span class="badge bg-secondary">{{ detay.varyant.urun.marka.ad|default:"-" }}</span>
+                                <span class="badge bg-secondary">{{ detay.urun.marka.ad|default:"-" }}</span>
                             </td>
                             <td>
-                                <span class="badge {% if detay.varyant.urun.cinsiyet == 'kadin' %}bg-pink{% elif detay.varyant.urun.cinsiyet == 'erkek' %}bg-blue{% else %}bg-purple{% endif %}">
-                                    {% if detay.varyant.urun.cinsiyet == 'kadin' %}
+                                <span class="badge {% if detay.urun.cinsiyet == 'kadin' %}bg-pink{% elif detay.urun.cinsiyet == 'erkek' %}bg-blue{% else %}bg-purple{% endif %}">
+                                    {% if detay.urun.cinsiyet == 'kadin' %}
                                         <i class="fas fa-venus"></i> Kadın
-                                    {% elif detay.varyant.urun.cinsiyet == 'erkek' %}
+                                    {% elif detay.urun.cinsiyet == 'erkek' %}
                                         <i class="fas fa-mars"></i> Erkek
                                     {% else %}
                                         <i class="fas fa-venus-mars"></i> Unisex
@@ -169,7 +177,7 @@
                                 <span class="badge bg-warning text-dark">{{ detay.miktar }}</span>
                             </td>
                             <td>
-                                <span class="text-primary fw-bold">{{ detay.satis_fiyati|floatformat:2 }} ₺</span>
+                                <span class="text-primary fw-bold">{{ detay.birim_fiyat|floatformat:2 }} ₺</span>
                             </td>
                             <td>
                                 <span class="text-success fw-bold">{{ detay.toplam_fiyat|floatformat:2 }} ₺</span>
@@ -180,7 +188,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="11" class="text-center">Bu tarihte satılan ürün bulunamadı.</td>
+                            <td colspan="12" class="text-center">Bu tarihte satılan ürün bulunamadı.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -207,6 +215,23 @@
 }
 .badge {
     font-size: 0.8em;
+}
+code {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-size: 0.75em;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.table-responsive {
+    overflow-x: auto;
+}
+/* Mobil cihazlar için */
+@media (max-width: 768px) {
+    .table th, .table td {
+        font-size: 0.8em;
+        padding: 0.5rem 0.3rem;
+    }
 }
 </style>
 {% endblock %}

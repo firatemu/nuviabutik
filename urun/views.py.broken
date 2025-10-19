@@ -1,0 +1,416 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.http import HttpResponse, JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q, Avg, Count, Sum, F
+from django.core.paginator import Paginator
+from django.conf import settings
+from decimal import Decimal
+import json
+import re
+
+from .models import Urun, UrunVaryanti, Kategori, Marka
+
+def etiket_tek_yazdir(request, varyant_id):
+    " \\Tek varyant için etiket yazdırma\\\
+ try:
+ varyant = UrunVaryanti.objects.get(id=varyant_id)
+ prn_content = varyant.etiket_olustur()
+ 
+ response = HttpResponse(prn_content, content_type='application/octet-stream')
+ response['Content-Disposition'] = f'attachment; filename=etiket_{varyant.id}.prn'
+ return response
+ 
+ except UrunVaryanti.DoesNotExist:
+ return HttpResponse('Varyant bulunamadı', status=404)
+
+def etiket_toplu_yazdir(request):
+ \\\Toplu etiket yazdırma\\\
+ ids = request.GET.get('ids', '')
+ if not ids:
+ return HttpResponse('Varyant ID listesi gerekli', status=400)
+ 
+ varyant_ids = ids.split(',')
+ prn_content = ''
+ 
+ for varyant_id in varyant_ids:
+ try:
+ varyant = UrunVaryanti.objects.get(id=int(varyant_id))
+ prn_content += varyant.etiket_olustur() + '\\n'
+ except (UrunVaryanti.DoesNotExist, ValueError):
+ continue
+ 
+ if not prn_content:
+ return HttpResponse('Geçerli varyant bulunamadı', status=404)
+ 
+ response = HttpResponse(prn_content, content_type='application/octet-stream')
+ response['Content-Disposition'] = 'attachment; filename=toplu_etiket.prn'
+ return response
+
+@login_required
+def urun_listesi(request):
+ arama = request.GET.get('q', '')
+ sort = request.GET.get('sort', '-id')
+ kategori_id = request.GET.get('kategori', None)
+ marka_id = request.GET.get('marka', None)
+ stok_durumu = request.GET.get('stok', None)
+ 
+ urunler = Urun.objects.all()
+ 
+ if arama:
+ urunler = urunler.filter(
+ Q(ad__icontains=arama) |
+ Q(barkod__icontains=arama) |
+ Q(urunvaryanti__barkod__icontains=arama)
+ ).distinct()
+ 
+ if kategori_id:
+ urunler = urunler.filter(kategori_id=kategori_id)
+ 
+ if marka_id:
+ urunler = urunler.filter(marka_id=marka_id)
+ 
+ if stok_durumu == 'var':
+ urunler = urunler.filter(urunvaryanti__stok_miktari__gt=0).distinct()
+ elif stok_durumu == 'yok':
+ urunler = urunler.filter(urunvaryanti__stok_miktari=0).distinct()
+ 
+ urunler = urunler.order_by(sort)
+ 
+ sayfa = request.GET.get('sayfa', 1)
+ paginator = Paginator(urunler, 50)
+ sayfa_urunler = paginator.get_page(sayfa)
+ 
+ kategoriler = Kategori.objects.all()
+ markalar = Marka.objects.all()
+ 
+ toplam_urun = Urun.objects.count()
+ ortalama_fiyat = Urun.objects.aggregate(avg_fiyat=Avg('fiyat'))['avg_fiyat']
+ 
+ context = {
+ 'urunler': sayfa_urunler,
+ 'kategoriler': kategoriler,
+ 'markalar': markalar,
+ 'toplam_urun': toplam_urun,
+ 'ortalama_fiyat': ortalama_fiyat,
+ 'title': 'Ürün Listesi'
+ }
+ 
+ return render(request, 'urun/urun_listesi.html', context)
+
+@login_required
+def urun_detay(request, urun_id):
+ urun = get_object_or_404(Urun, id=urun_id)
+ varyantlar = urun.urunvaryanti_set.all().order_by('id')
+ 
+ context = {
+ 'urun': urun,
+ 'varyantlar': varyantlar,
+ 'title': urun.ad
+ }
+ 
+ return render(request, 'urun/urun_detay.html', context)
+
+@login_required
+def urun_duzenle(request, urun_id):
+ urun = get_object_or_404(Urun, id=urun_id)
+ 
+ if request.method == 'POST':
+ ad = request.POST.get('ad')
+ barkod = request.POST.get('barkod')
+ fiyat = request.POST.get('fiyat')
+ kategori_id = request.POST.get('kategori')
+ marka_id = request.POST.get('marka')
+ 
+ try:
+ urun.ad = ad
+ urun.barkod = barkod
+ urun.fiyat = Decimal(fiyat.replace(',', '.'))
+ urun.kategori_id = kategori_id
+ urun.marka_id = marka_id
+ urun.save()
+ 
+ messages.success(request, 'Ürün başarıyla güncellendi.')
+ return redirect('urun:urun_detay', urun_id=urun.id)
+ 
+ except Exception as e:
+ messages.error(request, f'Hata oluştu: {str(e)}')
+ 
+ kategoriler = Kategori.objects.all()
+ markalar = Marka.objects.all()
+ 
+ context = {
+ 'urun': urun,
+ 'kategoriler': kategoriler,
+ 'markalar': markalar,
+ 'title': f'{urun.ad} - Düzenle'
+ }
+ 
+ return render(request, 'urun/urun_duzenle.html', context)
+
+@login_required
+def urun_sil(request, urun_id):
+ urun = get_object_or_404(Urun, id=urun_id)
+ 
+ try:
+ urun.delete()
+ messages.success(request, 'Ürün başarıyla silindi.')
+ return redirect('urun:urun_listesi')
+ except Exception as e:
+ messages.error(request, f'Hata oluştu: {str(e)}')
+ return redirect('urun:urun_detay', urun_id=urun.id)
+
+@login_required
+def urun_yeni(request):
+ if request.method == 'POST':
+ ad = request.POST.get('ad')
+ barkod = request.POST.get('barkod')
+ fiyat = request.POST.get('fiyat')
+ kategori_id = request.POST.get('kategori')
+ marka_id = request.POST.get('marka')
+ 
+ try:
+ urun = Urun.objects.create(
+ ad=ad,
+ barkod=barkod,
+ fiyat=Decimal(fiyat.replace(',', '.')),
+ kategori_id=kategori_id,
+ marka_id=marka_id
+ )
+ 
+ messages.success(request, 'Ürün başarıyla oluşturuldu.')
+ return redirect('urun:urun_detay', urun_id=urun.id)
+ 
+ except Exception as e:
+ messages.error(request, f'Hata oluştu: {str(e)}')
+ 
+ kategoriler = Kategori.objects.all()
+ markalar = Marka.objects.all()
+ 
+ context = {
+ 'kategoriler': kategoriler,
+ 'markalar': markalar,
+ 'title': 'Yeni Ürün'
+ }
+ 
+ return render(request, 'urun/urun_yeni.html', context)
+
+@login_required
+def urun_ara(request):
+ arama = request.GET.get('q', '')
+ 
+ if not arama:
+ return JsonResponse({'error': 'Arama terimi gerekli'}, status=400)
+ 
+ urunler = Urun.objects.filter(
+ Q(ad__icontains=arama) |
+ Q(barkod__icontains=arama) |
+ Q(urunvaryanti__barkod__icontains=arama)
+ ).distinct()[:10]
+ 
+ results = []
+ for urun in urunler:
+ results.append({
+ 'id': urun.id,
+ 'ad': urun.ad,
+ 'barkod': urun.barkod,
+ 'fiyat': float(urun.fiyat)
+ })
+ 
+ return JsonResponse({'results': results})
+
+@login_required
+def varyasyon_yonetimi(request, urun_id):
+ urun = get_object_or_404(Urun, id=urun_id)
+ 
+ if request.method == 'POST':
+ renkler = request.POST.getlist('renk')
+ bedenler = request.POST.getlist('beden')
+ 
+ if not renkler or not bedenler:
+ messages.error(request, 'En az bir renk ve beden seçmelisiniz.')
+ return redirect('urun:varyasyon_yonet', urun_id=urun.id)
+ 
+ try:
+ for renk in renkler:
+ for beden in bedenler:
+ varyasyon_adi = f'{renk} - {beden}'
+ 
+ if not UrunVaryanti.objects.filter(urun=urun, varyasyon_adi=varyasyon_adi).exists():
+ UrunVaryanti.objects.create(
+ urun=urun,
+ varyasyon_adi=varyasyon_adi,
+ stok_miktari=0
+ )
+ 
+ messages.success(request, 'Varyasyonlar başarıyla oluşturuldu.')
+ 
+ except Exception as e:
+ messages.error(request, f'Hata oluştu: {str(e)}')
+ 
+ mevcut_varyantlar = urun.urunvaryanti_set.all().order_by('id')
+ has_editable_variants = any(not v.stok_kaydedildi for v in mevcut_varyantlar)
+ 
+ context = {
+ 'urun': urun,
+ 'mevcut_varyantlar': mevcut_varyantlar,
+ 'has_editable_variants': has_editable_variants,
+ 'title': f'{urun.ad} - Varyasyon Yönetimi'
+ }
+ 
+ return render(request, 'urun/varyasyon_yonet.html', context)
+
+@login_required
+def varyant_sil(request, varyant_id):
+ varyant = get_object_or_404(UrunVaryanti, id=varyant_id)
+ urun_id = varyant.urun.id
+ 
+ try:
+ varyant.delete()
+ return JsonResponse({'status': 'success'})
+ except Exception as e:
+ return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+def varyant_toplu_stok_guncelle(request, urun_id):
+ if request.method != 'POST':
+ return JsonResponse({'error': 'Invalid request method'}, status=400)
+ 
+ try:
+ data = json.loads(request.body)
+ varyant_stoklar = data.get('varyant_stoklar', {})
+ 
+ for varyant_id, stok in varyant_stoklar.items():
+ varyant = UrunVaryanti.objects.get(id=varyant_id)
+ if not varyant.stok_kaydedildi:
+ varyant.stok_miktari = int(stok)
+ varyant.stok_kaydedildi = True
+ varyant.save()
+ 
+ return JsonResponse({'status': 'success'})
+ 
+ except Exception as e:
+ return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def barkod_sorgula(request):
+ barkod = request.GET.get('barkod', '').strip()
+ 
+ if not barkod:
+ return JsonResponse({'error': 'Barkod gerekli'}, status=400)
+ 
+ try:
+ # Önce ürün barkodu olarak ara
+ urun = Urun.objects.filter(barkod=barkod).first()
+ if urun:
+ return JsonResponse({
+ 'type': 'urun',
+ 'id': urun.id,
+ 'ad': urun.ad,
+ 'barkod': urun.barkod,
+ 'fiyat': float(urun.fiyat)
+ })
+ 
+ # Varyant barkodu olarak ara
+ varyant = UrunVaryanti.objects.filter(barkod=barkod).first()
+ if varyant:
+ return JsonResponse({
+ 'type': 'varyant',
+ 'id': varyant.id,
+ 'urun_id': varyant.urun.id,
+ 'urun_ad': varyant.urun.ad,
+ 'varyasyon_adi': varyant.varyasyon_adi,
+ 'barkod': varyant.barkod,
+ 'stok': varyant.stok_miktari
+ })
+ 
+ return JsonResponse({'error': 'Barkod bulunamadı'}, status=404)
+ 
+ except Exception as e:
+ return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def kategori_yonetimi(request):
+ kategoriler = Kategori.objects.all()
+ 
+ context = {
+ 'kategoriler': kategoriler,
+ 'title': 'Kategori Yönetimi'
+ }
+ 
+ return render(request, 'urun/kategori_yonetimi.html', context)
+
+@login_required
+def kategori_yeni(request):
+ if request.method == 'POST':
+ ad = request.POST.get('ad')
+ try:
+ Kategori.objects.create(ad=ad)
+ messages.success(request, 'Kategori başarıyla oluşturuldu.')
+ return redirect('urun:kategori')
+ except Exception as e:
+ messages.error(request, f'Hata oluştu: {str(e)}')
+ 
+ return render(request, 'urun/kategori_yeni.html', {'title': 'Yeni Kategori'})
+
+@login_required
+def kategori_duzenle(request, kategori_id):
+ kategori = get_object_or_404(Kategori, id=kategori_id)
+ 
+ if request.method == 'POST':
+ ad = request.POST.get('ad')
+ try:
+ kategori.ad = ad
+ kategori.save()
+ messages.success(request, 'Kategori başarıyla güncellendi.')
+ return redirect('urun:kategori')
+ except Exception as e:
+ messages.error(request, f'Hata oluştu: {str(e)}')
+ 
+ context = {
+ 'kategori': kategori,
+ 'title': f'{kategori.ad} - Düzenle'
+ }
+ 
+ return render(request, 'urun/kategori_duzenle.html', context)
+
+@login_required
+def kategori_sil(request, kategori_id):
+ kategori = get_object_or_404(Kategori, id=kategori_id)
+ 
+ try:
+ kategori.delete()
+ messages.success(request, 'Kategori başarıyla silindi.')
+ except Exception as e:
+ messages.error(request, f'Hata oluştu: {str(e)}')
+ 
+ return redirect('urun:kategori')
+
+
+def etiket_tek_yazdir(request, varyant_id):
+    try:
+        varyant = UrunVaryanti.objects.get(id=varyant_id)
+        prn_content = varyant.etiket_olustur()
+        response = HttpResponse(prn_content, content_type="application/octet-stream")
+        response["Content-Disposition"] = "attachment; filename=etiket_" + str(varyant.id) + ".prn"
+        return response
+    except UrunVaryanti.DoesNotExist:
+        return HttpResponse("Varyant bulunamadi", status=404)
+
+def etiket_toplu_yazdir(request):
+    ids = request.GET.get("ids", "")
+    if not ids:
+        return HttpResponse("Varyant ID listesi gerekli", status=400)
+    varyant_ids = ids.split(",")
+    prn_content = ""
+    for varyant_id in varyant_ids:
+        try:
+            varyant = UrunVaryanti.objects.get(id=int(varyant_id))
+            prn_content += varyant.etiket_olustur() + "\n"
+        except (UrunVaryanti.DoesNotExist, ValueError):
+            continue
+    if not prn_content:
+        return HttpResponse("Gecerli varyant bulunamadi", status=404)
+    response = HttpResponse(prn_content, content_type="application/octet-stream")
+    response["Content-Disposition"] = "attachment; filename=toplu_etiket.prn"
+    return response

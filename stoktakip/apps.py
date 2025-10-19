@@ -25,7 +25,8 @@ class StoktakipConfig(AppConfig):
             if hasattr(autoreload, 'StatReloader'):
                 original_poll_interval = getattr(autoreload.StatReloader, 'POLL_INTERVAL', 1)
                 autoreload.StatReloader.POLL_INTERVAL = 0.5
-                print(f"Auto-reload polling interval optimized: {original_poll_interval}s -> 0.5s")
+                # Auto-reload polling interval optimized
                 
         except Exception as e:
-            print(f"Auto-reload optimization failed: {e}")
+            # Auto-reload optimization failed
+            pass

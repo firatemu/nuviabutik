@@ -30,7 +30,9 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'nuviabutik.com',
+    'www.nuviabutik.com',
     '31.57.33.34',
+    'testserver',  # For Django testing
     # Your production domain will be added here
 ]
 
@@ -71,6 +73,7 @@ INSTALLED_APPS = [
     'log',
     'gider',  # Giderler modülü
     'kasa',   # Kasa yönetimi modülü
+    # 'downloads' app kaldırıldı - Local Print Agent kullanılıyor
 ]
 
 MIDDLEWARE = [
@@ -112,8 +115,18 @@ WSGI_APPLICATION = 'stoktakip.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'nuviabutik_db',
+        'USER': 'nuviabutik_user',
+        'PASSWORD': 'nuviabutik123',
+        'HOST': 'localhost',
+        'PORT': '5432',
+        'CONN_MAX_AGE': 600,  # Persistent connections (10 dakika)
+        'CONN_HEALTH_CHECKS': True,  # Bağlantı sağlık kontrolü
+        'OPTIONS': {
+            'connect_timeout': 10,
+            'options': '-c statement_timeout=30000'  # 30 saniye query timeout
+        },
     }
 }
 
@@ -201,23 +214,36 @@ if DEBUG:
     import os
     os.environ.setdefault('DJANGO_AUTORELOAD_EXTRA_FILES', '')
     
-    # Cache ayarları - development için disable
+    # Cache ayarları - performans için geliştirme
+    # Redis Cache Configuration (Yüksek Performans)
     CACHES = {
         'default': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': 'redis://127.0.0.1:6379/1',
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'retry_on_timeout': True,
+                },
+                'SOCKET_CONNECT_TIMEOUT': 5,
+                'SOCKET_TIMEOUT': 5,
+                'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+                'IGNORE_EXCEPTIONS': True,
+            },
+            'KEY_PREFIX': 'nuviabutik',
+            'TIMEOUT': 300,  # 5 dakika default timeout
         }
     }
     
-    # Template cache'i devre dışı bırak
+    # Session cache (Redis)
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
+    
+    # Template cache'i etkinleştir - production performansı için
     for template_settings in TEMPLATES:
         if 'OPTIONS' in template_settings:
-            template_settings['OPTIONS']['debug'] = True
-            if 'loaders' in template_settings['OPTIONS']:
-                # Template cache'lerini kaldır
-                template_settings['OPTIONS']['loaders'] = [
-                    'django.template.loaders.filesystem.Loader',
-                    'django.template.loaders.app_directories.Loader',
-                ]
+            template_settings['OPTIONS']['debug'] = False
 
 
 # CSRF Security Settings

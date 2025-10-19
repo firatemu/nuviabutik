@@ -1,0 +1,389 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h4 class="mb-0">
+                                <i class="fas fa-clipboard-list"></i> {{ title }}
+                            </h4>
+                        </div>
+                        <div class="col-auto">
+                            <a href="{% url 'satis:siparis_olustur' %}" class="btn btn-light">
+                                <i class="fas fa-plus"></i> Yeni Sipariş
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- İstatistikler -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="stat-card bg-primary text-white">
+                                <div class="stat-number">{{ toplam_siparis }}</div>
+                                <div class="stat-label">Toplam Sipariş</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="stat-card bg-success text-white">
+                                <div class="stat-number">₺{{ toplam_tutar|floatformat:2 }}</div>
+                                <div class="stat-label">Toplam Tutar</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row">
+                                {% for durum in durum_dagilimi %}
+                                <div class="col-6 mb-2">
+                                    <div class="small-stat-card">
+                                        <div class="stat-number">{{ durum.adet }}</div>
+                                        <div class="stat-label">{{ durum.durum|capfirst }}</div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtreler -->
+                    <div class="search-section">
+                        <form method="get" class="row g-3 align-items-end">
+                            {% csrf_token %}
+                            <div class="col-md-3">
+                                <label for="q" class="form-label">
+                                    <i class="fas fa-search me-1"></i>Ara
+                                </label>
+                                <input type="text" class="form-control" id="q" name="q" value="{{ q }}"
+                                    placeholder="Sipariş no, müşteri adı...">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="durum" class="form-label">
+                                    <i class="fas fa-filter me-1"></i>Durum
+                                </label>
+                                <select class="form-select" id="durum" name="durum">
+                                    <option value="">Tümü</option>
+                                    <option value="taslak" {% if durum_filter == 'taslak' %}selected{% endif %}>Taslak
+                                    </option>
+                                    <option value="hazir" {% if durum_filter == 'hazir' %}selected{% endif %}>Satışa Hazır
+                                    </option>
+                                    <option value="satisa_donusturuldu" {% if durum_filter == 'satisa_donusturuldu' %}selected{% endif %}>Satışa Dönüştürüldü</option>
+                                    <option value="iptal" {% if durum_filter == 'iptal' %}selected{% endif %}>İptal
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="satici" class="form-label">
+                                    <i class="fas fa-user me-1"></i>Satıcı
+                                </label>
+                                <select class="form-select" id="satici" name="satici">
+                                    <option value="">Tümü</option>
+                                    {% for satici in saticilar %}
+                                    <option value="{{ satici.id }}" {% if satici_filter == satici.id|stringformat:'s' %}selected{% endif %}>
+                                        {{ satici.first_name }} {{ satici.last_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary flex-fill">
+                                        <i class="fas fa-search me-1"></i>Ara
+                                    </button>
+                                    <a href="{% url 'satis:siparis_listesi' %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Sipariş Listesi -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Sipariş No</th>
+                                    <th>Müşteri</th>
+                                    <th>Ürün Sayısı</th>
+                                    <th>Toplam Tutar</th>
+                                    <th>Durum</th>
+                                    <th>Satıcı</th>
+                                    <th>Tarih</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for siparis in page_obj %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'satis:siparis_detay' siparis.id %}"
+                                            class="text-decoration-none">
+                                            <strong>{{ siparis.siparis_no }}</strong>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if siparis.musteri %}
+                                        {{ siparis.musteri.ad }} {{ siparis.musteri.soyad }}
+                                        {% else %}
+                                        <span class="text-muted">Perakende</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ siparis.urun_sayisi }}</td>
+                                    <td class="text-success fw-bold">₺{{ siparis.genel_toplam|floatformat:2 }}</td>
+                                    <td>
+                                        {% if siparis.durum == 'taslak' %}
+                                        <span class="badge bg-secondary">{{ siparis.get_durum_display }}</span>
+                                        {% elif siparis.durum == 'hazir' %}
+                                        <span class="badge bg-success">{{ siparis.get_durum_display }}</span>
+                                        {% elif siparis.durum == 'satisa_donusturuldu' %}
+                                        <span class="badge bg-primary">{{ siparis.get_durum_display }}</span>
+                                        {% elif siparis.durum == 'iptal' %}
+                                        <span class="badge bg-danger">{{ siparis.get_durum_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if siparis.satici %}
+                                        {{ siparis.satici.first_name }} {{ siparis.satici.last_name }}
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ siparis.olusturma_tarihi|date:"d.m.Y H:i" }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'satis:siparis_detay' siparis.id %}"
+                                                class="btn btn-outline-primary btn-sm" title="Detay">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+
+                                            {% if siparis.durum == 'hazir' %}
+                                            <button type="button" class="btn btn-outline-success btn-sm"
+                                                onclick="satisaDonustur({{ siparis.id }})" title="Satışa Dönüştür">
+                                                <i class="fas fa-cash-register"></i>
+                                            </button>
+                                            {% endif %}
+
+                                            {% if siparis.durum == 'taslak' or siparis.durum == 'hazir' %}
+                                            <button type="button" class="btn btn-outline-info btn-sm"
+                                                onclick="satisEkraninaYukle({{ siparis.id }})"
+                                                title="Satış Ekranına Yükle">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            {% endif %}
+
+                                            {% if siparis.durum == 'taslak' %}
+                                            <button type="button" class="btn btn-outline-danger btn-sm"
+                                                onclick="siparisSil({{ siparis.id }})"
+                                                title="Siparişi Sil">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        <i class="fas fa-clipboard-list fa-3x mb-3"></i><br>
+                                        Henüz sipariş bulunmuyor.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Sayfalama -->
+                    {% if page_obj.has_other_pages %}
+                    <nav aria-label="Sayfa navigasyonu">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                    href="?{% if q %}q={{ q }}&{% endif %}{% if durum_filter %}durum={{ durum_filter }}&{% endif %}{% if satici_filter %}satici={{ satici_filter }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                    href="?{% if q %}q={{ q }}&{% endif %}{% if durum_filter %}durum={{ durum_filter }}&{% endif %}{% if satici_filter %}satici={{ satici_filter }}&{% endif %}page={{ num }}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                    href="?{% if q %}q={{ q }}&{% endif %}{% if durum_filter %}durum={{ durum_filter }}&{% endif %}{% if satici_filter %}satici={{ satici_filter }}&{% endif %}page={{ page_obj.next_page_number }}">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card.bg-success {
+        background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+    }
+
+    .small-stat-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 0.75rem;
+        text-align: center;
+        border: 1px solid #e9ecef;
+    }
+
+    .stat-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .small-stat-card .stat-number {
+        font-size: 1.25rem;
+        color: #495057;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+
+    .small-stat-card .stat-label {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+
+    .search-section {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e9ecef;
+    }
+
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .btn-group .btn {
+        margin: 0 1px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function satisaDonustur(siparisId) {
+        if (confirm('Bu siparişi satışa dönüştürmek istediğinizden emin misiniz?')) {
+            $.ajax({
+                url: `/satis/siparis/${siparisId}/satisa-donustur/`,
+                method: 'POST',
+                success: function (response) {
+                    if (response.success) {
+                        showAlert('success', response.message);
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showAlert('danger', response.message);
+                    }
+                },
+                error: function () {
+                    showAlert('danger', 'İşlem sırasında hata oluştu');
+                }
+            });
+        }
+    }
+
+    function satisEkraninaYukle(siparisId) {
+        if (confirm('Bu siparişteki ürünleri satış ekranına yüklemek istediğinizden emin misiniz?')) {
+            const url = `/satis/?siparis_id=${siparisId}`;
+            window.open(url, '_blank');
+        }
+    }
+
+    function siparisSil(siparisId) {
+        if (confirm('Bu taslak siparişi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
+            $.ajax({
+                url: `/satis/siparis/${siparisId}/sil/`,
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+                },
+                success: function (response) {
+                    if (response.success) {
+                        showAlert('success', response.message);
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showAlert('danger', response.message);
+                    }
+                },
+                error: function () {
+                    showAlert('danger', 'Sipariş silinirken hata oluştu');
+                }
+            });
+        }
+    }
+
+    function showAlert(type, message, duration = 4000) {
+        const alertId = 'alert-' + Date.now();
+        const alertHtml = `
+        <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+
+        $('body').append(alertHtml);
+
+        setTimeout(() => {
+            $(`#${alertId}`).alert('close');
+        }, duration);
+    }
+</script>
+{% endblock %}

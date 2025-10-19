@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import label_views
 
 app_name = 'urun'
 
@@ -44,4 +45,8 @@ urlpatterns = [
     
     # Fiyat yönetimi
     path('fiyat-guncelleme/', views.fiyat_guncelleme, name='fiyat_guncelleme'),
+    
+    # Modern WebSocket Etiket Yazdırma API - Temporarily disabled due to missing views
+    # path('api/etiket/websocket/<int:varyant_id>/', views.etiket_websocket_yazdir, name='etiket_websocket'),
+    # path('api/etiket/toplu-websocket/<int:urun_id>/', views.etiket_toplu_websocket_yazdir, name='etiket_toplu_websocket'),
 ]

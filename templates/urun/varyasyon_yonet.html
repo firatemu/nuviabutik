@@ -103,7 +103,7 @@
     }
     
     .variant-actions {
-        width: 120px;
+        width: 150px;
         text-align: right;
     }
     
@@ -299,11 +299,18 @@
                         <i class="fas fa-list me-2"></i>
                         Mevcut Varyasyonlar
                     </h5>
-                    {% if has_editable_variants %}
-                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="topluStokGuncelle()">
-                            <i class="fas fa-save me-1"></i>Stokları Kaydet
-                        </button>
-                    {% endif %}
+                    <div>
+                        <!-- Temporarily disabled: Bulk label printing
+                        <a href="{% comment %}{% url 'urun:etiket_toplu_websocket' urun.id %}{% endcomment %}" class="btn btn-outline-success btn-sm me-2">
+                            <i class="fas fa-print me-1"></i>Tüm Etiketleri Yazdır
+                        </a>
+                        -->
+                        {% if has_editable_variants %}
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="topluStokGuncelle()">
+                                <i class="fas fa-save me-1"></i>Stokları Kaydet
+                            </button>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     {% if mevcut_varyantlar %}
@@ -349,6 +356,19 @@
                                     {% endif %}
                                 </div>
                                 <div class="variant-actions">
+                                    <button type="button" 
+                                            class="btn btn-outline-success btn-sm me-1" 
+                                            data-print-variant="{{ varyant.id }}"
+                                            title="Etiket Yazdır (Local Bridge)">
+                                        <i class="fas fa-print"></i>
+                                    </button>
+                                    {% comment %}<!-- Temporarily disabled: ZPL Etiket API
+                                    <a href="{% url 'urun:etiket_websocket' varyant.id %}" 
+                                       class="btn btn-outline-primary btn-sm me-1" 
+                                       title="ZPL Etiket API">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    -->{% endcomment %}
                                     <button type="button" class="btn btn-outline-danger btn-sm" 
                                             onclick="varyantSil({{ varyant.id }})" 
                                             title="Sil">
@@ -505,8 +525,8 @@ function topluStokGuncelle() {
                 confirmButtonText: 'Tamam'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Ürün listesine yönlendir
-                    window.location.href = '{% url "urun:liste" %}';
+                    // Sayfayı yenile ki read-only durumu güncellensin
+                    window.location.reload();
                 }
             });
         } else {

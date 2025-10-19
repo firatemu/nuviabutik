@@ -24,6 +24,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic import TemplateView
 from django.http import HttpResponse
 from . import views
+from . import tsc_to_zpl_converter
 
 
 def redirect_to_dashboard(request):
@@ -59,6 +60,15 @@ urlpatterns = [
     path('log/', include('log.urls', namespace='log')),
     path('gider/', include('gider.urls', namespace='gider')),  # Giderler modülü
     path('kasa/', include('kasa.urls', namespace='kasa')),     # Kasa yönetimi modülü
+    # Downloads modülü kaldırıldı - Local Print Agent kullanılıyor
+    
+    # Custom Label API (TSC Design as ZPL)
+    path('api/tsc-as-zpl/', tsc_to_zpl_converter.tsc_design_as_zpl, name='custom_label'),
+    path('api/tsc-dynamic-zpl/', tsc_to_zpl_converter.tsc_design_dynamic_zpl, name='custom_label_dynamic'),
+    
+    # Ürün Etiket API'leri
+    path('api/urun-etiket/<int:urun_id>/', tsc_to_zpl_converter.urun_etiket_zpl, name='urun_etiket'),
+    path('api/varyant-etiket/<int:varyant_id>/', tsc_to_zpl_converter.varyant_etiket_zpl, name='varyant_etiket'),
 ]
 
 # Media files için

@@ -29,8 +29,22 @@ urlpatterns = [
     path('tahsilat/', views.tahsilat_listesi, name='tahsilat_listesi'),
     path('tahsilat/rapor/', views.tahsilat_rapor, name='tahsilat_rapor'),
     
+    # Satış Siparişi işlemleri
+    path('siparis/', views.siparis_listesi, name='siparis_listesi'),
+    path('siparis/olustur/', views.siparis_olustur, name='siparis_olustur'),
+    path('siparis/kaydet/', views.siparis_kaydet, name='siparis_kaydet'),
+    path('siparis/<int:pk>/', views.siparis_detay, name='siparis_detay'),
+    path('siparis/<int:pk>/satisa-donustur/', views.siparis_satisa_donustur, name='siparis_satisa_donustur'),
+    path('siparis/<int:pk>/sil/', views.siparis_sil, name='siparis_sil'),
+    path('ajax/siparis-yukle/', views.siparis_satis_ekraninda_yukle, name='siparis_satis_ekraninda_yukle'),
+    
     # Barkod sorgulama
     path('barkod-sorgula/', views.barkod_sorgula, name='barkod_sorgula'),
+    
+    # Satış Elemanı Raporları
+    path('rapor/satici/', views.satici_rapor, name='satici_rapor'),
+    path('rapor/satici/gunluk/', views.satici_gunluk, name='satici_gunluk'),
+    path('rapor/satici/aylik/', views.satici_aylik, name='satici_aylik'),
     
     # AJAX endpoints
     path('ajax/urun-ara/', views.urun_ara, name='urun_ara'),

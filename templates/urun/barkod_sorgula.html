@@ -13,21 +13,22 @@
                 <div class="card-body">
                     <!-- Barkod Arama Formu -->
                     <form method="get" class="mb-4" id="barkodForm">
+                        {% csrf_token %}
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="input-group">
                                     <span class="input-group-text">
                                         <i class="fas fa-barcode"></i>
                                     </span>
-                                    <input type="text" class="form-control form-control-lg" 
-                                           name="barkod" id="barkodInput" value="{{ barkod|default:'' }}" 
-                                           placeholder="Barkod okutun veya yazın..." 
-                                           autofocus autocomplete="off">
+                                    <input type="text" class="form-control form-control-lg" name="barkod"
+                                        id="barkodInput" value="{{ barkod|default:'' }}"
+                                        placeholder="Barkod okutun veya yazın..." autofocus autocomplete="off">
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <button type="button" class="btn btn-success btn-lg w-100" id="cameraBtn" title="Kamera ile Barkod Oku">
-                                    <i class="fas fa-camera"></i> 
+                                <button type="button" class="btn btn-success btn-lg w-100" id="cameraBtn"
+                                    title="Kamera ile Barkod Oku">
+                                    <i class="fas fa-camera"></i>
                                     <span class="d-none d-md-inline">Kamera</span>
                                     <span class="d-md-none">📷</span>
                                 </button>
@@ -44,7 +45,8 @@
                     <div class="row mb-4 d-none" id="cameraArea">
                         <div class="col-12">
                             <div class="card border-success">
-                                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                <div
+                                    class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0">
                                         <i class="fas fa-camera"></i> Kamera ile Barkod Okuma
                                     </h6>
@@ -53,12 +55,14 @@
                                     </button>
                                 </div>
                                 <div class="card-body p-2 text-center">
-                                    <video id="preview" class="w-100 rounded" style="max-height: 400px; background: #000;"></video>
+                                    <video id="preview" class="w-100 rounded"
+                                        style="max-height: 400px; background: #000;"></video>
                                     <div class="mt-2">
                                         <div class="d-flex justify-content-center align-items-center">
                                             <div class="text-center">
                                                 <h6><i class="fas fa-camera text-success"></i> Kamera Aktif</h6>
-                                                <p class="small mb-2">📱 Mobil cihazlarda arka kamera otomatik kullanılır</p>
+                                                <p class="small mb-2">📱 Mobil cihazlarda arka kamera otomatik
+                                                    kullanılır</p>
                                                 <p class="small mb-0">Barkodu kameraya doğrultun, otomatik okuyacak</p>
                                             </div>
                                         </div>
@@ -66,7 +70,7 @@
                                 </div>
                                 <!-- Scan Result -->
                                 <div class="alert alert-success mx-3 mb-3 d-none" id="scanResult">
-                                    <i class="fas fa-check-circle"></i> 
+                                    <i class="fas fa-check-circle"></i>
                                     Barkod okundu: <strong id="scannedCode"></strong>
                                     <br><small>Otomatik olarak arama yapılıyor...</small>
                                 </div>
@@ -76,348 +80,663 @@
 
                     <!-- Sonuçlar -->
                     {% if barkod %}
-                        {% if urun %}
-                            <!-- Ürün Bulundu -->
-                            <div class="alert alert-success">
-                                <h5><i class="fas fa-check-circle"></i> Ürün Bulundu!</h5>
+                    {% if urun %}
+                    <!-- Ürün Bulundu -->
+                    <div class="alert alert-success">
+                        <h5><i class="fas fa-check-circle"></i> Ürün Bulundu!</h5>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            {% if urun.resim %}
+                            <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}" class="img-fluid rounded shadow">
+                            {% else %}
+                            <div class="bg-light d-flex align-items-center justify-content-center rounded shadow"
+                                style="height: 300px;">
+                                <i class="fas fa-image fa-5x text-muted"></i>
                             </div>
-                            
-                            <div class="row">
-                                <div class="col-md-4">
-                                    {% if urun.resim %}
-                                        <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}" 
-                                             class="img-fluid rounded shadow">
-                                    {% else %}
-                                        <div class="bg-light d-flex align-items-center justify-content-center rounded shadow" 
-                                             style="height: 300px;">
-                                            <i class="fas fa-image fa-5x text-muted"></i>
-                                        </div>
-                                    {% endif %}
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5><i class="fas fa-info-circle"></i> Ürün Bilgileri</h5>
                                 </div>
-                                <div class="col-md-8">
-                                    <div class="card">
-                                        <div class="card-header bg-primary text-white">
-                                            <h5><i class="fas fa-info-circle"></i> Ürün Bilgileri</h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <table class="table table-borderless">
-                                                <tr>
-                                                    <td width="30%"><strong>Ürün Adı:</strong></td>
-                                                    <td>{{ urun.ad }}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>Barkod:</strong></td>
-                                                    <td><code>{{ urun.barkod }}</code></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>SKU:</strong></td>
-                                                    <td><code>{{ urun.sku }}</code></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>Kategori:</strong></td>
-                                                    <td>
-                                                        <span class="badge bg-info">
-                                                            {{ urun.kategori.ust_kategori.ad }} - {{ urun.kategori.ad }}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                                {% if urun.marka %}
-                                                <tr>
-                                                    <td><strong>Marka:</strong></td>
-                                                    <td>
-                                                        <span class="badge bg-secondary">{{ urun.marka.ad }}</span>
-                                                    </td>
-                                                </tr>
+                                <div class="card-body">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td width="30%"><strong>Ürün Adı:</strong></td>
+                                            <td>{{ urun.ad }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Ürün Kodu:</strong></td>
+                                            <td><code>{{ urun.urun_kodu }}</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Kategori:</strong></td>
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    {{ urun.kategori.ad }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% if urun.marka %}
+                                        <tr>
+                                            <td><strong>Marka:</strong></td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ urun.marka.ad }}</span>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                        <tr>
+                                            <td><strong>Satış Fiyatı:</strong></td>
+                                            <td>
+                                                <h5 class="text-success mb-0">{{ urun.satis_fiyati|floatformat:2 }} ₺
+                                                </h5>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Stok Durumu:</strong></td>
+                                            <td>
+                                                {% if urun.toplam_stok > 0 %}
+                                                <span class="badge bg-success fs-6">
+                                                    {{ urun.toplam_stok }} adet stokta
+                                                </span>
+                                                {% else %}
+                                                <span class="badge bg-danger fs-6">Stokta yok</span>
                                                 {% endif %}
-                                                <tr>
-                                                    <td><strong>Satış Fiyatı:</strong></td>
-                                                    <td>
-                                                        <h5 class="text-success mb-0">{{ urun.satis_fiyati|floatformat:2 }} ₺</h5>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>Stok Durumu:</strong></td>
-                                                    <td>
-                                                        {% if urun.stok_miktari > 0 %}
-                                                            <span class="badge bg-success fs-6">
-                                                                {{ urun.stok_miktari }} adet stokta
-                                                            </span>
-                                                        {% else %}
-                                                            <span class="badge bg-danger fs-6">Stokta yok</span>
-                                                        {% endif %}
-                                                    </td>
-                                                </tr>
-                                                {% if urun.aciklama %}
-                                                <tr>
-                                                    <td><strong>Açıklama:</strong></td>
-                                                    <td>{{ urun.aciklama }}</td>
-                                                </tr>
-                                                {% endif %}
-                                            </table>
-                                        </div>
-                                        <div class="card-footer">
-                                            <div class="btn-group w-100">
-                                                <a href="{% url 'urun:duzenle' urun.id %}" class="btn btn-warning">
-                                                    <i class="fas fa-edit"></i> Düzenle
-                                                </a>
-                                                <a href="{% url 'satis:ekrani' %}?barkod={{ urun.barkod }}" class="btn btn-success">
-                                                    <i class="fas fa-shopping-cart"></i> Satış Ekranına Ekle
-                                                </a>
-                                            </div>
-                                        </div>
+                                            </td>
+                                        </tr>
+                                        {% if urun.aciklama %}
+                                        <tr>
+                                            <td><strong>Açıklama:</strong></td>
+                                            <td>{{ urun.aciklama }}</td>
+                                        </tr>
+                                        {% endif %}
+                                    </table>
+                                </div>
+                                <div class="card-footer">
+                                    <div class="btn-group w-100">
+                                        <a href="{% url 'urun:duzenle' urun.id %}" class="btn btn-warning">
+                                            <i class="fas fa-edit"></i> Düzenle
+                                        </a>
+                                        <a href="{% url 'satis:ekrani' %}?barkod={{ urun.barkod }}"
+                                            class="btn btn-success">
+                                            <i class="fas fa-shopping-cart"></i> Satış Ekranına Ekle
+                                        </a>
                                     </div>
                                 </div>
                             </div>
-                        {% else %}
-                            <!-- Ürün Bulunamadı -->
-                            <div class="alert alert-warning">
-                                <h5><i class="fas fa-exclamation-triangle"></i> Ürün Bulunamadı!</h5>
-                                <p>{{ barkod }} barkoduna ait ürün sistemde kayıtlı değil.</p>
-                                <hr>
-                                <a href="{% url 'urun:ekle' %}?barkod={{ barkod }}" class="btn btn-primary">
-                                    <i class="fas fa-plus"></i> Bu Barkod ile Yeni Ürün Ekle
-                                </a>
+                        </div>
+
+                        <!-- Varyasyonlar Bölümü -->
+                        {% if varyantlar %}
+                        <div class="col-12 mt-4">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h5><i class="fas fa-palette"></i> Ürün Varyasyonları ({{ varyantlar|length }} adet)
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for v in varyantlar %}
+                                        <div class="col-lg-6 col-xl-4 mb-3">
+                                            <div
+                                                class="card variant-card {% if v == varyant %}border-primary{% endif %}">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <h6 class="mb-0">{{ v.varyasyon_adi }}</h6>
+                                                        {% if v.stok_miktari == 0 %}
+                                                        <span class="badge bg-danger">Tükendi</span>
+                                                        {% elif v.stok_miktari <= 5 %} <span
+                                                            class="badge bg-warning text-dark">Az Stok</span>
+                                                            {% elif v.stok_miktari <= 20 %} <span class="badge bg-info">
+                                                                Orta Stok</span>
+                                                                {% else %}
+                                                                <span class="badge bg-success">Stokta</span>
+                                                                {% endif %}
+                                                                {% if v == varyant %}
+                                                                <span class="badge bg-primary ms-1">Aranan</span>
+                                                                {% endif %}
+                                                    </div>
+
+                                                    <div class="row g-2 mb-2">
+                                                        {% if v.renk %}
+                                                        <div class="col-6">
+                                                            <small class="text-muted">Renk</small>
+                                                            <div class="fw-bold">{{ v.renk.ad }}</div>
+                                                        </div>
+                                                        {% endif %}
+                                                        {% if v.beden %}
+                                                        <div class="col-6">
+                                                            <small class="text-muted">Beden</small>
+                                                            <div class="fw-bold">{{ v.beden.ad }}</div>
+                                                        </div>
+                                                        {% endif %}
+                                                    </div>
+
+                                                    <div class="row g-2 mb-2">
+                                                        <div class="col-6">
+                                                            <small class="text-muted">Stok</small>
+                                                            <div class="fw-bold text-primary">{{ v.stok_miktari }}
+                                                                adet</div>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small class="text-muted">Fiyat</small>
+                                                            <div class="fw-bold text-success">{{ v.urun.satis_fiyati|floatformat:2 }} ₺</div>
+                                                        </div>
+                                                    </div>
+
+                                                    {% if v.barkod %}
+                                                    <div class="mb-2">
+                                                        <small class="text-muted">Barkod</small>
+                                                        <div class="font-monospace small">{{ v.barkod }}</div>
+                                                    </div>
+                                                    {% endif %}
+
+                                                    <div class="d-grid gap-2">
+                                                        <div class="btn-group btn-group-sm">
+                                                            <a href="{% url 'satis:ekrani' %}?barkod={{ v.barkod }}"
+                                                                class="btn btn-success" title="Satış Ekranına Ekle">
+                                                                <i class="fas fa-shopping-cart"></i> Satış
+                                                            </a>
+                                                            <button type="button" class="btn btn-outline-success"
+                                                                title="Etiket Yazdır" onclick="printLabel({{ v.id }})">
+                                                                <i class="fas fa-print"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-outline-primary"
+                                                                onclick="copyToClipboard('{{ v.barkod }}')"
+                                                                title="Barkodu Kopyala">
+                                                                <i class="fas fa-copy"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
                             </div>
+                        </div>
                         {% endif %}
-                    {% endif %}
+                        {% else %}
+                        <!-- Ürün Bulunamadı -->
+                        <div class="alert alert-warning">
+                            <h5><i class="fas fa-exclamation-triangle"></i> Ürün Bulunamadı!</h5>
+                            <p>{{ barkod }} barkoduna ait ürün sistemde kayıtlı değil.</p>
+                            <hr>
+                            <a href="{% url 'urun:ekle' %}?barkod={{ barkod }}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Bu Barkod ile Yeni Ürün Ekle
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
+    {% endblock %}
 
-{% block extra_css %}
-<style>
-/* Video element stil düzeltmesi */
-#preview {
-    width: 100%;
-    height: auto;
-    max-height: 400px;
-    object-fit: cover;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-/* Barkod input stili */
-#barkodInput {
-    font-family: 'Courier New', monospace;
-    font-size: 1.1rem;
-    letter-spacing: 1px;
-}
-
-/* Kamera butonu hover efekti */
-#cameraBtn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-    transition: all 0.3s ease;
-}
-
-/* Scan result animasyonu */
-#scanResult {
-    animation: slideInUp 0.5s ease-out;
-}
-
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Kamera alanı animasyonu */
-#cameraArea {
-    animation: fadeInScale 0.5s ease-out;
-}
-
-@keyframes fadeInScale {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* Mobil uyumluluk */
-@media (max-width: 768px) {
-    #preview {
-        max-height: 300px;
-    }
-    
-    .card-body {
-        padding: 1rem 0.5rem;
-    }
-}
-
-/* QuaggaJS overlay stilleri */
-.drawingBuffer {
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-</style>
-{% endblock %}
-
-{% block extra_js %}
-<!-- QuaggaJS Kütüphanesi -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const barkodInput = document.getElementById('barkodInput');
-    const cameraBtn = document.getElementById('cameraBtn');
-    const cameraArea = document.getElementById('cameraArea');
-    const stopCameraBtn = document.getElementById('stopCameraBtn');
-    const scanResult = document.getElementById('scanResult');
-    const scannedCode = document.getElementById('scannedCode');
-    const barkodForm = document.getElementById('barkodForm');
-    
-    let isScanning = false;
-
-    // Enter tuşu ile otomatik arama
-    barkodInput.addEventListener('keyup', function(e) {
-        if (e.key === 'Enter') {
-            barkodForm.submit();
+    {% block extra_css %}
+    <style>
+        /* Video element stil düzeltmesi */
+        #preview {
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
-    });
 
-    // Kamera butonuna tıklama
-    cameraBtn.addEventListener('click', function() {
-        if (!isScanning) {
-            startCamera();
+        /* Barkod input stili */
+        #barkodInput {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
         }
-    });
 
-    // Kamerayı durdur butonu
-    stopCameraBtn.addEventListener('click', function() {
-        stopCamera();
-    });
-
-    function startCamera() {
-        // Mobil cihaz kontrolü
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        // Kamera izni kontrolü
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            alert('Kamera bu cihazda desteklenmiyor.');
-            return;
+        /* Kamera butonu hover efekti */
+        #cameraBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
         }
-        
-        cameraArea.classList.remove('d-none');
-        cameraBtn.disabled = true;
-        cameraBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span class="d-none d-md-inline">Başlatılıyor...</span>';
-        
-        // Kamera scroll'u
-        cameraArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        Quagga.init({
-            inputStream: {
-                name: "Live",
-                type: "LiveStream",
-                target: document.querySelector('#preview'),
-                constraints: {
-                    width: 480,
-                    height: 320,
-                    facingMode: isMobile ? "environment" : "user" // Mobilde arka kamera
+
+        /* Scan result animasyonu */
+        #scanResult {
+            animation: slideInUp 0.5s ease-out;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Kamera alanı animasyonu */
+        #cameraArea {
+            animation: fadeInScale 0.5s ease-out;
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Mobil uyumluluk */
+        @media (max-width: 768px) {
+            #preview {
+                max-height: 300px;
+            }
+
+            .card-body {
+                padding: 1rem 0.5rem;
+            }
+        }
+
+
+        /* Varyasyon kartları */
+        .variant-card {
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .variant-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .variant-card.border-primary {
+            border-width: 2px !important;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+
+        /* ZXing kamera stilleri */
+        #preview {
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transform: scaleX(-1);
+            /* Ayna görünümü */
+        }
+    </style>
+    {% endblock %}
+
+    {% block extra_js %}
+    <!-- ZXing-js Kütüphanesi - Android uyumlu versiyon -->
+    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+
+    <script>
+
+        // Barkod kopyalama fonksiyonu
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function () {
+                // Toast bildirim göster
+                const toast = document.createElement('div');
+                toast.className = 'position-fixed top-0 end-0 p-3';
+                toast.style.zIndex = '9999';
+                toast.innerHTML = `
+            <div class="toast show" role="alert">
+                <div class="toast-header">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <strong class="me-auto">Başarılı</strong>
+                </div>
+                <div class="toast-body">
+                    Barkod kopyalandı: ${text}
+                </div>
+            </div>
+        `;
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 3000);
+            }).catch(function (err) {
+                alert('Kopyalama başarısız: ' + err);
+            });
+        }
+
+        // Kamera değişkenleri
+        let isScanning = false;
+        let codeReader = null;
+        let selectedDeviceId = null;
+        let cameraDevices = [];
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const barkodInput = document.getElementById('barkodInput');
+            const cameraBtn = document.getElementById('cameraBtn');
+            const cameraArea = document.getElementById('cameraArea');
+            const stopCameraBtn = document.getElementById('stopCameraBtn');
+            const scanResult = document.getElementById('scanResult');
+            const scannedCode = document.getElementById('scannedCode');
+            const barkodForm = document.getElementById('barkodForm');
+
+            // Enter tuşu ile otomatik arama
+            barkodInput.addEventListener('keyup', function (e) {
+                if (e.key === 'Enter') {
+                    barkodForm.submit();
                 }
-            },
-            locator: {
-                patchSize: "medium",
-                halfSample: true
-            },
-            numOfWorkers: 2,
-            frequency: 10,
-            decoder: {
-                readers: [
-                    "code_128_reader",
-                    "ean_reader",
-                    "ean_8_reader", 
-                    "code_39_reader",
-                    "upc_reader"
-                ]
-            },
-            locate: true
-        }, function(err) {
-            if (err) {
-                console.error('Kamera başlatma hatası:', err);
-                alert('Kamera başlatılamadı: ' + err.message);
+            });
+
+            // Kamera butonuna tıklama
+            cameraBtn.addEventListener('click', function () {
+                console.log('Kamera butonu tıklandı, isScanning:', isScanning);
+                if (!isScanning) {
+                    startCamera();
+                }
+            });
+
+            // Kamerayı durdur butonu
+            stopCameraBtn.addEventListener('click', function () {
                 stopCamera();
+            });
+
+            async function startCamera() {
+                console.log('startCamera fonksiyonu başlatıldı');
+                try {
+                    // Device detection
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                    const isAndroid = /Android/i.test(navigator.userAgent);
+                    const isMobile = isIOS || isAndroid || /webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                    console.log('Device detection:', { isIOS, isAndroid, isMobile });
+
+                    // Kamera izni kontrolü
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        alert('Kamera bu cihazda desteklenmiyor.');
+                        return;
+                    }
+
+                    cameraArea.classList.remove('d-none');
+                    cameraBtn.disabled = true;
+                    cameraBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span class="d-none d-md-inline">Başlatılıyor...</span>';
+
+                    // ZXing kütüphanesini başlat
+                    codeReader = new ZXing.BrowserMultiFormatReader();
+
+                    // iOS ve Android için farklı kamera listesi alma stratejileri
+                    let videoInputDevices = [];
+                    try {
+                        if (isIOS) {
+                            // iOS için özel handling
+                            console.log('iOS cihaz algılandı, özel kamera listesi alınıyor...');
+
+                            // iOS Safari için navigator.mediaDevices.enumerateDevices() daha güvenilir
+                            const devices = await navigator.mediaDevices.enumerateDevices();
+                            videoInputDevices = devices.filter(device => device.kind === 'videoinput');
+
+                            console.log('iOS kameralar:', videoInputDevices);
+
+                        } else {
+                            // Android ve diğer platformlar için normal API
+                            videoInputDevices = await codeReader.listVideoInputDevices();
+                        }
+                    } catch (err) {
+                        console.log('Kamera listesi alma hatası, fallback yöntem:', err);
+                        // Fallback: navigator.mediaDevices kullan
+                        try {
+                            const devices = await navigator.mediaDevices.enumerateDevices();
+                            videoInputDevices = devices.filter(device => device.kind === 'videoinput');
+                        } catch (fallbackErr) {
+                            console.log('Fallback da başarısız, varsayılan kamerayı kullan');
+                            videoInputDevices = [{ deviceId: 'default', label: 'Varsayılan Kamera' }];
+                        }
+                    }
+
+                    cameraDevices = videoInputDevices;
+
+                    if (cameraDevices.length === 0) {
+                        throw new Error('Hiç kamera bulunamadı');
+                    }
+
+                    console.log('Bulunan kameralar:', cameraDevices.map(d => ({ id: d.deviceId, label: d.label })));
+
+                    // iOS ve Android için farklı kamera seçim stratejileri
+                    if (isIOS) {
+                        // iOS için arka kamera seçimi (genelde son kamera arka kameradır)
+                        selectedDeviceId = cameraDevices.find(device =>
+                            device.label && (
+                                device.label.toLowerCase().includes('back') ||
+                                device.label.toLowerCase().includes('rear') ||
+                                device.label.toLowerCase().includes('environment') ||
+                                device.label.toLowerCase().includes('wide') ||  // iOS'ta genelde "Wide" arka kamera
+                                device.label.toLowerCase().includes('main')     // Bazı iOS cihazlarda "Main Camera"
+                            )
+                        )?.deviceId;
+
+                        // iOS'ta genelde son indeksteki kamera arka kameradır
+                        if (!selectedDeviceId && cameraDevices.length > 1) {
+                            selectedDeviceId = cameraDevices[cameraDevices.length - 1].deviceId;
+                        } else if (!selectedDeviceId) {
+                            selectedDeviceId = cameraDevices[0].deviceId;
+                        }
+
+                    } else if (isAndroid) {
+                        // Android için arka kamera seçimi
+                        selectedDeviceId = cameraDevices.find(device =>
+                            device.label && (
+                                device.label.toLowerCase().includes('back') ||
+                                device.label.toLowerCase().includes('rear') ||
+                                device.label.toLowerCase().includes('environment') ||
+                                device.label.toLowerCase().includes('arka')
+                            )
+                        )?.deviceId;
+
+                        // Arka kamera bulunamazsa son kamerayı kullan
+                        if (!selectedDeviceId) {
+                            selectedDeviceId = cameraDevices[cameraDevices.length - 1].deviceId;
+                        }
+                    } else {
+                        // Masaüstü için ilk kamerayı kullan
+                        selectedDeviceId = cameraDevices[0].deviceId;
+                    }
+
+                    console.log('Seçilen kamera ID:', selectedDeviceId);
+
+                    // iOS ve Android için optimize edilmiş constraints
+                    const constraints = {
+                        video: {
+                            deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
+                            // iOS için facingMode environment daha güvenilir
+                            facingMode: (isIOS || isAndroid) ? 'environment' : 'user',
+                            width: { ideal: isIOS ? 1920 : 1280 },  // iOS daha yüksek çözünürlük destekler
+                            height: { ideal: isIOS ? 1080 : 720 },
+                            frameRate: { ideal: 30, max: 30 }       // iOS için frame rate sınırı
+                        }
+                    };
+
+                    console.log('Kullanılacak constraints:', constraints);
+
+                    // Kamerayı başlat - iOS/Android uyumlu yöntem
+                    try {
+                        if (isIOS) {
+                            // iOS için önce getUserMedia ile test et
+                            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                            stream.getTracks().forEach(track => track.stop()); // Test stream'i kapat
+                        }
+
+                        await codeReader.decodeFromVideoDevice(selectedDeviceId, 'preview', (result, err) => {
+                            if (result) {
+                                console.log('Barkod okundu:', result.text);
+                                onBarcodeDetected(result.text);
+                            }
+                            if (err && !(err instanceof ZXing.NotFoundException)) {
+                                console.log('Okuma hatası:', err);
+                            }
+                        });
+
+                    } catch (decodeErr) {
+                        console.log('Decode hatası, iOS/Android fallback yöntemi:', decodeErr);
+
+                        if (isIOS) {
+                            // iOS fallback: basit constraints
+                            await codeReader.decodeFromVideoDevice(undefined, 'preview', (result, err) => {
+                                if (result) {
+                                    console.log('Barkod okundu:', result.text);
+                                    onBarcodeDetected(result.text);
+                                }
+                                if (err && !(err instanceof ZXing.NotFoundException)) {
+                                    console.log('Okuma hatası:', err);
+                                }
+                            });
+                        } else {
+                            // Android fallback
+                            await codeReader.decodeFromVideoDevice(undefined, 'preview', (result, err) => {
+                                if (result) {
+                                    console.log('Barkod okundu:', result.text);
+                                    onBarcodeDetected(result.text);
+                                }
+                                if (err && !(err instanceof ZXing.NotFoundException)) {
+                                    console.log('Okuma hatası:', err);
+                                }
+                            });
+                        }
+                    }
+
+                    isScanning = true;
+                    cameraBtn.innerHTML = '<i class="fas fa-camera"></i> <span class="d-none d-md-inline">Kamera Açık</span>';
+                    cameraBtn.classList.remove('btn-success');
+                    cameraBtn.classList.add('btn-warning');
+
+                    // iOS için özel uyarı
+                    if (isIOS) {
+                        console.log('📱 iOS cihazında en iyi sonuç için kamerayı barkoda yaklaştırın');
+                    }
+
+                    console.log('Kamera başarıyla başlatıldı');
+
+                } catch (err) {
+                    console.error('Kamera başlatma hatası:', err);
+                    let errorMessage = 'Kamera başlatılamadı';
+
+                    if (err.name === 'NotAllowedError') {
+                        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                            errorMessage = '📱 iOS: Ayarlar → Safari → Kamera erişimine izin verin ve sayfayı yenileyin.';
+                        } else {
+                            errorMessage = 'Kamera izni reddedildi. Lütfen tarayıcı ayarlarınızdan kamera erişimine izin verin.';
+                        }
+                    } else if (err.name === 'NotFoundError') {
+                        errorMessage = 'Kamera bulunamadı. Cihazınızda kamera olduğundan emin olun.';
+                    } else if (err.name === 'NotSupportedError') {
+                        errorMessage = 'Tarayıcınız kamera özelliğini desteklemiyor.';
+                    } else if (err.name === 'NotReadableError') {
+                        errorMessage = 'Kamera kullanımda. Diğer uygulamaları kapatıp tekrar deneyin.';
+                    } else if (err.message) {
+                        errorMessage = err.message;
+                    }
+
+                    alert(errorMessage);
+                    stopCamera();
+                }
+            }
+
+            function onBarcodeDetected(code) {
+                console.log("Barkod okundu:", code);
+
+                // Titreşim efekti (mobil cihazlarda)
+                if (navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200]);
+                }
+
+                // Sonucu göster
+                scannedCode.textContent = code;
+                scanResult.classList.remove('d-none');
+
+                // Input'a yaz
+                barkodInput.value = code;
+
+                // Kamerayı durdur
+                stopCamera();
+
+                // Otomatik arama yap
+                setTimeout(() => {
+                    barkodForm.submit();
+                }, 1500);
+            }
+
+            function stopCamera() {
+                if (isScanning && codeReader) {
+                    codeReader.reset();
+                    isScanning = false;
+                }
+
+                cameraArea.classList.add('d-none');
+                cameraBtn.disabled = false;
+                cameraBtn.innerHTML = '<i class="fas fa-camera"></i> <span class="d-none d-md-inline">Kamera</span><span class="d-md-none">📷</span>';
+                cameraBtn.classList.remove('btn-warning');
+                cameraBtn.classList.add('btn-success');
+                scanResult.classList.add('d-none');
+
+                // Input'a odaklan
+                setTimeout(() => {
+                    barkodInput.focus();
+                }, 300);
+            }
+
+            // Sayfa kapatılırken kamerayı durdur
+            window.addEventListener('beforeunload', function () {
+                stopCamera();
+            });
+
+            // Barkod input'una odaklan
+            if (barkodInput) {
+                barkodInput.focus();
+            }
+
+            // Etiket yazdırma fonksiyonu - Temporarily disabled
+            window.printLabel = function (varyantId) {
+                // Disabled due to missing etiket_websocket view
+                console.log('Label printing temporarily disabled for variant:', varyantId);
+                alert('Etiket yazdırma özelliği geçici olarak devre dışı.');
                 return;
-            }
-            
-            console.log("Kamera başlatıldı");
-            isScanning = true;
-            cameraBtn.innerHTML = '<i class="fas fa-camera"></i> <span class="d-none d-md-inline">Kamera Açık</span>';
-            cameraBtn.classList.remove('btn-success');
-            cameraBtn.classList.add('btn-warning');
-            
-            Quagga.start();
+                
+                /* Temporarily commented out due to missing etiket_websocket view
+                fetch("/urun/etiket-websocket/0/".replace('0', varyantId), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        varyant_id: varyantId
+                    })
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                        throw new Error('Etiket yazdırma başarısız');
+                    })
+                    .then(data => {
+                        alert('Etiket yazdırma başlatıldı');
+                    })
+                    .catch(error => {
+                        console.error('Hata:', error);
+                        alert('Etiket yazdırma hatası: ' + error.message);
+                    });
+                */
+            };
         });
-
-        // Barkod okuma olayı
-        Quagga.onDetected(function(data) {
-            const code = data.codeResult.code;
-            console.log("Barkod okundu:", code);
-            
-            // Titreşim efekti (mobil cihazlarda)
-            if (navigator.vibrate) {
-                navigator.vibrate([200, 100, 200]);
-            }
-            
-            // Sonucu göster
-            scannedCode.textContent = code;
-            scanResult.classList.remove('d-none');
-            
-            // Input'a yaz
-            barkodInput.value = code;
-            
-            // Kamerayı durdur
-            stopCamera();
-            
-            // Otomatik arama yap
-            setTimeout(() => {
-                barkodForm.submit();
-            }, 1500);
-        });
-    }
-
-    function stopCamera() {
-        if (isScanning) {
-            Quagga.stop();
-            isScanning = false;
-        }
-        
-        cameraArea.classList.add('d-none');
-        cameraBtn.disabled = false;
-        cameraBtn.innerHTML = '<i class="fas fa-camera"></i> <span class="d-none d-md-inline">Kamera</span><span class="d-md-none">📷</span>';
-        cameraBtn.classList.remove('btn-warning');
-        cameraBtn.classList.add('btn-success');
-        scanResult.classList.add('d-none');
-        
-        // Input'a odaklan
-        setTimeout(() => {
-            barkodInput.focus();
-        }, 300);
-    }
-
-    // Sayfa kapatılırken kamerayı durdur
-    window.addEventListener('beforeunload', function() {
-        stopCamera();
-    });
-
-    // Barkod input'una odaklan
-    if (barkodInput) {
-        barkodInput.focus();
-    }
-});
-</script>
-{% endblock %}
-<!-- Cache Buster:  -->
- -->
+    </script>
+    {% endblock %}
+    <!-- Cache Buster: v3.0 -->
+    -->

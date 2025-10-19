@@ -1,24 +1,367 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}NUVIA PREMIUM WEAR{% endblock %}</title>
-    
+
+    <!-- jQuery - Head'de yükle ki hemen hazır olsun -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- NuviaButik Bridge WebSocket Client - Inline -->
+    <script>
+        // ⚡ HEMEN global nuviaBridge tanımla (inline onclick için)
+        var nuviaBridge = null;
+
+        // 🔍 Debug: Window'a test fonksiyonu ekle
+        window.debugNuviaBridge = function () {
+            console.log('🔍 nuviaBridge debug:', {
+                'typeof nuviaBridge': typeof nuviaBridge,
+                'nuviaBridge': nuviaBridge,
+                'window.nuviaBridge': window.nuviaBridge,
+                'globalThis.nuviaBridge': typeof globalThis !== 'undefined' ? globalThis.nuviaBridge : 'globalThis undefined'
+            });
+        };
+
+        /**
+         * NuviaButik Local Bridge WebSocket Client - Inline Version
+         */
+        class NuviaButikBridge {
+            constructor() {
+                this.ws = null;
+                this.isConnected = false;
+                this.bridgeUrl = 'ws://localhost:9876';  // Fixed Agent portu
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 3;
+                console.log('🎯 NuviaButikBridge sınıfı oluşturuldu');
+            }
+
+            connect() {
+                return new Promise((resolve, reject) => {
+                    try {
+                        this.ws = new WebSocket(this.bridgeUrl);
+
+                        this.ws.onopen = () => {
+                            console.log('✅ NuviaButik Bridge bağlantısı başarılı');
+                            this.isConnected = true;
+                            this.reconnectAttempts = 0;
+                            resolve(true);
+                        };
+
+                        this.ws.onmessage = (event) => {
+                            const data = JSON.parse(event.data);
+                            console.log('📨 Bridge mesajı:', data);
+
+                            if (data.status === 'success') {
+                                this.showSuccess(data.message);
+                            } else {
+                                this.showError(data.message);
+                            }
+                        };
+
+                        this.ws.onclose = () => {
+                            console.log('🔌 Bridge bağlantısı kesildi');
+                            this.isConnected = false;
+
+                            // Sadece aktif print işlemi varsa yeniden bağlan
+                            // Aksi halde otomatik reconnect yapma
+                        };
+
+                        this.ws.onerror = (error) => {
+                            console.error('❌ Bridge bağlantı hatası:', error);
+                            this.isConnected = false;
+                            reject(error);
+                        };
+
+                    } catch (error) {
+                        console.error('❌ WebSocket oluşturma hatası:', error);
+                        reject(error);
+                    }
+                });
+            }
+
+            disconnect() {
+                if (this.ws && this.isConnected) {
+                    console.log('🔌 Bridge bağlantısı manuel olarak kapatılıyor...');
+                    this.ws.close();
+                    this.isConnected = false;
+                }
+            }
+
+            async printLabel(zplContent) {
+                // Önce bağlantı kontrol et ve gerekirse bağlan
+                if (!this.isConnected) {
+                    console.log('🔄 Bridge bağlantısı yok, bağlanılıyor...');
+                    try {
+                        await this.connect();
+                    } catch (error) {
+                        console.log('⚠️ WebSocket bağlantısı başarısız, HTTP deneniyor...');
+                        return this.printLabelHTTP(zplContent);
+                    }
+                }
+
+                // WebSocket ile gönder
+                if (this.isConnected) {
+                    this.ws.send(JSON.stringify({
+                        action: 'print_label',
+                        zpl_content: zplContent
+                    }));
+
+                    // Print işleminden sonra bağlantıyı kapat
+                    setTimeout(() => {
+                        if (this.ws && this.isConnected) {
+                            console.log('🔌 Print işlemi tamamlandı, bağlantı kapatılıyor...');
+                            this.ws.close();
+                        }
+                    }, 3000);
+
+                    return true;
+                } else {
+                    // HTTP fallback
+                    return this.printLabelHTTP(zplContent);
+                }
+            }
+
+            async printLabelHTTP(zplContent) {
+                // Yaygın portları dene (9876 öncelikli - Fixed Agent)
+                const ports = [9876, 9877, 9878, 8765, 8080, 3000];
+
+                console.log('🔍 HTTP Bridge portları taranıyor:', ports);
+
+                for (const port of ports) {
+                    console.log(`🔍 Port ${port} deneniyor...`);
+                    try {
+                        const response = await fetch(`http://localhost:${port}/print`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                zpl_content: zplContent
+                            })
+                        });
+
+                        console.log(`📡 Port ${port} yanıt alındı, status:`, response.status);
+                        const result = await response.json();
+                        console.log(`📄 Port ${port} sonuç:`, result);
+
+                        if (result.status === 'success') {
+                            console.log(`✅ HTTP Bridge bulundu: localhost:${port}`);
+                            this.showSuccess(result.message);
+                            return true;
+                        } else {
+                            this.showError(result.message);
+                            return false;
+                        }
+                    } catch (error) {
+                        // Bu port çalışmıyor, devam et
+                        console.log(`❌ Port ${port} çalışmıyor:`, error.message);
+                        continue;
+                    }
+                }
+
+                this.showError('HTTP Bridge bağlantısı yok! Local Agent\'ı başlatın.');
+                return false;
+            }
+
+            showSuccess(message) {
+                if (typeof $ !== 'undefined') {
+                    $('body').append(`
+                        <div class="alert alert-success alert-dismissible fade show position-fixed" 
+                             style="top: 20px; right: 20px; z-index: 9999;">
+                            <strong>✅ Başarılı!</strong> ${message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `);
+
+                    setTimeout(() => {
+                        $('.alert-success').fadeOut();
+                    }, 3000);
+                } else {
+                    alert('✅ ' + message);
+                }
+            }
+
+            showError(message) {
+                if (typeof $ !== 'undefined') {
+                    $('body').append(`
+                        <div class="alert alert-danger alert-dismissible fade show position-fixed" 
+                             style="top: 20px; right: 20px; z-index: 9999;">
+                            <strong>❌ Hata!</strong> ${message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `);
+
+                    setTimeout(() => {
+                        $('.alert-danger').fadeOut();
+                    }, 5000);
+                } else {
+                    alert('❌ ' + message);
+                }
+            }
+
+            async printProductLabel(urunId) {
+                try {
+                    const response = await fetch(`/api/urun-etiket/${urunId}/`);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const zplContent = await response.text();
+
+                    if (zplContent && zplContent.includes('^XA')) {
+                        return this.printLabel(zplContent);
+                    } else {
+                        this.showError('Geçersiz ZPL formatı');
+                        return false;
+                    }
+                } catch (error) {
+                    this.showError('API hatası: ' + error.message);
+                    return false;
+                }
+            }
+
+            async printVariantLabel(varyantId) {
+                try {
+                    const response = await fetch(`/api/varyant-etiket/${varyantId}/`);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const zplContent = await response.text();
+
+                    if (zplContent && zplContent.includes('^XA')) {
+                        return this.printLabel(zplContent);
+                    } else {
+                        this.showError('Geçersiz ZPL formatı');
+                        return false;
+                    }
+                } catch (error) {
+                    this.showError('API hatası: ' + error.message);
+                    return false;
+                }
+            }
+        }
+
+        // Global instance oluştur - HEMEN!
+        console.log('🚀 NuviaButik Bridge oluşturuluyor...');
+        nuviaBridge = new NuviaButikBridge();  // Global var'a ata
+        window.nuviaBridge = nuviaBridge;
+
+        // Test et
+        console.log('✅ NuviaButik Bridge inline yüklendi:', typeof nuviaBridge);
+        console.log('✅ window.nuviaBridge test:', typeof window.nuviaBridge);
+
+        // Global erişim için alternatif yollar
+        if (typeof globalThis !== 'undefined') {
+            globalThis.nuviaBridge = nuviaBridge;
+        }
+        if (typeof self !== 'undefined') {
+            self.nuviaBridge = nuviaBridge;
+        }
+
+        // Sayfa yüklendiğinde bağlan ve buton event'lerini ekle
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('🔄 DOMContentLoaded - NuviaButik Bridge kontrol ediliyor...');
+            console.log('🔍 window.nuviaBridge:', typeof window.nuviaBridge);
+            console.log('🔍 nuviaBridge:', typeof nuviaBridge);
+
+            if (typeof window.nuviaBridge !== 'undefined') {
+                console.log('✅ nuviaBridge bulundu, print işlemi için hazır');
+                // Otomatik bağlanma yok, sadece print işleminde bağlan
+            } else {
+                console.error('❌ nuviaBridge bulunamadı!');
+            }
+
+            // Print butonlarına event listener ekle
+            document.addEventListener('click', async function (e) {
+                if (e.target.matches('[data-print-product]')) {
+                    e.preventDefault();
+                    const urunId = e.target.getAttribute('data-print-product');
+                    console.log('🖨️ Ürün etiketi yazdırılıyor:', urunId);
+
+                    // nuviaBridge kontrolü
+                    if (typeof window.nuviaBridge !== 'undefined') {
+                        await window.nuviaBridge.printProductLabel(parseInt(urunId));
+                    } else {
+                        console.error('❌ nuviaBridge tanımlı değil! window.nuviaBridge:', typeof window.nuviaBridge);
+                        alert('❌ Hata! Bridge bağlantısı yok! Local Agent\'ı başlatın.');
+                    }
+                }
+
+                if (e.target.matches('[data-print-variant]')) {
+                    e.preventDefault();
+                    const varyantId = e.target.getAttribute('data-print-variant');
+                    console.log('🖨️ Varyant etiketi yazdırılıyor:', varyantId);
+
+                    // nuviaBridge kontrolü
+                    if (typeof window.nuviaBridge !== 'undefined') {
+                        await window.nuviaBridge.printVariantLabel(parseInt(varyantId));
+                    } else {
+                        console.error('❌ nuviaBridge tanımlı değil! window.nuviaBridge:', typeof window.nuviaBridge);
+                        alert('❌ Hata! Bridge bağlantısı yok! Local Agent\'ı başlatın.');
+                    }
+                }
+            });
+        });
+
+        // Alternatif: Global fonksiyonlar da tanımla (onclick için)
+        // 🌐 Global fonksiyonlar (inline onclick için)
+        window.printProductLabel = function (urunId) {
+            console.log('🖨️ Global printProductLabel çağrıldı:', urunId);
+            window.debugNuviaBridge(); // Debug bilgisi
+            if (typeof window.nuviaBridge !== 'undefined' && window.nuviaBridge !== null) {
+                window.nuviaBridge.printProductLabel(parseInt(urunId));
+            } else {
+                console.error('❌ nuviaBridge tanımlı değil veya null!');
+                alert('❌ Hata! Bridge bağlantısı yok! Local Agent\'ı başlatın.');
+            }
+        };
+
+        window.printVariantLabel = function (varyantId) {
+            console.log('🖨️ Global printVariantLabel çağrıldı:', varyantId);
+            window.debugNuviaBridge(); // Debug bilgisi
+            if (typeof window.nuviaBridge !== 'undefined' && window.nuviaBridge !== null) {
+                window.nuviaBridge.printVariantLabel(parseInt(varyantId));
+            } else {
+                console.error('❌ nuviaBridge tanımlı değil veya null!');
+                alert('❌ Hata! Bridge bağlantısı yok! Local Agent\'ı başlatın.');
+            }
+        };
+
+        // 🧪 Test fonksiyonları (console'dan çağır)
+        window.testNuviaBridge = function () {
+            console.log('🧪 Testing nuviaBridge...');
+            window.debugNuviaBridge();
+            if (window.nuviaBridge && typeof window.nuviaBridge.printProductLabel === 'function') {
+                console.log('✅ nuviaBridge.printProductLabel function bulundu');
+                // window.nuviaBridge.printProductLabel(1); // Test için
+            } else {
+                console.log('❌ nuviaBridge.printProductLabel function bulunamadı');
+            }
+        };
+
+        console.log('✅ Global print fonksiyonları tanımlandı');
+    </script>
+
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
+
     <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    
+
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    
+
     <!-- Custom CSS -->
     <style>
         :root {
@@ -73,7 +416,7 @@
         .main-content {
             background-color: #fff;
             border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
             margin: 20px;
             padding: 25px;
             max-width: calc(100% - 40px);
@@ -100,18 +443,18 @@
 
         .search-input {
             padding-left: 40px;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
             color: #fff;
             border-radius: 8px;
         }
 
         .search-input::placeholder {
-            color: rgba(255,255,255,0.7);
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .search-input:focus {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             border-color: var(--info-color);
             color: #fff;
             box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
@@ -130,7 +473,8 @@
             padding: 0.5rem 1rem;
         }
 
-        .form-control, .form-select {
+        .form-control,
+        .form-select {
             max-width: 100%;
         }
 
@@ -140,7 +484,9 @@
             margin-right: -15px;
         }
 
-        .col, .col-auto, [class*="col-"] {
+        .col,
+        .col-auto,
+        [class*="col-"] {
             padding-left: 15px;
             padding-right: 15px;
         }
@@ -184,7 +530,7 @@
 
         .card {
             border: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
             transition: transform 0.2s ease;
         }
@@ -223,7 +569,7 @@
         .offcanvas-body .nav-link {
             color: #fff;
             padding: 15px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.3s ease;
             cursor: pointer;
             text-decoration: none;
@@ -250,29 +596,30 @@
                 padding: 15px;
                 max-width: calc(100% - 20px);
             }
-            
+
             .page-title {
                 font-size: 1.5rem;
             }
-            
+
             .btn {
                 width: auto;
                 min-width: auto;
             }
-            
-            .form-control, .form-select {
+
+            .form-control,
+            .form-select {
                 width: 100%;
             }
-            
+
             .container-fluid {
                 padding-left: 10px;
                 padding-right: 10px;
             }
-            
+
             /* Mobile menu link styles */
             .offcanvas .nav-link {
                 padding: 15px 20px;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
                 transition: all 0.3s ease;
                 cursor: pointer;
                 -webkit-tap-highlight-color: transparent;
@@ -280,7 +627,7 @@
                 -webkit-user-select: none;
                 user-select: none;
             }
-            
+
             .offcanvas .nav-link:active {
                 background-color: var(--info-color);
                 color: #fff;
@@ -308,8 +655,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* Badge styles */
@@ -327,53 +679,140 @@
 
         /* Nav section headers */
         .nav-section h6 {
-            padding: 0.5rem 1rem;
-            margin: 0.5rem 0;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
+            font-size: 0.875rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Ana Bölüm Renkleri */
+        /* Ana Bölüm Renkleri - Class Based */
+        .menu-header {
+            font-size: 0.875rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .menu-header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .menu-satis {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+        }
+
+        .menu-raporlar {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .menu-urun {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+            box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+        }
+
+        .menu-stok {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+        }
+
+        .menu-musteri {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+            box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3);
+        }
+
+        .menu-gider {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            color: white;
+            box-shadow: 0 2px 8px rgba(230, 126, 34, 0.3);
+        }
+
+        .menu-kasa {
+            background: linear-gradient(135deg, #1abc9c, #16a085);
+            color: white;
+            box-shadow: 0 2px 8px rgba(26, 188, 156, 0.3);
+        }
+
+        .menu-sistem {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            box-shadow: 0 2px 8px rgba(52, 73, 94, 0.3);
+        }
+
+        .menu-header:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
         }
     </style>
-    
+
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container-fluid">
             <!-- Hamburger menu button for mobile -->
-            <button class="btn btn-outline-light d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
+            <button class="btn btn-outline-light d-lg-none me-2" type="button" data-bs-toggle="offcanvas"
+                data-bs-target="#sidebarOffcanvas">
                 <i class="fas fa-bars"></i>
             </button>
-            
+
             <a class="navbar-brand" href="{% url 'dashboard' %}">
                 <i class="fas fa-store me-2"></i>
                 NUVIA PREMIUM WEAR
             </a>
-            
+
             <div class="navbar-nav ms-auto">
                 {% if user.is_authenticated %}
-                    <div class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user me-1"></i>
-                            {{ user.get_full_name|default:user.username }}
-                            <span class="badge bg-secondary ms-1">{{ user.get_role_display }}</span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{% url 'kullanici:profile' %}">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user me-1"></i>
+                        {{ user.get_full_name|default:user.username }}
+                        <span class="badge bg-secondary ms-1">{{ user.get_role_display }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'kullanici:profile' %}">
                                 <i class="fas fa-user-edit me-2"></i>Profil
                             </a></li>
-                            <li><a class="dropdown-item" href="{% url 'kullanici:password_change' %}">
+                        <li><a class="dropdown-item" href="{% url 'kullanici:password_change' %}">
                                 <i class="fas fa-key me-2"></i>Şifre Değiştir
                             </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'kullanici:logout' %}">
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item" href="{% url 'kullanici:logout' %}">
                                 <i class="fas fa-sign-out-alt me-2"></i>Çıkış
                             </a></li>
-                        </ul>
-                    </div>
+                    </ul>
+                </div>
                 {% else %}
-                    <a class="nav-link" href="{% url 'kullanici:login' %}">
-                        <i class="fas fa-sign-in-alt me-1"></i>Giriş
-                    </a>
+                <a class="nav-link" href="{% url 'kullanici:login' %}">
+                    <i class="fas fa-sign-in-alt me-1"></i>Giriş
+                </a>
                 {% endif %}
             </div>
         </div>
@@ -392,208 +831,266 @@
                 </div>
 
                 <div class="nav flex-column">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+                        href="{% url 'dashboard' %}">
                         <i class="fas fa-tachometer-alt"></i>
                         Ana Sayfa
                     </a>
-                    
+
                     <div class="nav-section mt-3">
-                        <h6 class="text-light opacity-75 text-uppercase fw-bold mb-2 ps-3">Satış İşlemleri</h6>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'ekrani' %}active{% endif %}" href="{% url 'satis:ekrani' %}">
+                        <h6 class="menu-header menu-satis">Satış İşlemleri</h6>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'ekrani' %}active{% endif %}"
+                            href="{% url 'satis:ekrani' %}">
                             <i class="fas fa-cash-register"></i>
                             Satış Ekranı
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'liste' and request.resolver_match.namespace == 'satis' %}active{% endif %}" href="{% url 'satis:liste' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'liste' and request.resolver_match.namespace == 'satis' %}active{% endif %}"
+                            href="{% url 'satis:liste' %}">
                             <i class="fas fa-list-alt"></i>
                             Satış Listesi
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'tahsilat_listesi' %}active{% endif %}" href="{% url 'satis:tahsilat_listesi' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'siparis_olustur' %}active{% endif %}"
+                            href="{% url 'satis:siparis_olustur' %}">
+                            <i class="fas fa-plus-circle"></i>
+                            Yeni Sipariş
+                        </a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'siparis_listesi' %}active{% endif %}"
+                            href="{% url 'satis:siparis_listesi' %}">
+                            <i class="fas fa-clipboard-list"></i>
+                            Sipariş Listesi
+                        </a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'tahsilat_listesi' %}active{% endif %}"
+                            href="{% url 'satis:tahsilat_listesi' %}">
                             <i class="fas fa-hand-holding-usd"></i>
                             Tahsilat Listesi
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'barkod_sorgula' %}active{% endif %}" href="{% url 'urun:barkod_sorgula' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'barkod_sorgula' %}active{% endif %}"
+                            href="{% url 'urun:barkod_sorgula' %}">
                             <i class="fas fa-barcode"></i>
                             Barkod Sorgula
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'iade_ana_sayfa' %}active{% endif %}" href="{% url 'satis:iade_ana_sayfa' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'iade_ana_sayfa' %}active{% endif %}"
+                            href="{% url 'satis:iade_ana_sayfa' %}">
                             <i class="fas fa-undo"></i>
                             Satış İade
                         </a>
-                        <a class="nav-link {% if request.resolver_match.namespace == 'hediye' %}active{% endif %}" href="{% url 'hediye:liste' %}">
+                        <a class="nav-link {% if request.resolver_match.namespace == 'hediye' %}active{% endif %}"
+                            href="{% url 'hediye:liste' %}">
                             <i class="fas fa-gift"></i>
                             Hediye Çekleri
                         </a>
                     </div>
-                    
+
                     <div class="nav-section mt-3">
-                        <h6 class="text-light opacity-75 text-uppercase fw-bold mb-2 ps-3">Raporlar</h6>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'gunluk_rapor' %}active{% endif %}" href="{% url 'gunluk_rapor' %}">
+                        <h6 class="menu-header menu-raporlar">Raporlar</h6>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'gunluk_rapor' %}active{% endif %}"
+                            href="{% url 'gunluk_rapor' %}">
                             <i class="fas fa-calendar-day"></i>
                             Günlük Rapor
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'gunluk_satis' %}active{% endif %}" href="{% url 'rapor:gunluk_satis' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'gunluk_satis' %}active{% endif %}"
+                            href="{% url 'rapor:gunluk_satis' %}">
                             <i class="fas fa-chart-bar"></i>
                             Günlük Satış Raporu
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'stok_raporu' %}active{% endif %}" href="{% url 'rapor:stok_raporu' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'stok_raporu' %}active{% endif %}"
+                            href="{% url 'rapor:stok_raporu' %}">
                             <i class="fas fa-boxes"></i>
                             Detaylı Stok Raporu
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'cok_satan_urunler' %}active{% endif %}" href="{% url 'rapor:cok_satan_urunler' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'cok_satan_urunler' %}active{% endif %}"
+                            href="{% url 'rapor:cok_satan_urunler' %}">
                             <i class="fas fa-star"></i>
                             Çok Satan Ürünler
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'kar_zarar' %}active{% endif %}" href="{% url 'rapor:kar_zarar' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'kar_zarar' %}active{% endif %}"
+                            href="{% url 'rapor:kar_zarar' %}">
                             <i class="fas fa-chart-pie"></i>
                             Kâr/Zarar Analizi
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'musteri_raporu' %}active{% endif %}" href="{% url 'rapor:musteri_raporu' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'musteri_raporu' %}active{% endif %}"
+                            href="{% url 'rapor:musteri_raporu' %}">
                             <i class="fas fa-users"></i>
                             Müşteri Analizi
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'en_cok_satanlar' %}active{% endif %}" href="{% url 'urun:en_cok_satanlar' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'satici_raporu' %}active{% endif %}"
+                            href="{% url 'rapor:satici_raporu' %}">
+                            <i class="fas fa-user-tie"></i>
+                            Satıcı Performansı
+                        </a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'en_cok_satanlar' %}active{% endif %}"
+                            href="{% url 'urun:en_cok_satanlar' %}">
                             <i class="fas fa-chart-line"></i>
                             En Çok Satanlar
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'kar_zarar_raporu' %}active{% endif %}" href="{% url 'urun:kar_zarar_raporu' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'kar_zarar_raporu' %}active{% endif %}"
+                            href="{% url 'urun:kar_zarar_raporu' %}">
                             <i class="fas fa-chart-pie"></i>
                             Kar/Zarar Raporu
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'tahsilat_rapor' %}active{% endif %}" href="{% url 'satis:tahsilat_rapor' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'tahsilat_rapor' %}active{% endif %}"
+                            href="{% url 'satis:tahsilat_rapor' %}">
                             <i class="fas fa-hand-holding-usd"></i>
                             Tahsilat Raporu
                         </a>
                     </div>
-                    
+
                     <div class="nav-section mt-3">
-                        <h6 class="text-light opacity-75 text-uppercase fw-bold mb-2 ps-3">Ürün Yönetimi</h6>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'liste' and request.resolver_match.namespace == 'urun' %}active{% endif %}" href="{% url 'urun:liste' %}">
+                        <h6 class="menu-header menu-urun">Ürün Yönetimi</h6>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'liste' and request.resolver_match.namespace == 'urun' %}active{% endif %}"
+                            href="{% url 'urun:liste' %}">
                             <i class="fas fa-boxes"></i>
                             Ürün Listesi
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'ekle' and request.resolver_match.namespace == 'urun' %}active{% endif %}" href="{% url 'urun:ekle' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'ekle' and request.resolver_match.namespace == 'urun' %}active{% endif %}"
+                            href="{% url 'urun:ekle' %}">
                             <i class="fas fa-plus-circle"></i>
                             Ürün Ekle
                         </a>
-                        <a class="nav-link {% if 'varyasyon' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'urun:liste' %}?varyasyonlu=1">
+                        <a class="nav-link {% if 'varyasyon' in request.resolver_match.url_name %}active{% endif %}"
+                            href="{% url 'urun:liste' %}?varyasyonlu=1">
                             <i class="fas fa-layer-group"></i>
                             Varyasyon Yönetimi
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'kategori' %}active{% endif %}" href="{% url 'urun:kategori' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'kategori' %}active{% endif %}"
+                            href="{% url 'urun:kategori' %}">
                             <i class="fas fa-tags"></i>
                             Kategori Yönetimi
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'marka_listesi' %}active{% endif %}" href="{% url 'urun:marka_listesi' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'marka_listesi' %}active{% endif %}"
+                            href="{% url 'urun:marka_listesi' %}">
                             <i class="fas fa-copyright"></i>
                             Marka Yönetimi
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'fiyat_guncelleme' %}active{% endif %}" href="{% url 'urun:fiyat_guncelleme' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'fiyat_guncelleme' %}active{% endif %}"
+                            href="{% url 'urun:fiyat_guncelleme' %}">
                             <i class="fas fa-tags text-warning"></i>
                             Fiyat Güncelleme
                         </a>
                     </div>
-                    
+
                     <div class="nav-section mt-3">
-                        <h6 class="text-light opacity-75 text-uppercase fw-bold mb-2 ps-3">Stok Yönetimi</h6>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'stok_yonetimi' %}active{% endif %}" href="{% url 'urun:stok_yonetimi' %}">
+                        <h6 class="menu-header menu-stok">Stok Yönetimi</h6>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'stok_yonetimi' %}active{% endif %}"
+                            href="{% url 'urun:stok_yonetimi' %}">
                             <i class="fas fa-warehouse text-primary"></i>
                             Stok Yönetimi Ana
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'sayim_eksigi' %}active{% endif %}" href="{% url 'urun:sayim_eksigi' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'sayim_eksigi' %}active{% endif %}"
+                            href="{% url 'urun:sayim_eksigi' %}">
                             <i class="fas fa-minus-circle text-warning"></i>
                             Sayım Eksiği
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'sayim_fazlasi' %}active{% endif %}" href="{% url 'urun:sayim_fazlasi' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'sayim_fazlasi' %}active{% endif %}"
+                            href="{% url 'urun:sayim_fazlasi' %}">
                             <i class="fas fa-plus-circle text-success"></i>
                             Sayım Fazlası
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'stok_hareket_listesi' %}active{% endif %}" href="{% url 'urun:stok_hareket_listesi' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'stok_hareket_listesi' %}active{% endif %}"
+                            href="{% url 'urun:stok_hareket_listesi' %}">
                             <i class="fas fa-list-alt text-primary"></i>
                             Stok Hareketleri
                         </a>
                     </div>
-                    
+
                     <div class="nav-section mt-3">
-                        <h6 class="text-light opacity-75 text-uppercase fw-bold mb-2 ps-3">Müşteri Yönetimi</h6>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'liste' and request.resolver_match.namespace == 'musteri' %}active{% endif %}" href="{% url 'musteri:liste' %}">
+                        <h6 class="menu-header menu-musteri">Müşteri Yönetimi</h6>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'liste' and request.resolver_match.namespace == 'musteri' %}active{% endif %}"
+                            href="{% url 'musteri:liste' %}">
                             <i class="fas fa-users"></i>
                             Müşteri Listesi
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'ekle' and request.resolver_match.namespace == 'musteri' %}active{% endif %}" href="{% url 'musteri:ekle' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'ekle' and request.resolver_match.namespace == 'musteri' %}active{% endif %}"
+                            href="{% url 'musteri:ekle' %}">
                             <i class="fas fa-user-plus"></i>
                             Müşteri Ekle
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'borc_alacak_listesi' %}active{% endif %}" href="{% url 'musteri:borc_alacak_listesi' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'borc_alacak_listesi' %}active{% endif %}"
+                            href="{% url 'musteri:borc_alacak_listesi' %}">
                             <i class="fas fa-chart-line"></i>
                             Borç-Alacak Takip
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'tahsilat_listesi' %}active{% endif %}" href="{% url 'musteri:tahsilat_listesi' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'tahsilat_listesi' %}active{% endif %}"
+                            href="{% url 'musteri:tahsilat_listesi' %}">
                             <i class="fas fa-money-bill"></i>
                             Tahsilat İşlemleri
                         </a>
                     </div>
-                    
+
                     <div class="nav-section mt-3">
-                        <h6 class="text-light opacity-75 text-uppercase fw-bold mb-2 ps-3">Gider Yönetimi</h6>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'liste' and request.resolver_match.namespace == 'gider' %}active{% endif %}" href="{% url 'gider:liste' %}">
+                        <h6 class="menu-header menu-gider">Gider Yönetimi</h6>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'liste' and request.resolver_match.namespace == 'gider' %}active{% endif %}"
+                            href="{% url 'gider:liste' %}">
                             <i class="fas fa-receipt"></i>
                             Gider Listesi
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'ekle' and request.resolver_match.namespace == 'gider' %}active{% endif %}" href="{% url 'gider:ekle' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'ekle' and request.resolver_match.namespace == 'gider' %}active{% endif %}"
+                            href="{% url 'gider:ekle' %}">
                             <i class="fas fa-plus-circle"></i>
                             Gider Ekle
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'kategori_liste' %}active{% endif %}" href="{% url 'gider:kategori_liste' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'kategori_liste' %}active{% endif %}"
+                            href="{% url 'gider:kategori_liste' %}">
                             <i class="fas fa-tags"></i>
                             Gider Kategorileri
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'rapor' and request.resolver_match.namespace == 'gider' %}active{% endif %}" href="{% url 'gider:rapor' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'rapor' and request.resolver_match.namespace == 'gider' %}active{% endif %}"
+                            href="{% url 'gider:rapor' %}">
                             <i class="fas fa-chart-pie"></i>
                             Gider Raporları
                         </a>
                     </div>
 
                     <div class="nav-section mt-3">
-                        <h6 class="text-light opacity-75 text-uppercase fw-bold mb-2 ps-3">Kasa Yönetimi</h6>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' and request.resolver_match.namespace == 'kasa' %}active{% endif %}" href="{% url 'kasa:dashboard' %}">
+                        <h6 class="menu-header menu-kasa">Kasa Yönetimi</h6>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' and request.resolver_match.namespace == 'kasa' %}active{% endif %}"
+                            href="{% url 'kasa:dashboard' %}">
                             <i class="fas fa-wallet"></i>
                             Kasa Özeti
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'virman' %}active{% endif %}" href="{% url 'kasa:virman' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'virman' %}active{% endif %}"
+                            href="{% url 'kasa:virman' %}">
                             <i class="fas fa-exchange-alt"></i>
                             Kasa Virmanı
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'para_girisi' %}active{% endif %}" href="{% url 'kasa:para_girisi' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'para_girisi' %}active{% endif %}"
+                            href="{% url 'kasa:para_girisi' %}">
                             <i class="fas fa-plus-circle text-success"></i>
                             Para Girişi
                         </a>
-                        <a class="nav-link {% if request.resolver_match.url_name == 'para_cikisi' %}active{% endif %}" href="{% url 'kasa:para_cikisi' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'para_cikisi' %}active{% endif %}"
+                            href="{% url 'kasa:para_cikisi' %}">
                             <i class="fas fa-minus-circle text-danger"></i>
                             Para Çıkışı
                         </a>
                     </div>
 
                     <div class="nav-section mt-3">
-                        <h6 class="text-light opacity-75 text-uppercase fw-bold mb-2 ps-3">Sistem</h6>
+                        <h6 class="menu-header menu-sistem">Sistem</h6>
                         {% if user.role == 'ADMIN' %}
-                        <a class="nav-link {% if request.resolver_match.namespace == 'kullanici' and 'list' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'kullanici:user_list' %}">
+                        <a class="nav-link {% if request.resolver_match.namespace == 'kullanici' and 'list' in request.resolver_match.url_name %}active{% endif %}"
+                            href="{% url 'kullanici:user_list' %}">
                             <i class="fas fa-users-cog"></i>
                             Kullanıcı Listesi
                         </a>
-                        <a class="nav-link {% if request.resolver_match.namespace == 'kullanici' and 'create' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'kullanici:user_create' %}">
+                        <a class="nav-link {% if request.resolver_match.namespace == 'kullanici' and 'create' in request.resolver_match.url_name %}active{% endif %}"
+                            href="{% url 'kullanici:user_create' %}">
                             <i class="fas fa-user-plus"></i>
                             Kullanıcı Ekle
                         </a>
-                        <a class="nav-link {% if request.resolver_match.namespace == 'kullanici' and 'session' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'kullanici:user_sessions' %}">
+                        <a class="nav-link {% if request.resolver_match.namespace == 'kullanici' and 'session' in request.resolver_match.url_name %}active{% endif %}"
+                            href="{% url 'kullanici:user_sessions' %}">
                             <i class="fas fa-desktop"></i>
                             Aktif Oturumlar
                         </a>
-                        <a class="nav-link {% if request.resolver_match.namespace == 'kullanici' and 'activity' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'kullanici:user_activity_logs' %}">
+                        <a class="nav-link {% if request.resolver_match.namespace == 'kullanici' and 'activity' in request.resolver_match.url_name %}active{% endif %}"
+                            href="{% url 'kullanici:user_activity_logs' %}">
                             <i class="fas fa-user-clock"></i>
                             Kullanıcı Aktiviteleri
                         </a>
                         {% endif %}
-                        <a class="nav-link {% if request.resolver_match.url_name == 'aktivite_loglari' %}active{% endif %}" href="{% url 'log:aktivite_loglari' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'aktivite_loglari' %}active{% endif %}"
+                            href="{% url 'log:aktivite_loglari' %}">
                             <i class="fas fa-history"></i>
                             Sistem Logları
                         </a>
@@ -616,15 +1113,22 @@
                             <i class="fas fa-tachometer-alt"></i>
                             Ana Sayfa
                         </a>
-                        
+
                         <!-- Satış İşlemleri -->
                         <div class="nav-section">
-                            <h6 class="text-light opacity-75 text-uppercase fw-bold mb-0 p-3 border-bottom border-secondary">Satış İşlemleri</h6>
+                            <h6 class="menu-header menu-satis mb-0 p-3 border-bottom border-secondary">Satış İşlemleri
+                            </h6>
                             <a class="nav-link" href="{% url 'satis:ekrani' %}">
                                 <i class="fas fa-cash-register"></i>Satış Ekranı
                             </a>
                             <a class="nav-link" href="{% url 'satis:liste' %}">
                                 <i class="fas fa-list-alt"></i>Satış Listesi
+                            </a>
+                            <a class="nav-link" href="{% url 'satis:siparis_olustur' %}">
+                                <i class="fas fa-plus-circle"></i>Yeni Sipariş
+                            </a>
+                            <a class="nav-link" href="{% url 'satis:siparis_listesi' %}">
+                                <i class="fas fa-clipboard-list"></i>Sipariş Listesi
                             </a>
                             <a class="nav-link" href="{% url 'satis:tahsilat_listesi' %}">
                                 <i class="fas fa-hand-holding-usd"></i>Tahsilat Listesi
@@ -639,10 +1143,11 @@
                                 <i class="fas fa-gift"></i>Hediye Çekleri
                             </a>
                         </div>
-                        
+
                         <!-- Raporlar -->
                         <div class="nav-section">
-                            <h6 class="text-light opacity-75 text-uppercase fw-bold mb-0 p-3 border-bottom border-secondary">Raporlar</h6>
+                            <h6 class="menu-header menu-class=" menu-header menu-raporlar mb-0 p-3 border-bottom
+                                border-secondary"1 mb-0 p-3 border-bottom border-secondary">Raporlar</h6>
                             <a class="nav-link" href="{% url 'gunluk_rapor' %}">
                                 <i class="fas fa-calendar-day"></i>Günlük Rapor
                             </a>
@@ -661,6 +1166,9 @@
                             <a class="nav-link" href="{% url 'rapor:musteri_raporu' %}">
                                 <i class="fas fa-users"></i>Müşteri Analizi
                             </a>
+                            <a class="nav-link" href="{% url 'rapor:satici_raporu' %}">
+                                <i class="fas fa-user-tie"></i>Satıcı Performansı
+                            </a>
                             <a class="nav-link" href="{% url 'urun:en_cok_satanlar' %}">
                                 <i class="fas fa-chart-line"></i>En Çok Satanlar
                             </a>
@@ -671,10 +1179,11 @@
                                 <i class="fas fa-hand-holding-usd"></i>Tahsilat Raporu
                             </a>
                         </div>
-                        
+
                         <!-- Ürün Yönetimi -->
                         <div class="nav-section">
-                            <h6 class="text-light opacity-75 text-uppercase fw-bold mb-0 p-3 border-bottom border-secondary">Ürün Yönetimi</h6>
+                            <h6 class="menu-header menu-class=" menu-header menu-urun mb-0 p-3 border-bottom
+                                border-secondary"1 mb-0 p-3 border-bottom border-secondary">Ürün Yönetimi</h6>
                             <a class="nav-link" href="{% url 'urun:liste' %}">
                                 <i class="fas fa-boxes"></i>Ürün Listesi
                             </a>
@@ -693,9 +1202,10 @@
                             <a class="nav-link" href="{% url 'urun:barkod_sorgula' %}">
                                 <i class="fas fa-barcode"></i>Barkod Sorgula
                             </a>
-                            
+
                             <!-- Stok Yönetimi Alt Menüsü -->
-                            <h6 class="text-light opacity-75 text-uppercase fw-bold mb-0 p-3 mt-3 border-bottom border-secondary">Stok Yönetimi</h6>
+                            <h6 class="menu-header menu-stok mb-0 mt-3 border-bottom border-secondary">Stok Yönetimi
+                            </h6>
                             <a class="nav-link" href="{% url 'urun:stok_yonetimi' %}">
                                 <i class="fas fa-warehouse text-primary"></i>Stok Yönetimi Ana
                             </a>
@@ -709,10 +1219,11 @@
                                 <i class="fas fa-list-alt text-primary"></i>Stok Hareketleri
                             </a>
                         </div>
-                        
+
                         <!-- Müşteri Yönetimi -->
                         <div class="nav-section">
-                            <h6 class="text-light opacity-75 text-uppercase fw-bold mb-0 p-3 border-bottom border-secondary">Müşteri Yönetimi</h6>
+                            <h6 class="menu-header menu-class=" menu-header menu-musteri mb-0 p-3 border-bottom
+                                border-secondary"1 mb-0 p-3 border-bottom border-secondary">Müşteri Yönetimi</h6>
                             <a class="nav-link" href="{% url 'musteri:liste' %}">
                                 <i class="fas fa-users"></i>Müşteri Listesi
                             </a>
@@ -726,10 +1237,11 @@
                                 <i class="fas fa-money-bill"></i>Tahsilat İşlemleri
                             </a>
                         </div>
-                        
+
                         <!-- Kasa Yönetimi -->
                         <div class="nav-section">
-                            <h6 class="text-light opacity-75 text-uppercase fw-bold mb-0 p-3 border-bottom border-secondary">Kasa Yönetimi</h6>
+                            <h6 class="menu-header menu-class=" menu-header menu-kasa mb-0 p-3 border-bottom
+                                border-secondary"1 mb-0 p-3 border-bottom border-secondary">Kasa Yönetimi</h6>
                             <a class="nav-link" href="{% url 'kasa:dashboard' %}">
                                 <i class="fas fa-wallet"></i>Kasa Özeti
                             </a>
@@ -743,10 +1255,11 @@
                                 <i class="fas fa-minus-circle text-danger"></i>Para Çıkışı
                             </a>
                         </div>
-                        
+
                         <!-- Sistem -->
                         <div class="nav-section">
-                            <h6 class="text-light opacity-75 text-uppercase fw-bold mb-0 p-3 border-bottom border-secondary">Sistem</h6>
+                            <h6 class="menu-header menu-class=" menu-header menu-sistem mb-0 p-3 border-bottom
+                                border-secondary"1 mb-0 p-3 border-bottom border-secondary">Sistem</h6>
                             {% if user.role == 'ADMIN' %}
                             <a class="nav-link" href="{% url 'kullanici:user_list' %}">
                                 <i class="fas fa-users-cog"></i>Kullanıcı Listesi
@@ -773,13 +1286,14 @@
             <main class="col-lg-10 ms-auto px-0">
                 <div class="main-content">
                     {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i
+                            class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
                     {% endif %}
 
                     <div class="container-fluid px-3">
@@ -790,8 +1304,6 @@
         </div>
     </div>
 
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Select2 JS -->
@@ -801,15 +1313,15 @@
 
     <script>
         // Menu Search Functionality
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById('menuSearch');
             const navLinks = document.querySelectorAll('.sidebar .nav-link');
             const navSections = document.querySelectorAll('.sidebar .nav-section');
 
             if (searchInput) {
-                searchInput.addEventListener('input', function() {
+                searchInput.addEventListener('input', function () {
                     const searchTerm = this.value.toLowerCase();
-                    
+
                     navLinks.forEach(link => {
                         const text = link.textContent.toLowerCase().trim();
                         const isVisible = text.includes(searchTerm);
@@ -828,21 +1340,21 @@
             // Mobile menu link click handler
             const mobileMenuLinks = document.querySelectorAll('.offcanvas .nav-link');
             const offcanvasElement = document.getElementById('sidebarOffcanvas');
-            
+
             mobileMenuLinks.forEach(link => {
                 // Click event handler
-                link.addEventListener('click', function(e) {
+                link.addEventListener('click', function (e) {
                     e.preventDefault(); // Link'in normal davranışını engelle
-                    
+
                     const href = this.getAttribute('href');
-                    
+
                     // Offcanvas'ı kapat
                     if (offcanvasElement) {
                         const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasElement) || new bootstrap.Offcanvas(offcanvasElement);
                         offcanvas.hide();
-                        
+
                         // Offcanvas kapandıktan sonra sayfayı yönlendir
-                        offcanvasElement.addEventListener('hidden.bs.offcanvas', function() {
+                        offcanvasElement.addEventListener('hidden.bs.offcanvas', function () {
                             if (href && href !== '#' && href !== 'javascript:void(0)') {
                                 window.location.href = href;
                             }
@@ -854,13 +1366,13 @@
                         }
                     }
                 });
-                
+
                 // Touch event için ek handler
-                link.addEventListener('touchstart', function(e) {
+                link.addEventListener('touchstart', function (e) {
                     this.style.backgroundColor = 'var(--info-color)';
                 });
-                
-                link.addEventListener('touchend', function(e) {
+
+                link.addEventListener('touchend', function (e) {
                     setTimeout(() => {
                         this.style.backgroundColor = '';
                     }, 150);
@@ -869,18 +1381,21 @@
         });
 
         // Select2 initialization
-        $(document).ready(function() {
+        $(document).ready(function () {
             $('.select2').select2({
                 theme: 'bootstrap-5',
                 width: '100%'
             });
-            
+
             // Debug: Mobile menu test
             console.log('Mobile menu links found:', document.querySelectorAll('.offcanvas .nav-link').length);
             console.log('Bootstrap version:', window.bootstrap ? 'loaded' : 'not loaded');
         });
     </script>
 
+
+
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

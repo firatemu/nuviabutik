@@ -1,0 +1,106 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        // Workspace-level Auto Approve Settings
+        "python.defaultInterpreterPath": "./venv/bin/python",
+        "python.terminal.activateEnvironment": true,
+        "python.terminal.activateEnvInCurrentTerminal": true,
+        
+        // Django Auto Settings
+        "python.analysis.autoImportCompletions": true,
+        "python.analysis.autoSearchPaths": true,
+        "python.analysis.typeCheckingMode": "basic",
+        
+        // Auto Save and Format
+        "files.autoSave": "onFocusChange",
+        "editor.formatOnSave": true,
+        
+        // Git Integration Auto Approve
+        "git.autofetch": true,
+        "git.confirmSync": false,
+        "git.enableSmartCommit": true,
+        
+        // Terminal Auto Approval
+        "terminal.integrated.confirmOnExit": "never",
+        "terminal.integrated.shellIntegration.enabled": true
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.pylance",
+            "batisteo.vscode-django",
+            "wholroyd.jinja",
+            "ms-python.flake8",
+            "ms-vscode.vscode-json",
+            "bradlc.vscode-tailwindcss"
+        ]
+    },
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "Django: Run Server",
+                "type": "shell",
+                "command": "./venv/bin/python",
+                "args": ["manage.py", "runserver"],
+                "group": "build",
+                "presentation": {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "new"
+                },
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                },
+                "problemMatcher": []
+            },
+            {
+                "label": "Django: Migrate",
+                "type": "shell",
+                "command": "./venv/bin/python",
+                "args": ["manage.py", "migrate", "--noinput"],
+                "group": "build",
+                "presentation": {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "new"
+                }
+            },
+            {
+                "label": "Django: Collect Static",
+                "type": "shell",
+                "command": "./venv/bin/python",
+                "args": ["manage.py", "collectstatic", "--noinput"],
+                "group": "build",
+                "presentation": {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "new"
+                }
+            }
+        ]
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Django: Debug Server",
+                "type": "python",
+                "request": "launch",
+                "program": "${workspaceFolder}/manage.py",
+                "args": ["runserver", "--noreload"],
+                "env": {
+                    "DJANGO_DEBUG": "1"
+                },
+                "console": "integratedTerminal"
+            }
+        ]
+    }
+}

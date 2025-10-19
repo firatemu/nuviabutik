@@ -1,0 +1,467 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-users text-primary"></i>
+                        {{ baslik }}
+                    </h4>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-success btn-sm" onclick="exportExcel()">
+                            <i class="fas fa-file-excel"></i> Excel
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="exportPDF()">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Filtreler -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <form method="get" class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="filtre" class="form-label">Rapor Dönemi</label>
+                                    <select class="form-select" id="filtre" name="filtre" onchange="toggleDateInputs()">
+                                        <option value="gun" {% if filtre == "gun" %}selected{% endif %}>Bugün</option>
+                                        <option value="hafta" {% if filtre == "hafta" %}selected{% endif %}>Bu Hafta
+                                        </option>
+                                        <option value="ay" {% if filtre == "ay" %}selected{% endif %}>Bu Ay</option>
+                                        <option value="ozel" {% if filtre == "ozel" %}selected{% endif %}>Özel Tarih
+                                            Aralığı</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3" id="baslangicDiv"
+                                    style="{% if filtre != "ozel" %}display: none;{% endif %}">
+                                    <label for="baslangic" class="form-label">Başlangıç Tarihi</label>
+                                    <input type="date" class="form-control" id="baslangic" name="baslangic"
+                                        value="{{ baslangic|date:'Y-m-d' }}">
+                                </div>
+                                <div class="col-md-3" id="bitisDiv"
+                                    style="{% if filtre != "ozel" %}display: none;{% endif %}">
+                                    <label for="bitis" class="form-label">Bitiş Tarihi</label>
+                                    <input type="date" class="form-control" id="bitis" name="bitis"
+                                        value="{{ bitis|date:'Y-m-d' }}">
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search"></i> Filtrele
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Özet Kartları -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="card-title">Toplam Ciro</h6>
+                                            <h4 class="mb-0">₺{{ toplam_satis_tutari|floatformat:2 }}</h4>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-money-bill-wave fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="card-title">Toplam Satış</h6>
+                                            <h4 class="mb-0">{{ toplam_satis_adedi }}</h4>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-shopping-cart fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="card-title">Satılan Ürün</h6>
+                                            <h4 class="mb-0">{{ toplam_urun_adedi }}</h4>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-box fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="card-title">Aktif Satıcı</h6>
+                                            <h4 class="mb-0">{{ satici_stats|length }}</h4>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-users fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- En Başarılı Satıcı -->
+                    {% if en_basarili_satici %}
+                    <div class="alert alert-success">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h5><i class="fas fa-trophy"></i> Dönem Lideri</h5>
+                                <p class="mb-0">
+                                    <strong>{{ en_basarili_satici.satici.get_full_name }}</strong> -
+                                    ₺{{ en_basarili_satici.toplam_tutar|floatformat:2 }} ciro ile dönemin en başarılı
+                                    satıcısı!
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="badge bg-warning text-dark fs-5">
+                                    %{{ en_basarili_satici.yuzde_pay|floatformat:1 }} Pay
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Satıcı Performans Tablosu -->
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-chart-bar text-primary"></i>
+                                        Satıcı Performans Listesi
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if satici_stats %}
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Sıra</th>
+                                                    <th>Satıcı</th>
+                                                    <th>Toplam Ciro</th>
+                                                    <th>Satış Sayısı</th>
+                                                    <th>Ürün Adedi</th>
+                                                    <th>Ortalama Satış</th>
+                                                    <th>Pay (%)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for stat in satici_stats %}
+                                                <tr>
+                                                    <td>
+                                                        {% if forloop.counter == 1 %}
+                                                        <span class="badge bg-warning text-dark">
+                                                            <i class="fas fa-crown"></i> 1
+                                                        </span>
+                                                        {% elif forloop.counter == 2 %}
+                                                        <span class="badge bg-secondary">
+                                                            <i class="fas fa-medal"></i> 2
+                                                        </span>
+                                                        {% elif forloop.counter == 3 %}
+                                                        <span class="badge bg-info">
+                                                            <i class="fas fa-award"></i> 3
+                                                        </span>
+                                                        {% else %}
+                                                        <span class="badge bg-light text-dark">{{ forloop.counter
+                                                            }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <i class="fas fa-user-tie"></i>
+                                                        <strong>
+                                                            {% if stat.satici.get_full_name %}
+                                                                {{ stat.satici.get_full_name }}
+                                                            {% else %}
+                                                                {{ stat.satici.username|capfirst }}
+                                                            {% endif %}
+                                                        </strong>
+                                                        {% if stat.satici.get_role_display %}
+                                                        <br><small class="text-muted">{{ stat.satici.get_role_display }}</small>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <span class="text-success fw-bold">₺{{ stat.toplam_tutar|floatformat:2 }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-primary">{{ stat.satis_sayisi }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-info">{{ stat.urun_sayisi }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="text-primary">₺{{ stat.ortalama_satis|floatformat:2 }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="progress" style="height: 20px;">
+                                                            <div class="progress-bar bg-success" role="progressbar"
+                                                                style="width: {{ stat.yuzde_pay }}%"
+                                                                aria-valuenow="{{ stat.yuzde_pay }}" aria-valuemin="0"
+                                                                aria-valuemax="100">
+                                                                {{ stat.yuzde_pay|floatformat:1 }}%
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <div class="alert alert-info text-center">
+                                        <i class="fas fa-info-circle fa-2x mb-3"></i>
+                                        <h5>Satış Verisi Bulunamadı</h5>
+                                        <p>Seçilen dönem için satış verisi bulunamadı.</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Performans Grafiği -->
+                        <div class="col-lg-4">
+                            {% if satici_stats %}
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-chart-pie text-info"></i>
+                                        Ciro Dağılımı
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="saticiChart" height="250"></canvas>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Günlük Trend (Haftalık/Günlük görünümde) -->
+                            {% if gunluk_detay %}
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-chart-line text-warning"></i>
+                                        Günlük Trend
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="gunlukChart" height="200"></canvas>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Detaylı Analiz -->
+                    {% if satici_stats %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-star text-warning"></i>
+                                        En Çok Satan Ürünler (Satıcı Bazında)
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for stat in satici_stats|slice:":6" %}
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card border-primary">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">{{ stat.satici.get_full_name }}</h6>
+                                                    {% if stat.en_cok_satan %}
+                                                    <p class="card-text">
+                                                        <strong>{{ stat.en_cok_satan.urun__ad }}</strong><br>
+                                                        <small class="text-muted">
+                                                            {{ stat.en_cok_satan.toplam_adet }} adet -
+                                                            ₺{{ stat.en_cok_satan.toplam_tutar|floatformat:2 }}
+                                                        </small>
+                                                    </p>
+                                                    {% else %}
+                                                    <p class="card-text text-muted">Veri bulunamadı</p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        transition: transform 0.2s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .progress {
+        border-radius: 10px;
+    }
+
+    .badge {
+        font-size: 0.9em;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+{% if satici_stats %}
+<!-- Chart.js Kütüphanesi -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Satıcı Ciro Dağılım Grafiği
+    const saticiCtx = document.getElementById('saticiChart').getContext('2d');
+    new Chart(saticiCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [
+                {% for stat in satici_stats|slice:":5" %}
+                '{% if stat.satici.get_full_name %}{{ stat.satici.get_full_name|truncatechars:15 }}{% else %}{{ stat.satici.username|capfirst|truncatechars:15 }}{% endif %}'{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+        ],
+        datasets: [{
+            data: [
+                {% for stat in satici_stats|slice:":5" %}
+                    {{ stat.toplam_tutar }}{% if not forloop.last %}, {% endif %}
+    {% endfor %}
+            ],
+    backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8'],
+        borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+            animation: false,  // Animasyonu kapat
+                animations: {
+            colors: false,
+                x: false,
+                    y: false
+        },
+        hover: {
+            animationDuration: 0
+        },
+        responsiveAnimationDuration: 0,
+            plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+    {% if gunluk_detay %}
+    // Günlük Trend Grafiği
+    const gunlukCtx = document.getElementById('gunlukChart').getContext('2d');
+    new Chart(gunlukCtx, {
+        type: 'line',
+        data: {
+            labels: [
+                {% for gun in gunluk_detay %}
+                '{{ gun.tarih|date:"d.m" }}'{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+        ],
+        datasets: [{
+            label: 'Günlük Ciro (₺)',
+            data: [
+                {% for gun in gunluk_detay %}
+                    {{ gun.toplam_tutar }}{% if not forloop.last %}, {% endif %}
+    {% endfor %}
+            ],
+    borderColor: '#ffc107',
+        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+            tension: 0.4,
+                fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+            animation: false,  // Animasyonu kapat
+                animations: {
+            colors: false,
+                x: false,
+                    y: false
+        },
+        hover: {
+            animationDuration: 0
+        },
+        responsiveAnimationDuration: 0,
+            plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+    {% endif %}
+
+    // Tarih input'larını göster/gizle
+    function toggleDateInputs() {
+        const filtre = document.getElementById('filtre').value;
+        const baslangicDiv = document.getElementById('baslangicDiv');
+        const bitisDiv = document.getElementById('bitisDiv');
+
+        if (filtre === 'ozel') {
+            baslangicDiv.style.display = 'block';
+            bitisDiv.style.display = 'block';
+        } else {
+            baslangicDiv.style.display = 'none';
+            bitisDiv.style.display = 'none';
+        }
+    }
+
+    // Export fonksiyonları
+    function exportExcel() {
+        const url = new URL(window.location.href);
+        url.pathname = url.pathname.replace('/satici-raporu/', '/satici-raporu/excel/');
+        window.open(url.toString(), '_blank');
+    }
+
+    function exportPDF() {
+        const url = new URL(window.location.href);
+        url.pathname = url.pathname.replace('/satici-raporu/', '/satici-raporu/pdf/');
+        window.open(url.toString(), '_blank');
+    }
+</script>
+{% endif %}
+{% endblock %}

@@ -267,6 +267,143 @@ def tahsilat_ekle(request):
 
 
 @login_required
+def tahsilat_duzenle(request, tahsilat_id):
+    """Tahsilat düzenleme"""
+    tahsilat = get_object_or_404(Tahsilat, id=tahsilat_id)
+    
+    if request.method == 'GET':
+        # Düzenleme sayfasını göster
+        context = {
+            'tahsilat': tahsilat,
+            'musteriler': Musteri.objects.filter(aktif=True).order_by('ad', 'soyad'),
+        }
+        return render(request, 'musteri/tahsilat_duzenle.html', context)
+    
+    elif request.method == 'POST':
+        try:
+            # Eski tutarı sakla (bakiye düzeltmesi için)
+            eski_tutar = tahsilat.tutar
+            eski_musteri = tahsilat.musteri
+            
+            # Form verilerini al
+            musteri_id = request.POST.get('musteri_id')
+            tutar = Decimal(request.POST.get('tutar', '0'))
+            tahsilat_tipi = request.POST.get('tahsilat_tipi')
+            aciklama = request.POST.get('aciklama', '')
+            
+            # Çek/Senet için ek bilgiler
+            vade_tarihi = request.POST.get('vade_tarihi') or None
+            cek_senet_no = request.POST.get('cek_senet_no', '')
+            banka = request.POST.get('banka', '')
+            referans_no = request.POST.get('referans_no', '')
+            
+            # Validation
+            if not musteri_id:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Müşteri seçimi zorunludur.'
+                })
+            
+            if tutar <= 0:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Tahsilat tutarı 0\'dan büyük olmalıdır.'
+                })
+            
+            if not tahsilat_tipi:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Tahsilat tipi seçimi zorunludur.'
+                })
+            
+            # Müşteri kontrolü
+            try:
+                yeni_musteri = Musteri.objects.get(id=musteri_id, aktif=True)
+            except Musteri.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Geçersiz müşteri seçimi.'
+                })
+            
+            # Manuel bakiye güncellemesi (save metodundaki otomatik güncellemeyi devre dışı bırakıyoruz)
+            if tahsilat.durum == 'tahsil_edildi':
+                # Eski müşterinin bakiyesini düzelt (eski tahsilatı geri al)
+                eski_musteri.acik_hesap_bakiye += eski_tutar
+                eski_musteri.save()
+                
+                # Yeni müşterinin bakiyesini güncelle (yeni tahsilatı uygula)
+                yeni_musteri.acik_hesap_bakiye -= tutar
+                yeni_musteri.save()
+                
+                # Eski tahsilat iptal hareketi
+                eski_musteri.borc_hareket_ekle(
+                    tutar=eski_tutar,
+                    aciklama=f'Tahsilat Düzeltme (İptal) - {tahsilat.tahsilat_no}',
+                    user=request.user
+                )
+                
+                # Yeni tahsilat hareketi (sadece farklı müşteri ise)
+                if eski_musteri != yeni_musteri:
+                    yeni_musteri.alacak_hareket_ekle(
+                        tutar=tutar,
+                        aciklama=f'Tahsilat Düzeltme (Yeni) - {tahsilat.tahsilat_no}',
+                        tahsilat=tahsilat,
+                        user=request.user
+                    )
+                else:
+                    # Aynı müşteri, sadece tutar farkı için hareket ekle
+                    if eski_tutar != tutar:
+                        fark = tutar - eski_tutar
+                        if fark > 0:  # Tutar artmış
+                            yeni_musteri.alacak_hareket_ekle(
+                                tutar=fark,
+                                aciklama=f'Tahsilat Tutar Artışı - {tahsilat.tahsilat_no}',
+                                tahsilat=tahsilat,
+                                user=request.user
+                            )
+                        else:  # Tutar azalmış
+                            yeni_musteri.borc_hareket_ekle(
+                                tutar=abs(fark),
+                                aciklama=f'Tahsilat Tutar Azalışı - {tahsilat.tahsilat_no}',
+                                user=request.user
+                            )
+            
+            # Tahsilat kaydını güncelle (pk var olduğu için save metodu bakiye güncellemeyecek)
+            tahsilat.musteri = yeni_musteri
+            tahsilat.tutar = tutar
+            tahsilat.tahsilat_tipi = tahsilat_tipi
+            tahsilat.aciklama = aciklama
+            tahsilat.vade_tarihi = vade_tarihi
+            tahsilat.cek_senet_no = cek_senet_no
+            tahsilat.banka = banka
+            tahsilat.referans_no = referans_no
+            tahsilat.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Tahsilat başarıyla güncellendi. Tahsilat No: {tahsilat.tahsilat_no}',
+                'tahsilat_no': tahsilat.tahsilat_no,
+                'tahsilat_id': tahsilat.id
+            })
+            
+        except ValueError as e:
+            return JsonResponse({
+                'success': False,
+                'message': 'Geçersiz tutar formatı.'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Tahsilat güncellenirken hata oluştu: {str(e)}'
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': 'Geçersiz istek metodu.'
+    })
+
+
+@login_required
 def tahsilat_iptal(request, tahsilat_id):
     """Tahsilat iptal etme"""
     tahsilat = get_object_or_404(Tahsilat, id=tahsilat_id)

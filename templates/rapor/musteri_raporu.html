@@ -62,7 +62,8 @@
                                         <div>
                                             <h6 class="card-title">Toplam Ciro</h6>
                                             <h4 class="mb-0">
-                                                ₺{% for stat in musteri_stats %}{{ stat.toplam_satis|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                                                ₺{% for stat in musteri_stats %}{{ stat.toplam_satis|add:0 }}{% if not
+                                                forloop.last %}+{% endif %}{% endfor %}
                                             </h4>
                                         </div>
                                         <div class="align-self-center">
@@ -117,27 +118,26 @@
                                         {% for stat in musteri_stats %}
                                         <tr>
                                             <td>
-                                                {% if forloop.counter <= 3 %}
-                                                    <span class="badge bg-warning">
-                                                        <i class="fas fa-medal"></i> {{ forloop.counter }}
+                                                {% if forloop.counter <= 3 %} <span class="badge bg-warning">
+                                                    <i class="fas fa-medal"></i> {{ forloop.counter }}
                                                     </span>
-                                                {% else %}
+                                                    {% else %}
                                                     {{ forloop.counter }}
-                                                {% endif %}
+                                                    {% endif %}
                                             </td>
                                             <td>
                                                 <strong>{{ stat.musteri.ad_soyad }}</strong>
                                                 {% if stat.musteri.sirket %}
-                                                    <br><small class="text-muted">{{ stat.musteri.sirket }}</small>
+                                                <br><small class="text-muted">{{ stat.musteri.sirket }}</small>
                                                 {% endif %}
                                             </td>
                                             <td>
                                                 {% if stat.musteri.telefon %}
-                                                    <a href="tel:{{ stat.musteri.telefon }}" class="text-decoration-none">
-                                                        <i class="fas fa-phone"></i> {{ stat.musteri.telefon }}
-                                                    </a>
+                                                <a href="tel:{{ stat.musteri.telefon }}" class="text-decoration-none">
+                                                    <i class="fas fa-phone"></i> {{ stat.musteri.telefon }}
+                                                </a>
                                                 {% else %}
-                                                    <span class="text-muted">-</span>
+                                                <span class="text-muted">-</span>
                                                 {% endif %}
                                             </td>
                                             <td>
@@ -157,23 +157,23 @@
                                             </td>
                                             <td>
                                                 {% with puan=stat.toplam_satis|floatformat:0|add:0 %}
-                                                    {% if puan >= 10000 %}
-                                                        <span class="badge bg-warning text-dark">
-                                                            <i class="fas fa-crown"></i> VIP
-                                                        </span>
-                                                    {% elif puan >= 5000 %}
-                                                        <span class="badge bg-success">
-                                                            <i class="fas fa-star"></i> Altın
-                                                        </span>
-                                                    {% elif puan >= 2000 %}
-                                                        <span class="badge bg-info">
-                                                            <i class="fas fa-gem"></i> Gümüş
-                                                        </span>
-                                                    {% else %}
-                                                        <span class="badge bg-secondary">
-                                                            <i class="fas fa-user"></i> Standart
-                                                        </span>
-                                                    {% endif %}
+                                                {% if puan >= 10000 %}
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="fas fa-crown"></i> VIP
+                                                </span>
+                                                {% elif puan >= 5000 %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-star"></i> Altın
+                                                </span>
+                                                {% elif puan >= 2000 %}
+                                                <span class="badge bg-info">
+                                                    <i class="fas fa-gem"></i> Gümüş
+                                                </span>
+                                                {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-user"></i> Standart
+                                                </span>
+                                                {% endif %}
                                                 {% endwith %}
                                             </td>
                                         </tr>
@@ -185,7 +185,8 @@
                             <div class="text-center py-5">
                                 <i class="fas fa-users fa-4x text-muted mb-3"></i>
                                 <h5 class="text-muted">Henüz satış yapılan müşteri bulunmuyor</h5>
-                                <p class="text-muted">Müşteri analiz raporu görüntülemek için önce satış işlemleri gerçekleştirin.</p>
+                                <p class="text-muted">Müşteri analiz raporu görüntülemek için önce satış işlemleri
+                                    gerçekleştirin.</p>
                             </div>
                             {% endif %}
                         </div>
@@ -231,7 +232,7 @@
                                             <h6>En Değerli Müşteri:</h6>
                                             <p class="text-success">
                                                 <i class="fas fa-crown"></i>
-                                                {{ musteri_stats.0.musteri.ad_soyad }} - 
+                                                {{ musteri_stats.0.musteri.ad_soyad }} -
                                                 ₺{{ musteri_stats.0.toplam_satis|floatformat:2 }}
                                             </p>
                                         </div>
@@ -240,7 +241,7 @@
                                             {% with en_aktif=musteri_stats|dictsort:"satis_adedi"|last %}
                                             <p class="text-info">
                                                 <i class="fas fa-chart-line"></i>
-                                                {{ en_aktif.musteri.ad_soyad }} - 
+                                                {{ en_aktif.musteri.ad_soyad }} -
                                                 {{ en_aktif.satis_adedi }} satış
                                             </p>
                                             {% endwith %}
@@ -260,69 +261,89 @@
 {% if musteri_stats %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Müşteri segmentasyon grafiği
-const segmentCtx = document.getElementById('segmentChart').getContext('2d');
-let vipCount = 0, goldCount = 0, silverCount = 0, standardCount = 0;
+    // Müşteri segmentasyon grafiği
+    const segmentCtx = document.getElementById('segmentChart').getContext('2d');
+    let vipCount = 0, goldCount = 0, silverCount = 0, standardCount = 0;
 
-{% for stat in musteri_stats %}
-    {% with puan=stat.toplam_satis|floatformat:0|add:0 %}
-        {% if puan >= 10000 %}
-            vipCount++;
-        {% elif puan >= 5000 %}
-            goldCount++;
-        {% elif puan >= 2000 %}
-            silverCount++;
-        {% else %}
-            standardCount++;
-        {% endif %}
+    {% for stat in musteri_stats %}
+    {% with puan = stat.toplam_satis | floatformat: 0 | add: 0 %}
+    {% if puan >= 10000 %}
+    vipCount++;
+    {% elif puan >= 5000 %}
+    goldCount++;
+    {% elif puan >= 2000 %}
+    silverCount++;
+    {% else %}
+    standardCount++;
+    {% endif %}
     {% endwith %}
-{% endfor %}
+    {% endfor %}
 
-new Chart(segmentCtx, {
-    type: 'doughnut',
-    data: {
-        labels: ['VIP', 'Altın', 'Gümüş', 'Standart'],
-        datasets: [{
-            data: [vipCount, goldCount, silverCount, standardCount],
-            backgroundColor: ['#ffc107', '#28a745', '#17a2b8', '#6c757d'],
-            borderWidth: 2
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'bottom'
+    new Chart(segmentCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['VIP', 'Altın', 'Gümüş', 'Standart'],
+            datasets: [{
+                data: [vipCount, goldCount, silverCount, standardCount],
+                backgroundColor: ['#ffc107', '#28a745', '#17a2b8', '#6c757d'],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            animation: false,  // Tüm animasyonları kapat
+            animations: {
+                colors: false,
+                x: false,
+                y: false
+            },
+            hover: {
+                animationDuration: 0
+            },
+            responsiveAnimationDuration: 0,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
             }
         }
-    }
-});
+    });
 
-// Top 10 müşteri grafiği
-const topCustomersCtx = document.getElementById('topCustomersChart').getContext('2d');
-new Chart(topCustomersCtx, {
-    type: 'bar',
-    data: {
-        labels: [
-            {% for stat in musteri_stats|slice:":10" %}
-                '{{ stat.musteri.ad_soyad|truncatechars:15 }}'{% if not forloop.last %},{% endif %}
-            {% endfor %}
+    // Top 10 müşteri grafiği
+    const topCustomersCtx = document.getElementById('topCustomersChart').getContext('2d');
+    new Chart(topCustomersCtx, {
+        type: 'bar',
+        data: {
+            labels: [
+                {% for stat in musteri_stats | slice: ":10" %}
+                '{{ stat.musteri.ad_soyad|truncatechars:15 }}'{% if not forloop.last %}, {% endif %}
+        {% endfor %}
         ],
         datasets: [{
             label: 'Toplam Satış (₺)',
             data: [
-                {% for stat in musteri_stats|slice:":10" %}
-                    {{ stat.toplam_satis }}{% if not forloop.last %},{% endif %}
-                {% endfor %}
+                {% for stat in musteri_stats | slice: ":10" %}
+                    {{ stat.toplam_satis }}{% if not forloop.last %}, {% endif %}
+    {% endfor %}
             ],
-            backgroundColor: '#007bff',
-            borderColor: '#0056b3',
+    backgroundColor: '#007bff',
+        borderColor: '#0056b3',
             borderWidth: 1
         }]
     },
     options: {
         responsive: true,
-        plugins: {
+            animation: false,  // Tüm animasyonları kapat
+                animations: {
+            colors: false,
+                x: false,
+                    y: false
+        },
+        hover: {
+            animationDuration: 0
+        },
+        responsiveAnimationDuration: 0,
+            plugins: {
             legend: {
                 display: false
             }
@@ -335,18 +356,18 @@ new Chart(topCustomersCtx, {
     }
 });
 
-// Export fonksiyonları
-function exportExcel() {
-    const url = new URL(window.location.href);
-    url.pathname = url.pathname.replace('/musteri-raporu/', '/musteri-raporu/excel/');
-    window.open(url.toString(), '_blank');
-}
+    // Export fonksiyonları
+    function exportExcel() {
+        const url = new URL(window.location.href);
+        url.pathname = url.pathname.replace('/musteri-raporu/', '/musteri-raporu/excel/');
+        window.open(url.toString(), '_blank');
+    }
 
-function exportPDF() {
-    const url = new URL(window.location.href);
-    url.pathname = url.pathname.replace('/musteri-raporu/', '/musteri-raporu/pdf/');
-    window.open(url.toString(), '_blank');
-}
+    function exportPDF() {
+        const url = new URL(window.location.href);
+        url.pathname = url.pathname.replace('/musteri-raporu/', '/musteri-raporu/pdf/');
+        window.open(url.toString(), '_blank');
+    }
 </script>
 {% endif %}
 {% endblock %}

@@ -240,6 +240,13 @@ class Odeme(models.Model):
         ('acik_hesap', 'Açık Hesap'),
     ]
     
+    BANKA_SECENEKLERI = [
+        ('isbank', 'İŞBANKASI'),
+        ('ziraat', 'ZİRAAT BANKASI'),
+        ('yapikredi', 'YAPIKREDİ BANKASI'),
+        ('akbank', 'AKBANK'),
+    ]
+    
     satis = models.ForeignKey(Satis, on_delete=models.CASCADE, verbose_name="Satış")
     odeme_tipi = models.CharField(max_length=20, choices=ODEME_TIPLERI, verbose_name="Ödeme Tipi")
     tutar = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Tutar")
@@ -247,6 +254,7 @@ class Odeme(models.Model):
     # Kart ödemesi detayları
     taksit_sayisi = models.PositiveIntegerField(null=True, blank=True, verbose_name="Taksit Sayısı")
     taksit_tutari = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Taksit Tutarı")
+    banka = models.CharField(max_length=20, choices=BANKA_SECENEKLERI, null=True, blank=True, verbose_name="Banka")
     
     # Hediye çeki detayları
     hediye_ceki_kodu = models.CharField(max_length=50, null=True, blank=True, verbose_name="Hediye Çeki Kodu")
@@ -348,4 +356,152 @@ class SatisIptal(models.Model):
                 detay.urun.save()
             self.stok_iade_edildi = True
         
+        super().save(*args, **kwargs)
+
+
+class SatisSiparisi(models.Model):
+    """Satış siparişi modeli - Satış öncesi hazırlanan sipariş"""
+    SIPARIS_DURUMU = [
+        ('taslak', 'Taslak'),
+        ('hazir', 'Satışa Hazır'),
+        ('satisa_donusturuldu', 'Satışa Dönüştürüldü'),
+        ('iptal', 'İptal'),
+    ]
+    
+    # Sipariş bilgileri
+    siparis_no = models.CharField(max_length=20, unique=True, verbose_name="Sipariş No")
+    musteri = models.ForeignKey(Musteri, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Müşteri")
+    
+    # Tutar bilgileri
+    ara_toplam = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Ara Toplam")
+    indirim_tutari = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="İndirim Tutarı")
+    kdv_orani = models.DecimalField(max_digits=5, decimal_places=2, default=18.00, verbose_name="KDV Oranı (%)")
+    kdv_tutari = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="KDV Tutarı")
+    genel_toplam = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Genel Toplam")
+    
+    # Durum ve tarih bilgileri
+    durum = models.CharField(max_length=20, choices=SIPARIS_DURUMU, default='taslak', verbose_name="Durum")
+    olusturma_tarihi = models.DateTimeField(default=timezone.now, verbose_name="Oluşturma Tarihi")
+    guncelleme_tarihi = models.DateTimeField(auto_now=True, verbose_name="Güncelleme Tarihi")
+    satici = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name="Satıcı")
+    
+    # Ödeme bilgileri (opsiyonel)
+    odeme_yontemi = models.CharField(max_length=50, null=True, blank=True, verbose_name="Ödeme Yöntemi")
+    odeme_detaylari = models.JSONField(null=True, blank=True, verbose_name="Ödeme Detayları")
+    
+    # Notlar
+    notlar = models.TextField(blank=True, null=True, verbose_name="Notlar")
+    
+    # Satışa dönüştürüldüğünde referans
+    satis = models.ForeignKey(Satis, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Bağlı Satış")
+
+    class Meta:
+        verbose_name = "Satış Siparişi"
+        verbose_name_plural = "Satış Siparişleri"
+        ordering = ['-olusturma_tarihi']
+
+    def __str__(self):
+        return f"Sipariş {self.siparis_no} - {self.get_durum_display()}"
+
+    @classmethod
+    def sonraki_siparis_no(cls):
+        """Yeni sipariş numarası oluştur"""
+        from django.db import transaction
+        import datetime
+        
+        bugun = datetime.date.today()
+        prefix = f"SIP{bugun.strftime('%Y%m%d')}"
+        
+        with transaction.atomic():
+            # Bugün oluşturulan son siparişi bul
+            son_siparis = cls.objects.filter(
+                siparis_no__startswith=prefix
+            ).order_by('-siparis_no').first()
+            
+            if son_siparis:
+                # Son siparişin numarasından sayıyı çıkar ve artır
+                son_numara = int(son_siparis.siparis_no[-4:])
+                yeni_numara = son_numara + 1
+            else:
+                yeni_numara = 1
+            
+            return f"{prefix}{yeni_numara:04d}"
+
+    @property
+    def toplam_miktar(self):
+        """Siparişteki toplam ürün miktarı"""
+        # İlişki: SatisSiparisiDetay.siparis -> related_name='detaylar'
+        return sum(detay.miktar for detay in self.detaylar.all())
+
+    @property
+    def urun_sayisi(self):
+        """Siparişteki farklı ürün sayısı"""
+        return self.detaylar.count()
+
+    def satisa_donustur(self, user=None):
+        """Siparişi satışa dönüştür"""
+        from decimal import Decimal
+        
+        if self.durum != 'hazir':
+            raise ValueError("Sadece 'Satışa Hazır' durumundaki siparişler satışa dönüştürülebilir")
+        
+        # Yeni satış oluştur
+        satis = Satis.objects.create(
+            siparis_no=SiparisNumarasi.sonraki_numara(),
+            musteri=self.musteri,
+            ara_toplam=self.ara_toplam,
+            indirim_tutari=self.indirim_tutari,
+            kdv_orani=self.kdv_orani,
+            kdv_tutari=self.kdv_tutari,
+            genel_toplam=self.genel_toplam,
+            toplam_tutar=self.genel_toplam,
+            satici=user or self.satici,
+            notlar=self.notlar
+        )
+        
+        # Sipariş detaylarını satış detaylarına kopyala
+        for siparis_detay in self.detaylar.all():
+            SatisDetay.objects.create(
+                satis=satis,
+                urun=siparis_detay.urun,
+                miktar=siparis_detay.miktar,
+                birim_fiyat=siparis_detay.birim_fiyat,
+                indirim_orani=siparis_detay.indirim_orani,
+                indirim_tutari=siparis_detay.indirim_tutari,
+                toplam=siparis_detay.toplam
+            )
+        
+        # Ödeme bilgileri varsa kopyala
+        if self.odeme_detaylari:
+            # Ödeme detaylarını parse et ve satışa ekle
+            pass  # Şimdilik boş, sonra implement edilecek
+        
+        # Sipariş durumunu güncelle ve satışa bağla
+        self.durum = 'satisa_donusturuldu'
+        self.satis = satis
+        self.save()
+        
+        return satis
+
+
+class SatisSiparisiDetay(models.Model):
+    """Satış siparişi detay modeli"""
+    siparis = models.ForeignKey(SatisSiparisi, on_delete=models.CASCADE, related_name='detaylar', verbose_name="Sipariş")
+    urun = models.ForeignKey(Urun, on_delete=models.CASCADE, verbose_name="Ürün")
+    miktar = models.PositiveIntegerField(verbose_name="Miktar")
+    birim_fiyat = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Birim Fiyat")
+    indirim_orani = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name="İndirim Oranı (%)")
+    indirim_tutari = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="İndirim Tutarı")
+    toplam = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Toplam")
+
+    class Meta:
+        verbose_name = "Satış Siparişi Detayı"
+        verbose_name_plural = "Satış Siparişi Detayları"
+
+    def __str__(self):
+        return f"{self.siparis.siparis_no} - {self.urun.ad} x{self.miktar}"
+
+    def save(self, *args, **kwargs):
+        # Toplam hesaplama
+        self.toplam = (self.birim_fiyat * self.miktar) - self.indirim_tutari
         super().save(*args, **kwargs)

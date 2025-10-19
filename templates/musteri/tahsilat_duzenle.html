@@ -1,0 +1,555 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tahsilat Düzenle{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tahsilat-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .form-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .form-header {
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(10px);
+        padding: 2rem;
+        text-align: center;
+        color: white;
+    }
+    
+    .form-body {
+        background: white;
+        padding: 2rem;
+    }
+    
+    .custom-select {
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .custom-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        outline: none;
+    }
+    
+    .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(108, 117, 125, 0.3);
+    }
+    
+    .musteri-card {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+    
+    .musteri-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .payment-methods {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .payment-method {
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .payment-method:hover {
+        border-color: #667eea;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .payment-method.active {
+        border-color: #667eea;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .payment-method i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .ek-bilgiler {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        display: none;
+    }
+    
+    .ek-bilgiler.show {
+        display: block;
+        animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .form-floating label {
+        color: #6c757d;
+        font-weight: 500;
+    }
+    
+    .alert {
+        border-radius: 12px;
+        border: none;
+    }
+    
+    .alert-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+    }
+    
+    .alert-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+        color: white;
+    }
+
+    .tahsilat-info-card {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        color: #8b4513;
+    }
+    
+    .tahsilat-info h6 {
+        color: #8b4513;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="tahsilat-container">
+        <div class="form-card">
+            <div class="form-header">
+                <h3 class="mb-0">
+                    <i class="fas fa-edit me-2"></i>Tahsilat Düzenle
+                </h3>
+                <p class="mb-0">Tahsilat No: {{ tahsilat.tahsilat_no }}</p>
+            </div>
+            
+            <div class="form-body">
+                <!-- Mevcut Tahsilat Bilgileri -->
+                <div class="tahsilat-info-card">
+                    <h6><i class="fas fa-info-circle me-2"></i>Mevcut Tahsilat Bilgileri</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Müşteri:</strong><br>
+                            {{ tahsilat.musteri.ad }} {{ tahsilat.musteri.soyad }}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Tutar:</strong><br>
+                            {{ tahsilat.tutar|floatformat:2 }} ₺
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Tip:</strong><br>
+                            {{ tahsilat.get_tahsilat_tipi_display }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Müşteri Seçimi -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="form-floating">
+                            <select class="form-select custom-select" id="musteri_id" name="musteri_id" required>
+                                <option value="">Müşteri Seçiniz...</option>
+                                {% for musteri in musteriler %}
+                                <option value="{{ musteri.id }}" 
+                                        {% if musteri.id == tahsilat.musteri.id %}selected{% endif %}
+                                        data-bakiye="{{ musteri.acik_hesap_bakiye|floatformat:2 }}"
+                                        data-telefon="{{ musteri.telefon }}"
+                                        data-firma="{{ musteri.firma_adi|default:'' }}">
+                                    {{ musteri.ad }} {{ musteri.soyad }}
+                                    {% if musteri.firma_adi %} - {{ musteri.firma_adi }}{% endif %}
+                                    (Bakiye: {{ musteri.acik_hesap_bakiye|floatformat:2 }} ₺)
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <label for="musteri_id">
+                                <i class="fas fa-user me-2"></i>Müşteri Seçimi
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seçilen Müşteri Bilgileri -->
+                <div id="musteri-bilgi-card" class="musteri-card" style="display: block;">
+                    <div class="musteri-info">
+                        <div>
+                            <h6 class="mb-1" id="musteri-ad">{{ tahsilat.musteri.ad }} {{ tahsilat.musteri.soyad }}</h6>
+                            <small id="musteri-telefon">{{ tahsilat.musteri.telefon }}</small>
+                            {% if tahsilat.musteri.firma_adi %}
+                            <br><small id="musteri-firma">{{ tahsilat.musteri.firma_adi }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="text-end">
+                            <div class="h6 mb-0">Açık Hesap Bakiye</div>
+                            <div class="h4 mb-0" id="musteri-bakiye">{{ tahsilat.musteri.acik_hesap_bakiye|floatformat:2 }} ₺</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tahsilat Formu -->
+                <form id="tahsilat-form">
+                    {% csrf_token %}
+                    
+                    <!-- Tutar ve Temel Bilgiler -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="tutar" 
+                                       name="tutar" 
+                                       step="0.01" 
+                                       min="0.01" 
+                                       value="{{ tahsilat.tutar|floatformat:2 }}"
+                                       placeholder="0.00" 
+                                       required>
+                                <label for="tutar">
+                                    <i class="fas fa-lira-sign me-2"></i>Tahsilat Tutarı (₺)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="datetime-local" 
+                                       class="form-control" 
+                                       id="tahsilat_tarihi" 
+                                       name="tahsilat_tarihi" 
+                                       value="{{ tahsilat.tahsilat_tarihi|date:'Y-m-d\TH:i' }}"
+                                       required>
+                                <label for="tahsilat_tarihi">
+                                    <i class="fas fa-calendar me-2"></i>Tahsilat Tarihi
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ödeme Yöntemleri -->
+                    <div class="payment-methods">
+                        <div class="payment-method {% if tahsilat.tahsilat_tipi == 'nakit' %}active{% endif %}" data-type="nakit">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <div class="fw-bold">Nakit</div>
+                            <small class="text-muted">Peşin ödeme</small>
+                        </div>
+                        
+                        <div class="payment-method {% if tahsilat.tahsilat_tipi == 'kart' %}active{% endif %}" data-type="kart">
+                            <i class="fas fa-credit-card"></i>
+                            <div class="fw-bold">Kredi Kartı</div>
+                            <small class="text-muted">Pos ile ödeme</small>
+                        </div>
+                        
+                        <div class="payment-method {% if tahsilat.tahsilat_tipi == 'havale' %}active{% endif %}" data-type="havale">
+                            <i class="fas fa-university"></i>
+                            <div class="fw-bold">Havale/EFT</div>
+                            <small class="text-muted">Banka transferi</small>
+                        </div>
+                        
+                        <div class="payment-method {% if tahsilat.tahsilat_tipi == 'cek' %}active{% endif %}" data-type="cek">
+                            <i class="fas fa-file-invoice"></i>
+                            <div class="fw-bold">Çek</div>
+                            <small class="text-muted">Vadeli ödeme</small>
+                        </div>
+                        
+                        <div class="payment-method {% if tahsilat.tahsilat_tipi == 'senet' %}active{% endif %}" data-type="senet">
+                            <i class="fas fa-scroll"></i>
+                            <div class="fw-bold">Senet</div>
+                            <small class="text-muted">Vadeli ödeme</small>
+                        </div>
+                    </div>
+
+                    <!-- Gizli tahsilat tipi input -->
+                    <input type="hidden" id="tahsilat_tipi" name="tahsilat_tipi" value="{{ tahsilat.tahsilat_tipi }}">
+
+                    <!-- Çek/Senet Ek Bilgileri -->
+                    <div id="cek-senet-bilgileri" class="ek-bilgiler {% if tahsilat.tahsilat_tipi == 'cek' or tahsilat.tahsilat_tipi == 'senet' %}show{% endif %}">
+                        <h6><i class="fas fa-info-circle me-2"></i>Çek/Senet Bilgileri</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input type="date" 
+                                           class="form-control" 
+                                           id="vade_tarihi" 
+                                           name="vade_tarihi"
+                                           value="{{ tahsilat.vade_tarihi|date:'Y-m-d' }}">
+                                    <label for="vade_tarihi">Vade Tarihi</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="cek_senet_no" 
+                                           name="cek_senet_no"
+                                           value="{{ tahsilat.cek_senet_no }}"
+                                           placeholder="Çek/Senet No">
+                                    <label for="cek_senet_no">Çek/Senet No</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="banka" 
+                                           name="banka"
+                                           value="{{ tahsilat.banka }}"
+                                           placeholder="Banka Adı">
+                                    <label for="banka">Banka</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Havale/EFT Ek Bilgileri -->
+                    <div id="havale-bilgileri" class="ek-bilgiler {% if tahsilat.tahsilat_tipi == 'havale' %}show{% endif %}">
+                        <h6><i class="fas fa-info-circle me-2"></i>Havale/EFT Bilgileri</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="referans_no" 
+                                           name="referans_no"
+                                           value="{{ tahsilat.referans_no }}"
+                                           placeholder="Referans/Dekont No">
+                                    <label for="referans_no">Referans/Dekont No</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="havale_banka" 
+                                           name="banka"
+                                           value="{{ tahsilat.banka }}"
+                                           placeholder="Gönderen Banka">
+                                    <label for="havale_banka">Gönderen Banka</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Açıklama -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="form-floating">
+                                <textarea class="form-control" 
+                                          id="aciklama" 
+                                          name="aciklama" 
+                                          style="height: 100px"
+                                          placeholder="Ek açıklama...">{{ tahsilat.aciklama }}</textarea>
+                                <label for="aciklama">
+                                    <i class="fas fa-sticky-note me-2"></i>Açıklama (İsteğe Bağlı)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Butonları -->
+                    <div class="d-flex gap-3 justify-content-end">
+                        <a href="{% url 'musteri:tahsilat_detay' tahsilat.id %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>İptal
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="kaydet-btn">
+                            <i class="fas fa-save me-2"></i>Güncelle
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Başarı/Hata Mesajları -->
+<div id="alert-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Müşteri seçimi değiştiğinde
+    $('#musteri_id').change(function() {
+        const selectedOption = $(this).find('option:selected');
+        const musteriAd = selectedOption.text().split(' (')[0];
+        const musteriBakiye = selectedOption.data('bakiye');
+        const musteriTelefon = selectedOption.data('telefon');
+        const musteriFirma = selectedOption.data('firma');
+        
+        if (selectedOption.val()) {
+            $('#musteri-bilgi-card').show();
+            $('#musteri-ad').text(musteriAd);
+            $('#musteri-telefon').text(musteriTelefon || '');
+            $('#musteri-firma').text(musteriFirma || '').toggle(!!musteriFirma);
+            $('#musteri-bakiye').text(musteriBakiye + ' ₺');
+        } else {
+            $('#musteri-bilgi-card').hide();
+        }
+    });
+
+    // Ödeme yöntemi seçimi
+    $('.payment-method').click(function() {
+        $('.payment-method').removeClass('active');
+        $(this).addClass('active');
+        
+        const paymentType = $(this).data('type');
+        $('#tahsilat_tipi').val(paymentType);
+        
+        // Ek bilgi panellerini gizle
+        $('.ek-bilgiler').removeClass('show');
+        
+        // İlgili ek bilgi panelini göster
+        if (paymentType === 'cek' || paymentType === 'senet') {
+            $('#cek-senet-bilgileri').addClass('show');
+        } else if (paymentType === 'havale') {
+            $('#havale-bilgileri').addClass('show');
+        }
+    });
+
+    // Form gönderimi
+    $('#tahsilat-form').submit(function(e) {
+        e.preventDefault();
+        
+        const kaydetBtn = $('#kaydet-btn');
+        const originalText = kaydetBtn.html();
+        
+        // Button durumunu değiştir
+        kaydetBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Güncelleniyor...');
+        
+        // Form verilerini topla
+        const formData = {
+            'musteri_id': $('#musteri_id').val(),
+            'tutar': $('#tutar').val(),
+            'tahsilat_tipi': $('#tahsilat_tipi').val(),
+            'aciklama': $('#aciklama').val(),
+            'vade_tarihi': $('#vade_tarihi').val(),
+            'cek_senet_no': $('#cek_senet_no').val(),
+            'banka': $('#banka').val() || $('#havale_banka').val(),
+            'referans_no': $('#referans_no').val(),
+            'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+        };
+        
+        // Ajax isteği
+        $.ajax({
+            url: '{% url "musteri:tahsilat_duzenle" tahsilat.id %}',
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', response.message);
+                    
+                    // 2 saniye sonra detay sayfasına yönlendir
+                    setTimeout(function() {
+                        window.location.href = '{% url "musteri:tahsilat_detay" tahsilat.id %}';
+                    }, 2000);
+                } else {
+                    showAlert('danger', response.message);
+                    kaydetBtn.prop('disabled', false).html(originalText);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Ajax error:', error);
+                showAlert('danger', 'Bir hata oluştu. Lütfen tekrar deneyiniz.');
+                kaydetBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+
+    // Alert gösterme fonksiyonu
+    function showAlert(type, message) {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        $('#alert-container').html(alertHtml);
+        
+        // 5 saniye sonra otomatik kapat
+        setTimeout(function() {
+            $('.alert').alert('close');
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

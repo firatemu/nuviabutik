@@ -25,6 +25,7 @@ urlpatterns = [
     path('tahsilat/', tahsilat_views.tahsilat_listesi, name='tahsilat_listesi'),
     path('tahsilat/ekle/', tahsilat_views.tahsilat_ekle, name='tahsilat_ekle'),
     path('tahsilat/<int:tahsilat_id>/', tahsilat_views.tahsilat_detay, name='tahsilat_detay'),
+    path('tahsilat/<int:tahsilat_id>/duzenle/', tahsilat_views.tahsilat_duzenle, name='tahsilat_duzenle'),
     path('tahsilat/<int:tahsilat_id>/iptal/', tahsilat_views.tahsilat_iptal, name='tahsilat_iptal'),
     
     # AJAX endpoints

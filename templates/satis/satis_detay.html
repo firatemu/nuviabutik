@@ -37,10 +37,31 @@
         color: white;
         font-weight: 600;
         border: none;
+        font-size: 0.9rem;
     }
     .product-table td {
         border-color: #dee2e6;
         vertical-align: middle;
+        font-size: 0.9rem;
+    }
+    .product-table td code {
+        font-size: 0.8rem;
+        background-color: #f8f9fa;
+        color: #495057;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    /* Responsive tablo için */
+    @media (max-width: 768px) {
+        .product-table th:nth-child(2), 
+        .product-table td:nth-child(2) {
+            display: none; /* Mobilde barkod kolonunu gizle */
+        }
+        .product-table th, 
+        .product-table td {
+            font-size: 0.8rem;
+            padding: 8px 4px;
+        }
     }
     .status-badge {
         font-size: 1rem;
@@ -194,6 +215,8 @@
                             <thead>
                                 <tr>
                                     <th>Ürün</th>
+                                    <th>Barkod</th>
+                                    <th>Marka</th>
                                     <th>Birim Fiyat</th>
                                     <th>Miktar</th>
                                     <th>Toplam</th>
@@ -204,8 +227,31 @@
                                 <tr>
                                     <td>
                                         <strong>{{ item.urun.ad }}</strong>
-                                        {% if item.urun.barkod %}
-                                        <br><small class="text-muted">Barkod: {{ item.urun.barkod }}</small>
+                                        {% if item.varyant %}
+                                        <br><small class="text-success">{{ item.varyant.renk.ad }} - {{ item.varyant.beden.ad }}</small>
+                                        {% elif item.urun.varyasyonlu %}
+                                        <br><small class="text-warning">Varyant bilgisi eksik</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.varyant and item.varyant.barkod %}
+                                            <!-- Satılan varyantın barkodu -->
+                                            <code>{{ item.varyant.barkod }}</code>
+                                        {% elif item.urun.varyasyonlu and item.urun.varyantlar.exists %}
+                                            <!-- Varyant seçilmemiş, uyarı ver -->
+                                            <span class="text-warning">
+                                                <i class="fas fa-exclamation-triangle"></i> Varyant bilgisi eksik
+                                            </span>
+                                        {% else %}
+                                            <!-- Varyasyonlu değil veya varyant yok -->
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.urun.marka %}
+                                            {{ item.urun.marka.ad }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ item.birim_fiyat|floatformat:2 }} ₺</td>
@@ -358,3 +404,5 @@ function printReceipt() {
 }
 </script>
 {% endblock %}
+
+<!-- Cache Buster: v1.4 -->
