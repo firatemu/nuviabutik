@@ -20,45 +20,53 @@ def urun_listesi(request):
 
     # Silme izni kontrolü - batch processing ile optimize edildi
     from satis.models import SatisDetay
-    
+
     # Satış yapılmış ürün ID'lerini tek sorguda al
     satis_yapilan_urun_ids = set(
         SatisDetay.objects.values_list('urun_id', flat=True).distinct()
     )
-    
+
     # Her ürüne silme izni bilgisi ekle (optimized)
     for urun in urunler:
         # Satış kontrolü (set lookup - O(1))
         if urun.id in satis_yapilan_urun_ids:
             urun.silme_izni = False
             continue
-            
+
         # Stok kontrolü
         if urun.toplam_stok > 0:
             urun.silme_izni = False
             continue
-            
+
         # Varyant stok kontrolü (prefetch_related sayesinde hızlı)
-        has_stock = any(varyant.stok_miktari > 0 for varyant in urun.varyantlar.all())
+        has_stock = any(varyant.stok_miktari >
+                        0 for varyant in urun.varyantlar.all())
         urun.silme_izni = not has_stock
 
-    # İstatistikler - tek sorguda hesapla
+    # İstatistikler - Python'da hesapla (toplam_stok property olduğu için)
     from django.db.models import Count, Q
     
-    stats = Urun.objects.aggregate(
-        toplam=Count('id'),
-        aktif=Count('id', filter=Q(aktif=True)),
-        kritik=Count('id', filter=Q(toplam_stok__gt=0, toplam_stok__lte=10)),  # varsayılan kritik seviye
-        tukenen=Count('id', filter=Q(toplam_stok=0))
-    )
+    # Temel istatistikler
+    toplam_urun = urunler.count()
+    aktif_urun = urunler.filter(aktif=True).count()
+    
+    # Stok istatistikleri - Python'da hesapla
+    kritik_stok = 0
+    tukenen_stok = 0
+    
+    for urun in urunler:
+        if urun.toplam_stok == 0:
+            tukenen_stok += 1
+        elif 0 < urun.toplam_stok <= 10:  # varsayılan kritik seviye
+            kritik_stok += 1
 
     context = {
         'urunler': urunler,
         'title': 'Ürün Listesi',
-        'toplam_urun': stats['toplam'],
-        'aktif_urun': stats['aktif'],
-        'kritik_stok': stats['kritik'],
-        'tukenen_stok': stats['tukenen'],
+        'toplam_urun': toplam_urun,
+        'aktif_urun': aktif_urun,
+        'kritik_stok': kritik_stok,
+        'tukenen_stok': tukenen_stok,
     }
     return render(request, 'urun/liste.html', context)
 
