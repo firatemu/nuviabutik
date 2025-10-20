@@ -64,8 +64,7 @@
                         <select class="form-select" id="kategori" name="kategori">
                             <option value="">Tüm Kategoriler</option>
                             {% for kategori in kategoriler %}
-                            <option value="{{ kategori.id }}" {% if kategori_id==kategori.id|stringformat:"s"
-                                %}selected{% endif %}>
+                            <option value="{{ kategori.id }}" {% if kategori_id == kategori.id|stringformat:"s" %}selected{% endif %}>
                                 {{ kategori.ad }}
                             </option>
                             {% endfor %}
@@ -78,8 +77,7 @@
                         <select class="form-select" id="marka" name="marka">
                             <option value="">Tüm Markalar</option>
                             {% for marka in markalar %}
-                            <option value="{{ marka.id }}" {% if marka_id==marka.id|stringformat:"s" %}selected{% endif
-                                %}>
+                            <option value="{{ marka.id }}" {% if marka_id == marka.id|stringformat:"s" %}selected{% endif %}>
                                 {{ marka.ad }}
                             </option>
                             {% endfor %}
@@ -91,9 +89,9 @@
                         <label for="durum" class="form-label">Stok Durumu</label>
                         <select class="form-select" id="durum" name="durum">
                             <option value="">Tümü</option>
-                            <option value="normal" {% if durum=='normal' %}selected{% endif %}>Normal (5+)</option>
-                            <option value="kritik" {% if durum=='kritik' %}selected{% endif %}>Kritik (1-5)</option>
-                            <option value="tukendi" {% if durum=='tukendi' %}selected{% endif %}>Tükendi (0)</option>
+                            <option value="normal" {% if durum == 'normal' %}selected{% endif %}>Normal (5+)</option>
+                            <option value="kritik" {% if durum == 'kritik' %}selected{% endif %}>Kritik (1-5)</option>
+                            <option value="tukendi" {% if durum == 'tukendi' %}selected{% endif %}>Tükendi (0)</option>
                         </select>
                     </div>
 
@@ -101,10 +99,9 @@
                     <div class="col-md-2">
                         <label for="cinsiyet" class="form-label">Cinsiyet</label>
                         <select class="form-select" id="cinsiyet" name="cinsiyet">
-                            <option value="hepsi" {% if cinsiyet=='hepsi' or not cinsiyet %}selected{% endif %}>Hepsi
-                            </option>
-                            <option value="kadin" {% if cinsiyet=='kadin' %}selected{% endif %}>Kadın</option>
-                            <option value="erkek" {% if cinsiyet=='erkek' %}selected{% endif %}>Erkek</option>
+                            <option value="hepsi" {% if cinsiyet == 'hepsi' or not cinsiyet %}selected{% endif %}>Hepsi</option>
+                            <option value="kadin" {% if cinsiyet == 'kadin' %}selected{% endif %}>Kadın</option>
+                            <option value="erkek" {% if cinsiyet == 'erkek' %}selected{% endif %}>Erkek</option>
                         </select>
                     </div>
 
