@@ -12,52 +12,53 @@ from .forms import StokGirisForm, StokCikisForm, StokDuzeltmeForm, StokSayimForm
 
 @login_required
 def urun_listesi(request):
-    """Ürün listesi - Client-side filtreleme ile"""
+    """Ürün listesi - Optimized version"""
 
-    # Tüm ürünleri getir (filtreleme JavaScript'te yapılacak)
+    # Tüm ürünleri getir (optimized queries)
     urunler = Urun.objects.select_related(
         'kategori', 'marka').prefetch_related('varyantlar').all().order_by('-id')
 
-    # Her ürün için silme kontrolü ekle
-    def silme_kontrolu_hizli(urun):
-        """Hızlı silme kontrolü - sadece boolean döner"""
-        from satis.models import SatisDetay
-
-        # Satış kontrolü
-        if SatisDetay.objects.filter(urun=urun).exists():
-            return False
-
+    # Silme izni kontrolü - batch processing ile optimize edildi
+    from satis.models import SatisDetay
+    
+    # Satış yapılmış ürün ID'lerini tek sorguda al
+    satis_yapilan_urun_ids = set(
+        SatisDetay.objects.values_list('urun_id', flat=True).distinct()
+    )
+    
+    # Her ürüne silme izni bilgisi ekle (optimized)
+    for urun in urunler:
+        # Satış kontrolü (set lookup - O(1))
+        if urun.id in satis_yapilan_urun_ids:
+            urun.silme_izni = False
+            continue
+            
         # Stok kontrolü
         if urun.toplam_stok > 0:
-            return False
+            urun.silme_izni = False
+            continue
+            
+        # Varyant stok kontrolü (prefetch_related sayesinde hızlı)
+        has_stock = any(varyant.stok_miktari > 0 for varyant in urun.varyantlar.all())
+        urun.silme_izni = not has_stock
 
-        # Varyant stok kontrolü
-        for varyant in urun.varyantlar.all():
-            if varyant.stok_miktari > 0:
-                return False
-
-        return True
-
-    # Pagination kaldırıldı - tüm ürünler gösterilecek
-    # Her ürüne silme izni bilgisi ekle
-    for urun in urunler:
-        urun.silme_izni = silme_kontrolu_hizli(urun)
-
-    # İstatistikler
-    tum_urunler = Urun.objects.all()
-    toplam_urun = tum_urunler.count()
-    aktif_urun = tum_urunler.filter(aktif=True).count()
-    kritik_stok = len([u for u in tum_urunler if 0 <
-                      u.toplam_stok <= u.kritik_stok_seviyesi])
-    tukenen_stok = len([u for u in tum_urunler if u.toplam_stok == 0])
+    # İstatistikler - tek sorguda hesapla
+    from django.db.models import Count, Q
+    
+    stats = Urun.objects.aggregate(
+        toplam=Count('id'),
+        aktif=Count('id', filter=Q(aktif=True)),
+        kritik=Count('id', filter=Q(toplam_stok__gt=0, toplam_stok__lte=10)),  # varsayılan kritik seviye
+        tukenen=Count('id', filter=Q(toplam_stok=0))
+    )
 
     context = {
         'urunler': urunler,
         'title': 'Ürün Listesi',
-        'toplam_urun': toplam_urun,
-        'aktif_urun': aktif_urun,
-        'kritik_stok': kritik_stok,
-        'tukenen_stok': tukenen_stok,
+        'toplam_urun': stats['toplam'],
+        'aktif_urun': stats['aktif'],
+        'kritik_stok': stats['kritik'],
+        'tukenen_stok': stats['tukenen'],
     }
     return render(request, 'urun/liste.html', context)
 
