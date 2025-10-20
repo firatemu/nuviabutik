@@ -328,45 +328,50 @@ def stok_excel(request):
         urun__aktif=True
     ).select_related('urun', 'urun__kategori', 'urun__marka', 'renk', 'beden').order_by('urun__kategori__ad', 'urun__ad')
 
-    # Filtreler
-    arama = request.GET.get('arama', '').strip()
-    kategori_id = request.GET.get('kategori')
-    marka_id = request.GET.get('marka')
-    durum = request.GET.get('durum')
-    cinsiyet = request.GET.get('cinsiyet')
-
-    # Arama filtresi
-    if arama:
-        from django.db.models import Q
-        varyantlar = varyantlar.filter(
-            Q(urun__ad__icontains=arama) |
-            Q(barkod__icontains=arama) |
-            Q(urun__urun_kodu__icontains=arama) |
-            Q(renk__ad__icontains=arama) |
-            Q(beden__ad__icontains=arama)
-        )
-
-    # Kategori filtresi - None kontrolü
-    if kategori_id and kategori_id != 'None' and kategori_id != '':
-        varyantlar = varyantlar.filter(urun__kategori_id=kategori_id)
-
-    # Marka filtresi - None kontrolü
-    if marka_id and marka_id != 'None' and marka_id != '':
-        varyantlar = varyantlar.filter(urun__marka_id=marka_id)
-
-    # Stok durumu filtresi - None kontrolü
-    if durum and durum != 'None' and durum != '':
-        if durum == 'tukendi':
-            varyantlar = varyantlar.filter(stok_miktari=0)
-        elif durum == 'kritik':
+    # Filtreler - Güvenli şekilde
+    try:
+        arama = request.GET.get('arama', '').strip()
+        kategori_id = request.GET.get('kategori')
+        marka_id = request.GET.get('marka')
+        durum = request.GET.get('durum')
+        cinsiyet = request.GET.get('cinsiyet')
+        
+        # Arama filtresi
+        if arama:
+            from django.db.models import Q
             varyantlar = varyantlar.filter(
-                stok_miktari__gt=0, stok_miktari__lte=5)
-        elif durum == 'normal':
-            varyantlar = varyantlar.filter(stok_miktari__gt=5)
-
-    # Cinsiyet filtresi - None kontrolü
-    if cinsiyet and cinsiyet != 'None' and cinsiyet != '' and cinsiyet != 'hepsi':
-        varyantlar = varyantlar.filter(urun__cinsiyet=cinsiyet)
+                Q(urun__ad__icontains=arama) |
+                Q(barkod__icontains=arama) |
+                Q(urun__urun_kodu__icontains=arama) |
+                Q(renk__ad__icontains=arama) |
+                Q(beden__ad__icontains=arama)
+            )
+        
+        # Kategori filtresi - Güvenli None kontrolü
+        if kategori_id and kategori_id != 'None' and kategori_id != '' and str(kategori_id).isdigit():
+            varyantlar = varyantlar.filter(urun__kategori_id=int(kategori_id))
+        
+        # Marka filtresi - Güvenli None kontrolü
+        if marka_id and marka_id != 'None' and marka_id != '' and str(marka_id).isdigit():
+            varyantlar = varyantlar.filter(urun__marka_id=int(marka_id))
+        
+        # Stok durumu filtresi - None kontrolü
+        if durum and durum != 'None' and durum != '':
+            if durum == 'tukendi':
+                varyantlar = varyantlar.filter(stok_miktari=0)
+            elif durum == 'kritik':
+                varyantlar = varyantlar.filter(
+                    stok_miktari__gt=0, stok_miktari__lte=5)
+            elif durum == 'normal':
+                varyantlar = varyantlar.filter(stok_miktari__gt=5)
+        
+        # Cinsiyet filtresi - None kontrolü
+        if cinsiyet and cinsiyet != 'None' and cinsiyet != '' and cinsiyet != 'hepsi':
+            varyantlar = varyantlar.filter(urun__cinsiyet=cinsiyet)
+            
+    except (ValueError, TypeError) as e:
+        # Hata durumunda filtreleri atla, tüm varyantları getir
+        pass
 
     # Excel dosyası oluştur
     workbook = Workbook()
