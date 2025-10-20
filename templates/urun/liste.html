@@ -1037,7 +1037,7 @@
         </div>
     </div>
 
-    <!-- Ürün Kodu ile Arama -->
+    <!-- Ürün Arama -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
@@ -1049,7 +1049,7 @@
                                     <i class="fas fa-search"></i>
                                 </span>
                                 <input type="text" class="form-control" id="productCodeSearch"
-                                    placeholder="Ürün kodu ile arama yapın..." autocomplete="off">
+                                    placeholder="Ürün adı, kodu, kategori veya marka ile arama yapın..." autocomplete="off">
                                 <button class="btn btn-primary" type="button" id="searchByCodeBtn">
                                     <i class="fas fa-search me-1"></i>Ara
                                 </button>
@@ -1235,7 +1235,9 @@
                         </thead>
                         <tbody>
                             {% for urun in urunler %}
-                            <tr class="product-row product-item" data-product-name="{{ urun.ad|lower }}" data-product-code="{{ urun.urun_kodu|lower }}" data-product-brand="{{ urun.marka.ad|default:''|lower }}">
+                            <tr class="product-row product-item" data-product-name="{{ urun.ad|lower }}"
+                                data-product-code="{{ urun.urun_kodu|lower }}"
+                                data-product-brand="{{ urun.marka.ad|default:''|lower }}">
                                 <td>
                                     {% if urun.resim %}
                                     <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}" class="table-product-image">
@@ -1391,7 +1393,7 @@
         localStorage.setItem('productViewType', viewType);
     }
 
-    // Ürün kodu ile arama fonksiyonları
+    // Çoklu alan arama fonksiyonları
     function searchByProductCode() {
         const searchInput = document.getElementById('productCodeSearch');
         const searchTerm = searchInput.value.trim().toLowerCase();
@@ -1402,8 +1404,33 @@
         
         productItems.forEach(item => {
             const productCode = item.getAttribute('data-product-code') || '';
+            const productName = item.getAttribute('data-product-name') || '';
+            const productBrand = item.getAttribute('data-product-brand') || '';
             
-            if (searchTerm === '' || productCode.includes(searchTerm)) {
+            // Kategori bilgisini DOM'dan al
+            let productCategory = '';
+            if (item.tagName === 'TR') {
+                // Liste görünümü - kategori sütunundan al
+                const categoryCell = item.querySelector('td:nth-child(4)');
+                if (categoryCell) {
+                    productCategory = categoryCell.textContent.toLowerCase().trim();
+                }
+            } else {
+                // Kart görünümü - kategori elementinden al
+                const categoryElement = item.querySelector('.product-category');
+                if (categoryElement) {
+                    productCategory = categoryElement.textContent.toLowerCase().trim();
+                }
+            }
+            
+            // Arama terimini tüm alanlarda ara
+            const matchesSearch = searchTerm === '' || 
+                productCode.includes(searchTerm) ||
+                productName.includes(searchTerm) ||
+                productBrand.includes(searchTerm) ||
+                productCategory.includes(searchTerm);
+            
+            if (matchesSearch) {
                 // Hem kart hem liste görünümü için uygun display değeri
                 if (item.tagName === 'TR') {
                     // Liste görünümü (tablo satırı)
