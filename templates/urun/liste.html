@@ -1459,7 +1459,7 @@
 
         // Aktif filtreleri güncelle
         updateActiveFilters(searchText, visibleCount);
-        
+
         // Arama sonuçlarını vurgula
         if (searchText) {
             highlightSearchResults(searchText);
@@ -1467,16 +1467,16 @@
             removeHighlights();
         }
     }
-    
+
     // Arama sonuçlarını vurgulama
     function highlightSearchResults(searchText) {
         const productItems = document.querySelectorAll('.product-item:not([style*="display: none"])');
-        
+
         productItems.forEach(item => {
             const titleElement = item.querySelector('.product-title');
             const codeElement = item.querySelector('.product-code');
             const brandElement = item.querySelector('.product-brand');
-            
+
             if (titleElement) {
                 highlightText(titleElement, searchText);
             }
@@ -1488,7 +1488,7 @@
             }
         });
     }
-    
+
     // Metin vurgulama
     function highlightText(element, searchText) {
         const originalText = element.textContent;
@@ -1496,7 +1496,7 @@
         const highlightedText = originalText.replace(regex, '<mark class="bg-warning">$1</mark>');
         element.innerHTML = highlightedText;
     }
-    
+
     // Vurguları kaldır
     function removeHighlights() {
         const marks = document.querySelectorAll('mark.bg-warning');
@@ -1551,9 +1551,9 @@
         document.getElementById('searchInput').addEventListener('input', filterProducts);
         document.getElementById('searchBtn').addEventListener('click', filterProducts);
         document.getElementById('clearFilters').addEventListener('click', clearFilters);
-        
+
         // Enter tuşu ile arama
-        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 filterProducts();
             }
