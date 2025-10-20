@@ -999,44 +999,6 @@
         }
     }
 
-    /* Arama Sonuçları Tablosu Stilleri */
-    #searchResultsTable .card {
-        border: 2px solid #007bff;
-        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.1);
-    }
-
-    #searchResultsTable .card-header {
-        background: linear-gradient(135deg, #007bff, #0056b3);
-        color: white;
-        border-bottom: none;
-    }
-
-    #searchResultsTable .table {
-        margin-bottom: 0;
-    }
-
-    #searchResultsTable .table th {
-        background-color: #f8f9fa;
-        border-top: none;
-        font-weight: 600;
-        color: #495057;
-        padding: 1rem 0.75rem;
-    }
-
-    #searchResultsTable .table td {
-        padding: 0.75rem;
-        vertical-align: middle;
-        border-top: 1px solid #dee2e6;
-    }
-
-    #searchResultsTable .table tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    #searchResultsTable .btn-group-sm .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-    }
 </style>
 {% endblock %}
 
@@ -1134,42 +1096,6 @@
             <div class="stat-card">
                 <div class="stat-number text-danger">{{ tukenen_stok }}</div>
                 <div class="stat-label">Tükenen Stok</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Arama Sonuçları Tablosu -->
-    <div id="searchResultsTable" class="row mb-4" style="display: none;">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-search me-2"></i>Arama Sonuçları
-                    </h5>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="hideSearchResults()">
-                        <i class="fas fa-times me-1"></i>Kapat
-                    </button>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Ürün Kodu</th>
-                                    <th>Ürün Adı</th>
-                                    <th>Marka</th>
-                                    <th>Kategori</th>
-                                    <th>Fiyat</th>
-                                    <th>Stok</th>
-                                    <th>İşlemler</th>
-                                </tr>
-                            </thead>
-                            <tbody id="searchResultsBody">
-                                <!-- Arama sonuçları buraya eklenecek -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -1472,114 +1398,28 @@
         const searchTerm = searchInput.value.trim().toLowerCase();
         const productItems = document.querySelectorAll('.product-item');
         const resultCount = document.getElementById('searchResultCount');
-        const searchResultsTable = document.getElementById('searchResultsTable');
-        const searchResultsBody = document.getElementById('searchResultsBody');
         
-        if (searchTerm === '') {
-            // Arama boşsa normal listeyi göster
-            hideSearchResults();
-            resultCount.textContent = `${productItems.length} ürün`;
-            resultCount.className = 'badge bg-info';
-            return;
-        }
-        
-        let matchingProducts = [];
+        let visibleCount = 0;
         
         productItems.forEach(item => {
             const productCode = item.getAttribute('data-product-code') || '';
-            const productName = item.getAttribute('data-product-name') || '';
-            const productBrand = item.getAttribute('data-product-brand') || '';
             
-            if (productCode.includes(searchTerm)) {
-                // Ürün bilgilerini topla
-                const productData = {
-                    code: productCode,
-                    name: productName,
-                    brand: productBrand,
-                    element: item
-                };
-                matchingProducts.push(productData);
+            if (searchTerm === '' || productCode.includes(searchTerm)) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
             }
         });
         
-        // Arama sonuçlarını tabloda göster
-        displaySearchResults(matchingProducts);
-        
         // Sonuç sayısını güncelle
-        resultCount.textContent = `${matchingProducts.length} sonuç bulundu`;
-        resultCount.className = matchingProducts.length > 0 ? 'badge bg-success' : 'badge bg-warning';
-    }
-    
-    function displaySearchResults(products) {
-        const searchResultsTable = document.getElementById('searchResultsTable');
-        const searchResultsBody = document.getElementById('searchResultsBody');
-        
-        // Tabloyu göster
-        searchResultsTable.style.display = '';
-        
-        // Tablo içeriğini temizle
-        searchResultsBody.innerHTML = '';
-        
-        if (products.length === 0) {
-            searchResultsBody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="text-center text-muted py-4">
-                        <i class="fas fa-search me-2"></i>Arama kriterinize uygun ürün bulunamadı
-                    </td>
-                </tr>
-            `;
-            return;
+        if (searchTerm) {
+            resultCount.textContent = `${visibleCount} sonuç bulundu`;
+            resultCount.className = visibleCount > 0 ? 'badge bg-success' : 'badge bg-warning';
+        } else {
+            resultCount.textContent = `${visibleCount} ürün`;
+            resultCount.className = 'badge bg-info';
         }
-        
-        // Her ürün için tablo satırı oluştur
-        products.forEach(product => {
-            const row = document.createElement('tr');
-            
-            // Ürün detaylarını al (mevcut DOM'dan)
-            const productElement = product.element;
-            const productCode = productElement.querySelector('.product-code')?.textContent || product.code;
-            const productName = productElement.querySelector('.product-title')?.textContent || product.name;
-            const productBrand = productElement.querySelector('.product-brand')?.textContent || product.brand;
-            const productCategory = productElement.querySelector('.product-category')?.textContent || '-';
-            const productPrice = productElement.querySelector('.product-price')?.textContent || '-';
-            const productStock = productElement.querySelector('.product-stock')?.textContent || '-';
-            
-            row.innerHTML = `
-                <td><strong>${productCode}</strong></td>
-                <td>${productName}</td>
-                <td>${productBrand}</td>
-                <td>${productCategory}</td>
-                <td>${productPrice}</td>
-                <td>${productStock}</td>
-                <td>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary" onclick="viewProduct('${product.code}')">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-outline-warning" onclick="editProduct('${product.code}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
-            
-            searchResultsBody.appendChild(row);
-        });
-    }
-    
-    function hideSearchResults() {
-        const searchResultsTable = document.getElementById('searchResultsTable');
-        searchResultsTable.style.display = 'none';
-    }
-    
-    function viewProduct(productCode) {
-        // Ürün detay sayfasına yönlendir
-        window.location.href = `/urun/detay/${productCode}/`;
-    }
-    
-    function editProduct(productCode) {
-        // Ürün düzenleme sayfasına yönlendir
-        window.location.href = `/urun/duzenle/${productCode}/`;
     }
 
     function clearSearch() {
