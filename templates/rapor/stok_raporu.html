@@ -3,15 +3,28 @@
 
 {% block title %}Stok Raporu{% endblock %}
 
+{% block extra_css %}
+<style>
+    .bg-pink {
+        background-color: #e91e63 !important;
+        color: white;
+    }
+    .bg-blue {
+        background-color: #2196f3 !important;
+        color: white;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Stok Raporu</h2>
         <div class="d-flex gap-2">
-            <a href="{% url 'rapor:stok_excel' %}?durum={{ durum }}" class="btn btn-success">
+            <a href="{% url 'rapor:stok_excel' %}?durum={{ durum }}&cinsiyet={{ cinsiyet }}" class="btn btn-success">
                 <i class="fas fa-file-excel"></i> Excel İndir
             </a>
-            <a href="{% url 'rapor:stok_pdf' %}?durum={{ durum }}" class="btn btn-danger">
+            <a href="{% url 'rapor:stok_pdf' %}?durum={{ durum }}&cinsiyet={{ cinsiyet }}" class="btn btn-danger">
                 <i class="fas fa-file-pdf"></i> PDF İndir
             </a>
         </div>
@@ -84,6 +97,16 @@
                             <option value="normal" {% if durum == 'normal' %}selected{% endif %}>Normal (5+)</option>
                             <option value="kritik" {% if durum == 'kritik' %}selected{% endif %}>Kritik (1-5)</option>
                             <option value="tukendi" {% if durum == 'tukendi' %}selected{% endif %}>Tükendi (0)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Cinsiyet -->
+                    <div class="col-md-2">
+                        <label for="cinsiyet" class="form-label">Cinsiyet</label>
+                        <select class="form-select" id="cinsiyet" name="cinsiyet">
+                            <option value="hepsi" {% if cinsiyet == 'hepsi' or not cinsiyet %}selected{% endif %}>Hepsi</option>
+                            <option value="kadin" {% if cinsiyet == 'kadin' %}selected{% endif %}>Kadın</option>
+                            <option value="erkek" {% if cinsiyet == 'erkek' %}selected{% endif %}>Erkek</option>
                         </select>
                     </div>
                     
@@ -206,6 +229,10 @@
                                 Marka
                                 <i class="fas fa-sort sort-icon ms-1"></i>
                             </th>
+                            <th class="sortable" data-sort="urun__cinsiyet">
+                                Cinsiyet
+                                <i class="fas fa-sort sort-icon ms-1"></i>
+                            </th>
                             <th class="sortable" data-sort="urun__alis_fiyati">
                                 Alış Fiyatı
                                 <i class="fas fa-sort sort-icon ms-1"></i>
@@ -238,6 +265,11 @@
                             <td><code>{{ varyant.barkod }}</code></td>
                             <td>{{ varyant.urun.kategori.ad }}</td>
                             <td>{{ varyant.urun.marka.ad|default:"-" }}</td>
+                            <td>
+                                <span class="badge {% if varyant.urun.cinsiyet == 'kadin' %}bg-pink{% else %}bg-blue{% endif %}">
+                                    {{ varyant.urun.get_cinsiyet_display }}
+                                </span>
+                            </td>
                             <td>
                                 <span class="text-primary fw-bold">{{ varyant.urun.alis_fiyati|floatformat:2 }} ₺</span>
                             </td>

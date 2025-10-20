@@ -84,6 +84,7 @@ def stok_raporu(request):
     kategori_id = request.GET.get('kategori')
     marka_id = request.GET.get('marka')
     durum = request.GET.get('durum')
+    cinsiyet = request.GET.get('cinsiyet')
     
     # Sıralama parametreleri
     sort_field = request.GET.get('sort', 'urun__ad')
@@ -128,6 +129,10 @@ def stok_raporu(request):
     elif durum == 'normal':
         varyantlar = varyantlar.filter(stok_miktari__gt=5)
     
+    # Cinsiyet filtresi
+    if cinsiyet and cinsiyet != 'hepsi':
+        varyantlar = varyantlar.filter(urun__cinsiyet=cinsiyet)
+    
     # Sıralama uygula
     varyantlar = varyantlar.order_by(sort_field, 'urun__ad', 'renk__ad', 'beden__ad')
     
@@ -143,6 +148,7 @@ def stok_raporu(request):
         'kategori_id': kategori_id,
         'marka_id': marka_id,
         'durum': durum,
+        'cinsiyet': cinsiyet,
         'sort_field': request.GET.get('sort', 'urun__ad'),
         'sort_order': request.GET.get('order', 'asc'),
     }
@@ -320,10 +326,16 @@ def stok_excel(request):
     
     # Filtreler
     durum = request.GET.get('durum')
+    cinsiyet = request.GET.get('cinsiyet')
+    
     if durum == 'tukendi':
         varyantlar = varyantlar.filter(stok_miktari=0)
     elif durum == 'kritik':
         varyantlar = varyantlar.filter(stok_miktari__gt=0, stok_miktari__lte=5)
+    
+    # Cinsiyet filtresi
+    if cinsiyet and cinsiyet != 'hepsi':
+        varyantlar = varyantlar.filter(urun__cinsiyet=cinsiyet)
     
     # Excel dosyası oluştur
     workbook = Workbook()
@@ -331,7 +343,7 @@ def stok_excel(request):
     worksheet.title = "Stok Raporu"
     
     # Başlıklar
-    headers = ['Ürün Adı', 'Varyant', 'Barkod', 'Kategori', 'Marka', 'Alış Fiyatı', 'Satış Fiyatı', 'Kar Oranı %', 'Stok Miktarı', 'Durum']
+    headers = ['Ürün Adı', 'Varyant', 'Barkod', 'Kategori', 'Marka', 'Cinsiyet', 'Alış Fiyatı', 'Satış Fiyatı', 'Kar Oranı %', 'Stok Miktarı', 'Durum']
     for col, header in enumerate(headers, 1):
         worksheet.cell(row=1, column=col, value=header)
     
@@ -358,11 +370,12 @@ def stok_excel(request):
         worksheet.cell(row=row, column=3, value=varyant.barkod)
         worksheet.cell(row=row, column=4, value=str(varyant.urun.kategori))
         worksheet.cell(row=row, column=5, value=str(varyant.urun.marka) if varyant.urun.marka else "-")
-        worksheet.cell(row=row, column=6, value=float(varyant.urun.alis_fiyati))
-        worksheet.cell(row=row, column=7, value=float(varyant.urun.satis_fiyati))
-        worksheet.cell(row=row, column=8, value=float(varyant.urun.kar_orani))
-        worksheet.cell(row=row, column=9, value=varyant.stok_miktari)
-        worksheet.cell(row=row, column=10, value=durum_text)
+        worksheet.cell(row=row, column=6, value=varyant.urun.get_cinsiyet_display())
+        worksheet.cell(row=row, column=7, value=float(varyant.urun.alis_fiyati))
+        worksheet.cell(row=row, column=8, value=float(varyant.urun.satis_fiyati))
+        worksheet.cell(row=row, column=9, value=float(varyant.urun.kar_orani))
+        worksheet.cell(row=row, column=10, value=varyant.stok_miktari)
+        worksheet.cell(row=row, column=11, value=durum_text)
     
     # Response
     response = HttpResponse(
