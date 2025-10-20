@@ -23,41 +23,8 @@
     </div>
 
     <div class="row">
-        <!-- Arama Formu -->
-        <div class="col-lg-5">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">
-                        <i class="fas fa-search me-2"></i>Ürün Ara
-                    </h5>
-                    
-                    <form method="post" class="mb-3">
-                        {% csrf_token %}
-                        <div class="input-group">
-                            <input type="text" 
-                                   class="form-control form-control-lg" 
-                                   name="arama_terimi" 
-                                   placeholder="Barkod numarası veya ürün adı girin..." 
-                                   value="{{ request.POST.arama_terimi }}"
-                                   autofocus>
-                            <button type="submit" name="arama" class="btn btn-primary">
-                                <i class="fas fa-search me-1"></i>Ara
-                            </button>
-                        </div>
-                    </form>
-                    
-                    {% if arama_yapildi and not varyant %}
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Aradığınız ürün bulunamadı. Lütfen barkod numarasını veya ürün adını kontrol edin.
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
         <!-- Ürün Bilgileri ve İşlem -->
-        <div class="col-lg-7">
+        <div class="col-12">
             {% if varyant %}
                 <div class="card shadow-sm">
                     <div class="card-body">
@@ -180,18 +147,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Arama input'una otomatik odaklan
-    const aramInput = document.querySelector('input[name="arama_terimi"]');
-    if (aramInput) {
-        aramInput.focus();
-        
-        // Enter tuşu ile arama
-        aramInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.closest('form').submit();
-            }
-        });
-    }
+    // Arama input'u kaldırıldı
     
     // Miktar input'unda maksimum değer kontrolü
     const miktarInput = document.querySelector('input[name="miktar"]');
