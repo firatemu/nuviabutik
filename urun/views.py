@@ -14,12 +14,19 @@ from .forms import StokGirisForm, StokCikisForm, StokDuzeltmeForm, StokSayimForm
 def urun_listesi(request):
     """Ürün listesi - Optimized version"""
 
-    # Ürünleri getir - select_related ve .only() çakışmasını önle
-    urunler = Urun.objects.select_related(
+    # Ürünleri getir - pagination ile optimize edildi
+    from django.core.paginator import Paginator
+    
+    urunler_queryset = Urun.objects.select_related(
         'kategori', 'marka'
     ).prefetch_related(
         'varyantlar'
     ).all().order_by('-id')
+    
+    # Pagination - 50 ürün per sayfa
+    paginator = Paginator(urunler_queryset, 50)
+    page_number = request.GET.get('page', 1)
+    urunler = paginator.get_page(page_number)
 
     # Silme izni kontrolü - batch processing ile optimize edildi
     from satis.models import SatisDetay
@@ -36,15 +43,21 @@ def urun_listesi(request):
             urun.silme_izni = False
             continue
 
-        # Stok kontrolü
-        if urun.toplam_stok > 0:
+        # Stok kontrolü - batch olarak hesapla
+        if urun.varyasyonlu:
+            # Varyasyonlu ürünler için varyant stok toplamı
+            has_stock = any(varyant.stok_miktari > 0 for varyant in urun.varyantlar.all())
+        else:
+            # Varyasyonlu olmayan ürünler için ilk varyant stok
+            first_varyant = urun.varyantlar.first()
+            has_stock = first_varyant and first_varyant.stok_miktari > 0
+            
+        if has_stock:
             urun.silme_izni = False
             continue
-
-        # Varyant stok kontrolü (prefetch_related sayesinde hızlı)
-        has_stock = any(varyant.stok_miktari >
-                        0 for varyant in urun.varyantlar.all())
-        urun.silme_izni = not has_stock
+            
+        # Silme izni var
+        urun.silme_izni = True
 
     # İstatistikler - Cache ile optimize edildi
     from django.db.models import Count, Q
@@ -93,6 +106,8 @@ def urun_listesi(request):
         'aktif_urun': aktif_urun,
         'kritik_stok': kritik_stok,
         'tukenen_stok': tukenen_stok,
+        'paginator': paginator,
+        'page_obj': urunler,
     }
     return render(request, 'urun/liste.html', context)
 

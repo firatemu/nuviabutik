@@ -1247,7 +1247,8 @@
                                 data-product-brand="{{ urun.marka.ad|default:''|lower }}">
                                 <td>
                                     {% if urun.resim %}
-                                    <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}" class="table-product-image" loading="lazy" decoding="async">
+                                    <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}" class="table-product-image"
+                                        loading="lazy" decoding="async">
                                     {% else %}
                                     <div class="table-no-image">
                                         <i class="fas fa-image"></i>
@@ -1403,36 +1404,36 @@
     // Optimized arama fonksiyonları - Cache ile hızlandırıldı
     let productItemsCache = null;
     let searchTimeout = null;
-    
+
     function getProductItems() {
         if (!productItemsCache) {
             productItemsCache = document.querySelectorAll('.product-item');
         }
         return productItemsCache;
     }
-    
+
     function searchByProductCode() {
         const searchInput = document.getElementById('productCodeSearch');
         const searchTerm = searchInput.value.trim().toLowerCase();
         const productItems = getProductItems();
         const resultCount = document.getElementById('searchResultCount');
-        
+
         // Boş arama için hızlı çıkış
         if (!searchTerm) {
             clearSearch();
             return;
         }
-        
+
         let visibleCount = 0;
-        
+
         // DocumentFragment kullanarak DOM manipülasyonunu optimize et
         const fragment = document.createDocumentFragment();
-        
+
         productItems.forEach(item => {
             const productCode = item.getAttribute('data-product-code') || '';
             const productName = item.getAttribute('data-product-name') || '';
             const productBrand = item.getAttribute('data-product-brand') || '';
-            
+
             // Kategori bilgisini cache'le
             let productCategory = item._cachedCategory;
             if (!productCategory) {
@@ -1445,13 +1446,13 @@
                 }
                 item._cachedCategory = productCategory;
             }
-            
+
             // Arama terimini tüm alanlarda ara
             const matchesSearch = productCode.includes(searchTerm) ||
                 productName.includes(searchTerm) ||
                 productBrand.includes(searchTerm) ||
                 productCategory.includes(searchTerm);
-            
+
             if (matchesSearch) {
                 item.style.display = '';
                 visibleCount++;
@@ -1459,7 +1460,7 @@
                 item.style.display = 'none';
             }
         });
-        
+
         // Sonuç sayısını güncelle
         resultCount.textContent = `${visibleCount} sonuç bulundu`;
         resultCount.className = visibleCount > 0 ? 'badge bg-success' : 'badge bg-warning';
@@ -1469,28 +1470,28 @@
         const searchInput = document.getElementById('productCodeSearch');
         const productItems = getProductItems();
         const resultCount = document.getElementById('searchResultCount');
-        
+
         searchInput.value = '';
-        
+
         // Tüm ürünleri görünür yap - batch operation
         productItems.forEach(item => {
             item.style.display = '';
         });
-        
+
         // Sonuç sayısını güncelle
         resultCount.textContent = `${productItems.length} ürün`;
         resultCount.className = 'badge bg-info';
     }
-    
+
     function ensureAllProductsVisible() {
         const productItems = getProductItems();
         const resultCount = document.getElementById('searchResultCount');
-        
+
         // Tüm ürünleri görünür yap
         productItems.forEach(item => {
             item.style.display = '';
         });
-        
+
         // Sonuç sayısını güncelle
         if (resultCount) {
             resultCount.textContent = `${productItems.length} ürün`;
@@ -1540,4 +1541,61 @@
         }
     });
 </script>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="row mt-4">
+    <div class="col-12">
+        <nav aria-label="Ürün listesi sayfalama">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1" aria-label="İlk Sayfa">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Önceki Sayfa">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Sonraki Sayfa">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Son Sayfa">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        
+        <div class="text-center mt-2">
+            <small class="text-muted">
+                Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 
+                (Toplam {{ page_obj.paginator.count }} ürün)
+            </small>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
