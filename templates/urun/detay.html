@@ -673,7 +673,8 @@
             this.maxReconnectAttempts = 5;
             this.reconnectDelay = 3000;
             this.printAgentUrl = 'ws://localhost:9876';
-            this.availablePorts = [9876, 9877, 9878, 9879, 9880]; // Port alternatifleri
+            // Sadece 9876 portunu kullan (Print Agent fixed port)
+            this.availablePorts = [9876];
             this.currentPortIndex = 0;
 
             // Event listeners
@@ -753,42 +754,38 @@
         }
 
         async findAvailablePort() {
-            // Kullanılabilir port bul
-            for (let i = 0; i < this.availablePorts.length; i++) {
-                const port = this.availablePorts[i];
-                try {
-                    const testUrl = `ws://localhost:${port}`;
-                    const testSocket = new WebSocket(testUrl);
+            // Sadece 9876 portunu kontrol et
+            const port = this.availablePorts[0]; // 9876
+            try {
+                const testUrl = `ws://localhost:${port}`;
+                const testSocket = new WebSocket(testUrl);
 
-                    await new Promise((resolve, reject) => {
-                        const timeout = setTimeout(() => {
-                            testSocket.close();
-                            reject(new Error('Timeout'));
-                        }, 1000);
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        testSocket.close();
+                        reject(new Error('Timeout'));
+                    }, 1000);
 
-                        testSocket.onopen = () => {
-                            clearTimeout(timeout);
-                            testSocket.close();
-                            this.currentPortIndex = i;
-                            this.printAgentUrl = testUrl;
-                            resolve();
-                        };
+                    testSocket.onopen = () => {
+                        clearTimeout(timeout);
+                        testSocket.close();
+                        this.currentPortIndex = 0;
+                        this.printAgentUrl = testUrl;
+                        resolve();
+                    };
 
-                        testSocket.onerror = () => {
-                            clearTimeout(timeout);
-                            reject(new Error('Connection failed'));
-                        };
-                    });
+                    testSocket.onerror = () => {
+                        clearTimeout(timeout);
+                        reject(new Error('Connection failed'));
+                    };
+                });
 
-                    console.log(`✅ Print Agent port bulundu: ${port}`);
-                    return port;
+                console.log(`✅ Print Agent port bulundu: ${port}`);
+                return port;
 
-                } catch (error) {
-                    continue;
-                }
+            } catch (error) {
+                throw new Error('Port 9876\'da Print Agent bulunamadı');
             }
-
-            throw new Error('Hiçbir portta Print Agent bulunamadı');
         }
 
         async connectToPrintAgent() {
@@ -801,15 +798,15 @@
                         await this.attemptConnection(this.printAgentUrl);
                         connectionSuccessful = true;
                     } catch (error) {
-                        console.log('Varsayılan port başarısız, alternatif portlar deneniyor...');
+                        console.log('Port 9876 başarısız, Print Agent kontrol ediliyor...');
 
-                        // Port taraması yap
+                        // Port 9876 kontrolü
                         try {
                             await this.findAvailablePort();
                             await this.attemptConnection(this.printAgentUrl);
                             connectionSuccessful = true;
                         } catch (portError) {
-                            reject(new Error('Hiçbir portta Print Agent bulunamadı'));
+                            reject(new Error('Port 9876\'da Print Agent bulunamadı'));
                             return;
                         }
                     }
@@ -971,13 +968,13 @@
                 const zplBlocks = zplCode.split('^XZ')
                     .filter(block => block.trim().length > 0)
                     .map(block => block.trim() + '^XZ'); // ^XZ'yi geri ekle
-                
+
                 this.showToast(`${zplBlocks.length} adet varyant etiketi yazdırılıyor...`, 'info');
 
                 // Her ZPL bloğunu ayrı ayrı gönder
                 for (let i = 0; i < zplBlocks.length; i++) {
                     const block = zplBlocks[i];
-                    
+
                     // Print Agent'a gönder
                     const printMessage = {
                         type: 'print_label',
@@ -991,7 +988,7 @@
                     };
 
                     this.websocket.send(JSON.stringify(printMessage));
-                    
+
                     // Varyantlar arası kısa bekleme
                     if (i < zplBlocks.length - 1) {
                         await new Promise(resolve => setTimeout(resolve, 500));
@@ -1096,7 +1093,7 @@
                 printVariantLabel(varyantId, this);
             });
         });
-        
+
         // Ürün etiket yazdırma butonları
         document.querySelectorAll('[data-print-product]').forEach(button => {
             button.addEventListener('click', function (e) {
@@ -1106,7 +1103,7 @@
             });
         });
     });
-    
+
     // Ürün için toplu etiket yazdırma
     window.printProductLabels = async function (urunId, buttonElement) {
         if (buttonElement) {
@@ -1119,7 +1116,7 @@
             setTimeout(() => {
                 buttonElement.innerHTML = originalText;
                 buttonElement.disabled = false;
-                
+
                 if (success) {
                     // Başarı animasyonu
                     showProductPrintSuccess(buttonElement);

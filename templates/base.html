@@ -126,45 +126,39 @@
             }
 
             async printLabelHTTP(zplContent) {
-                // Yaygın portları dene (9876 öncelikli - Fixed Agent)
-                const ports = [9876, 9877, 9878, 8765, 8080, 3000];
+                // Sadece 9876 portunu kullan (Print Agent fixed port)
+                const port = 9876;
 
-                console.log('🔍 HTTP Bridge portları taranıyor:', ports);
-
-                for (const port of ports) {
-                    console.log(`🔍 Port ${port} deneniyor...`);
-                    try {
-                        const response = await fetch(`http://localhost:${port}/print`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                zpl_content: zplContent
-                            })
-                        });
+                console.log(`🔍 HTTP Bridge port ${port} deneniyor...`);
+                try {
+                    const response = await fetch(`http://localhost:${port}/print`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            zpl_content: zplContent
+                        })
+                    });
 
                         console.log(`📡 Port ${port} yanıt alındı, status:`, response.status);
                         const result = await response.json();
                         console.log(`📄 Port ${port} sonuç:`, result);
 
-                        if (result.status === 'success') {
-                            console.log(`✅ HTTP Bridge bulundu: localhost:${port}`);
-                            this.showSuccess(result.message);
-                            return true;
-                        } else {
-                            this.showError(result.message);
-                            return false;
-                        }
-                    } catch (error) {
-                        // Bu port çalışmıyor, devam et
-                        console.log(`❌ Port ${port} çalışmıyor:`, error.message);
-                        continue;
+                    if (result.status === 'success') {
+                        console.log(`✅ HTTP Bridge bulundu: localhost:${port}`);
+                        this.showSuccess(result.message);
+                        return true;
+                    } else {
+                        this.showError(result.message);
+                        return false;
                     }
+                } catch (error) {
+                    // Port 9876 çalışmıyor
+                    console.log(`❌ Port ${port} çalışmıyor:`, error.message);
+                    this.showError('HTTP Bridge bağlantısı yok! Local Agent\'ı başlatın.');
+                    return false;
                 }
-
-                this.showError('HTTP Bridge bağlantısı yok! Local Agent\'ı başlatın.');
-                return false;
             }
 
             showSuccess(message) {
