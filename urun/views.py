@@ -21,7 +21,7 @@ def urun_listesi(request):
         'varyantlar'
     ).only(
         'id', 'ad', 'urun_kodu', 'satis_fiyati', 'resim', 'aktif', 
-        'varyasyonlu', 'stok_miktari', 'kritik_stok_seviyesi',
+        'varyasyonlu', 'kritik_stok_seviyesi',
         'kategori__ad', 'marka__ad'
     ).all().order_by('-id')
 
@@ -74,7 +74,7 @@ def urun_listesi(request):
         
         # Stok istatistikleri için sadece gerekli alanları al
         stok_urunler = Urun.objects.select_related('kategori', 'marka').prefetch_related('varyantlar').only(
-            'id', 'aktif', 'varyasyonlu', 'stok_miktari', 'kritik_stok_seviyesi'
+            'id', 'aktif', 'varyasyonlu', 'kritik_stok_seviyesi'
         ).all()
         
         kritik_stok = 0
