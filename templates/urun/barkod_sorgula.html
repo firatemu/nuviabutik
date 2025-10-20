@@ -174,7 +174,7 @@
                         <div class="col-12 mt-4">
                             <div class="card">
                                 <div class="card-header bg-success text-white">
-                                    <h5><i class="fas fa-palette"></i> Ürün Varyasyonları ({{ varyantlar|length }} adet)
+                                    <h5><i class="fas fa-palette"></i> Stokta Olan Varyasyonlar ({{ varyantlar|length }} adet)
                                     </h5>
                                 </div>
                                 <div class="card-body">
@@ -223,7 +223,8 @@
                                                         </div>
                                                         <div class="col-6">
                                                             <small class="text-muted">Fiyat</small>
-                                                            <div class="fw-bold text-success">{{ v.urun.satis_fiyati|floatformat:2 }} ₺</div>
+                                                            <div class="fw-bold text-success">{{
+                                                                v.urun.satis_fiyati|floatformat:2 }} ₺</div>
                                                         </div>
                                                     </div>
 
@@ -257,6 +258,18 @@
                                         {% endfor %}
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Stokta Varyant Yok -->
+                        <div class="col-12 mt-4">
+                            <div class="alert alert-warning">
+                                <h5><i class="fas fa-exclamation-triangle"></i> Stokta Varyant Bulunamadı!</h5>
+                                <p>Bu ürünün hiçbir varyantında stok bulunmuyor.</p>
+                                <hr>
+                                <a href="{% url 'urun:detay' urun.id %}" class="btn btn-primary">
+                                    <i class="fas fa-edit"></i> Ürünü Düzenle ve Stok Ekle
+                                </a>
                             </div>
                         </div>
                         {% endif %}
@@ -705,13 +718,13 @@
             // Etiket yazdırma fonksiyonu - Aktif
             window.printLabel = function (varyantId) {
                 console.log('Etiket yazdırma başlatılıyor, varyant ID:', varyantId);
-                
+
                 // Loading göstergesi
                 const printBtn = event.target.closest('button');
                 const originalText = printBtn.innerHTML;
                 printBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 printBtn.disabled = true;
-                
+
                 // API'den ZPL etiket kodunu al
                 fetch(`/api/varyant-etiket/${varyantId}/`, {
                     method: 'GET',
@@ -719,20 +732,20 @@
                         'Content-Type': 'application/json',
                     }
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    return response.text();
-                })
-                .then(zplCode => {
-                    if (!zplCode || zplCode.trim().length === 0) {
-                        throw new Error('Etiket verisi alınamadı!');
-                    }
-                    
-                    // ZPL kodunu yazdırma için hazırla
-                    const printWindow = window.open('', '_blank');
-                    printWindow.document.write(`
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        return response.text();
+                    })
+                    .then(zplCode => {
+                        if (!zplCode || zplCode.trim().length === 0) {
+                            throw new Error('Etiket verisi alınamadı!');
+                        }
+
+                        // ZPL kodunu yazdırma için hazırla
+                        const printWindow = window.open('', '_blank');
+                        printWindow.document.write(`
                         <html>
                             <head>
                                 <title>Etiket Yazdır</title>
@@ -756,58 +769,59 @@
                                             }, 1000);
                                         }, 500);
                                     };
-                                </script>
-                            </body>
-                        </html>
-                    `);
-                    printWindow.document.close();
-                    
-                    // Başarı mesajı
-                    showToast('Etiket yazdırma penceresi açıldı!', 'success');
-                    
-                })
-                .catch(error => {
-                    console.error('Etiket yazdırma hatası:', error);
-                    showToast(`Etiket yazdırma hatası: ${error.message}`, 'error');
-                })
-                .finally(() => {
-                    // Butonu eski haline getir
-                    printBtn.innerHTML = originalText;
-                    printBtn.disabled = false;
-                });
-            };
-            
-            // Toast bildirim fonksiyonu
-            function showToast(message, type = 'info') {
-                const toast = document.createElement('div');
-                toast.className = 'position-fixed top-0 end-0 p-3';
-                toast.style.zIndex = '9999';
-                
-                const bgClass = type === 'success' ? 'bg-success' : 
-                               type === 'error' ? 'bg-danger' : 'bg-info';
-                const icon = type === 'success' ? 'fa-check-circle' : 
-                           type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
-                
-                toast.innerHTML = `
-                    <div class="toast show" role="alert">
-                        <div class="toast-header ${bgClass} text-white">
-                            <i class="fas ${icon} me-2"></i>
-                            <strong class="me-auto">${type === 'success' ? 'Başarılı' : type === 'error' ? 'Hata' : 'Bilgi'}</strong>
-                        </div>
-                        <div class="toast-body">
-                            ${message}
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(toast);
-                
-                setTimeout(() => {
-                    if (document.body.contains(toast)) {
-                        document.body.removeChild(toast);
-                    }
-                }, 4000);
-            }
-        });
+    </script>
+    </body>
+
+    </html>
+    `);
+    printWindow.document.close();
+
+    // Başarı mesajı
+    showToast('Etiket yazdırma penceresi açıldı!', 'success');
+
+    })
+    .catch(error => {
+    console.error('Etiket yazdırma hatası:', error);
+    showToast(`Etiket yazdırma hatası: ${error.message}`, 'error');
+    })
+    .finally(() => {
+    // Butonu eski haline getir
+    printBtn.innerHTML = originalText;
+    printBtn.disabled = false;
+    });
+    };
+
+    // Toast bildirim fonksiyonu
+    function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed top-0 end-0 p-3';
+    toast.style.zIndex = '9999';
+
+    const bgClass = type === 'success' ? 'bg-success' :
+    type === 'error' ? 'bg-danger' : 'bg-info';
+    const icon = type === 'success' ? 'fa-check-circle' :
+    type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+
+    toast.innerHTML = `
+    <div class="toast show" role="alert">
+        <div class="toast-header ${bgClass} text-white">
+            <i class="fas ${icon} me-2"></i>
+            <strong class="me-auto">${type === 'success' ? 'Başarılı' : type === 'error' ? 'Hata' : 'Bilgi'}</strong>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
+    </div>
+    `;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+    if (document.body.contains(toast)) {
+    document.body.removeChild(toast);
+    }
+    }, 4000);
+    }
+    });
     </script>
     {% endblock %}
     <!-- Cache Buster: v3.0 -->

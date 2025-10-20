@@ -216,12 +216,13 @@ def barkod_sorgula(request):
             else:
                 messages.error(request, 'Geçersiz barkod formatı!')
 
-    # Ürün bulunduysa tüm varyantlarını da getir
+    # Ürün bulunduysa sadece stoğu olan varyantlarını getir
     varyantlar = []
     if urun:
         varyantlar = UrunVaryanti.objects.filter(
             urun=urun,
-            aktif=True
+            aktif=True,
+            stok_miktari__gt=0  # Sadece stoğu olan varyantlar
         ).select_related('renk', 'beden').order_by('renk__ad', 'beden__ad')
 
     context = {
