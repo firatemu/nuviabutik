@@ -1009,50 +1009,9 @@
         }
 
         showPrintAgentGuide() {
-            // Print Agent kurulum rehberi göster
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.5); z-index: 10001; display: flex; 
-            align-items: center; justify-content: center;
-        `;
-
-            modal.innerHTML = `
-            <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; margin: 20px;">
-                <h3 style="color: #dc3545; margin-top: 0;">🖨️ Print Agent Gerekli</h3>
-                <p>Etiket yazdırmak için bilgisayarınızda <strong>NuviaButik Print Agent</strong> çalışıyor olmalıdır.</p>
-                
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                    <h4 style="margin-top: 0; color: #495057;">📋 Kurulum Adımları:</h4>
-                    <ol style="margin: 0; padding-left: 20px;">
-                        <li>Print Agent'ı indirin ve kurun</li>
-                        <li>Yazıcınızın bağlı olduğundan emin olun</li>
-                        <li>Print Agent'ı başlatın</li>
-                        <li>Port 9876'nın açık olduğunu kontrol edin</li>
-                    </ol>
-                </div>
-                
-                <div style="text-align: center; margin-top: 20px;">
-                    <button onclick="this.parentElement.parentElement.parentElement.remove()" 
-                            style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px;">
-                        Tamam
-                    </button>
-                    <button onclick="window.nuviaPrintManager.connectToPrintAgent(); this.parentElement.parentElement.parentElement.remove();" 
-                            style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        Tekrar Dene
-                    </button>
-                </div>
-            </div>
-        `;
-
-            document.body.appendChild(modal);
-
-            // 10 saniye sonra otomatik kapat
-            setTimeout(() => {
-                if (modal.parentElement) {
-                    modal.remove();
-                }
-            }, 10000);
+            // Print Agent uyarısı kapatıldı - performans için
+            console.log('Print Agent uyarısı devre dışı bırakıldı');
+            return;
         }
 
         showToast(message, type = 'info') {
