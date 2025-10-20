@@ -14,15 +14,11 @@ from .forms import StokGirisForm, StokCikisForm, StokDuzeltmeForm, StokSayimForm
 def urun_listesi(request):
     """Ürün listesi - Optimized version"""
 
-    # Ürünleri getir - sadece görüntüleme için gerekli alanlar
+    # Ürünleri getir - select_related ve .only() çakışmasını önle
     urunler = Urun.objects.select_related(
         'kategori', 'marka'
     ).prefetch_related(
         'varyantlar'
-    ).only(
-        'id', 'ad', 'urun_kodu', 'satis_fiyati', 'resim', 'aktif', 
-        'varyasyonlu', 'kritik_stok_seviyesi',
-        'kategori__ad', 'marka__ad'
     ).all().order_by('-id')
 
     # Silme izni kontrolü - batch processing ile optimize edildi
@@ -53,11 +49,11 @@ def urun_listesi(request):
     # İstatistikler - Cache ile optimize edildi
     from django.db.models import Count, Q
     from django.core.cache import cache
-    
+
     # Cache kontrolü - 5 dakika cache
     cache_key = 'urun_listesi_stats'
     cached_stats = cache.get(cache_key)
-    
+
     if cached_stats:
         # Cache'den istatistikleri al
         toplam_urun, aktif_urun, kritik_stok, tukenen_stok = cached_stats
@@ -68,26 +64,27 @@ def urun_listesi(request):
             toplam=Count('id'),
             aktif=Count('id', filter=Q(aktif=True))
         )
-        
+
         toplam_urun = stats['toplam']
         aktif_urun = stats['aktif']
-        
+
         # Stok istatistikleri için sadece gerekli alanları al
-        stok_urunler = Urun.objects.select_related('kategori', 'marka').prefetch_related('varyantlar').only(
+        stok_urunler = Urun.objects.prefetch_related('varyantlar').only(
             'id', 'aktif', 'varyasyonlu', 'kritik_stok_seviyesi'
         ).all()
-        
+
         kritik_stok = 0
         tukenen_stok = 0
-        
+
         for urun in stok_urunler:
             if urun.toplam_stok == 0:
                 tukenen_stok += 1
             elif 0 < urun.toplam_stok <= 10:  # varsayılan kritik seviye
                 kritik_stok += 1
-        
+
         # Cache'e kaydet (5 dakika)
-        cache.set(cache_key, (toplam_urun, aktif_urun, kritik_stok, tukenen_stok), 300)
+        cache.set(cache_key, (toplam_urun, aktif_urun,
+                  kritik_stok, tukenen_stok), 300)
 
     context = {
         'urunler': urunler,
