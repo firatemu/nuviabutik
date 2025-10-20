@@ -38,12 +38,9 @@ def urun_listesi(request):
 
         return True
 
-    # Sayfalama - parametre kaldırıldı
-    paginator = Paginator(urunler, 20)
-    page_obj = paginator.get_page(1)  # Her zaman ilk sayfa
-
+    # Pagination kaldırıldı - tüm ürünler gösterilecek
     # Her ürüne silme izni bilgisi ekle
-    for urun in page_obj:
+    for urun in urunler:
         urun.silme_izni = silme_kontrolu_hizli(urun)
 
     # İstatistikler
@@ -55,8 +52,7 @@ def urun_listesi(request):
     tukenen_stok = len([u for u in tum_urunler if u.toplam_stok == 0])
 
     context = {
-        'page_obj': page_obj,
-        'urunler': page_obj,
+        'urunler': urunler,
         'title': 'Ürün Listesi',
         'toplam_urun': toplam_urun,
         'aktif_urun': aktif_urun,
