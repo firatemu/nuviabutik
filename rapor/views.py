@@ -346,24 +346,25 @@ def stok_excel(request):
             Q(beden__ad__icontains=arama)
         )
     
-    # Kategori filtresi
-    if kategori_id:
+    # Kategori filtresi - None kontrolü
+    if kategori_id and kategori_id != 'None' and kategori_id != '':
         varyantlar = varyantlar.filter(urun__kategori_id=kategori_id)
     
-    # Marka filtresi
-    if marka_id:
+    # Marka filtresi - None kontrolü
+    if marka_id and marka_id != 'None' and marka_id != '':
         varyantlar = varyantlar.filter(urun__marka_id=marka_id)
-    
-    # Stok durumu filtresi
-    if durum == 'tukendi':
-        varyantlar = varyantlar.filter(stok_miktari=0)
-    elif durum == 'kritik':
-        varyantlar = varyantlar.filter(stok_miktari__gt=0, stok_miktari__lte=5)
-    elif durum == 'normal':
-        varyantlar = varyantlar.filter(stok_miktari__gt=5)
-    
-    # Cinsiyet filtresi
-    if cinsiyet and cinsiyet != 'hepsi':
+
+    # Stok durumu filtresi - None kontrolü
+    if durum and durum != 'None' and durum != '':
+        if durum == 'tukendi':
+            varyantlar = varyantlar.filter(stok_miktari=0)
+        elif durum == 'kritik':
+            varyantlar = varyantlar.filter(stok_miktari__gt=0, stok_miktari__lte=5)
+        elif durum == 'normal':
+            varyantlar = varyantlar.filter(stok_miktari__gt=5)
+
+    # Cinsiyet filtresi - None kontrolü
+    if cinsiyet and cinsiyet != 'None' and cinsiyet != '' and cinsiyet != 'hepsi':
         varyantlar = varyantlar.filter(urun__cinsiyet=cinsiyet)
 
     # Excel dosyası oluştur
