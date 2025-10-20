@@ -1044,7 +1044,7 @@
         <div class="card-body">
             <div class="row g-3">
                 <!-- Arama -->
-                <div class="col-md-10">
+                <div class="col-md-8">
                     <label for="searchInput" class="form-label">
                         <i class="fas fa-search me-1"></i>Ürün Ara (Ürün Adı, Kodu veya Marka)
                     </label>
@@ -1052,7 +1052,14 @@
                         placeholder="Ürün adı, ürün kodu veya marka ile arama yapın...">
                 </div>
 
-                <!-- Butonlar -->
+                <!-- Ara Butonu -->
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-primary w-100" id="searchBtn">
+                        <i class="fas fa-search me-1"></i>Ara
+                    </button>
+                </div>
+
+                <!-- Temizle Butonu -->
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="button" class="btn btn-secondary w-100" id="clearFilters">
                         <i class="fas fa-times me-1"></i>Temizle
@@ -1452,6 +1459,50 @@
 
         // Aktif filtreleri güncelle
         updateActiveFilters(searchText, visibleCount);
+        
+        // Arama sonuçlarını vurgula
+        if (searchText) {
+            highlightSearchResults(searchText);
+        } else {
+            removeHighlights();
+        }
+    }
+    
+    // Arama sonuçlarını vurgulama
+    function highlightSearchResults(searchText) {
+        const productItems = document.querySelectorAll('.product-item:not([style*="display: none"])');
+        
+        productItems.forEach(item => {
+            const titleElement = item.querySelector('.product-title');
+            const codeElement = item.querySelector('.product-code');
+            const brandElement = item.querySelector('.product-brand');
+            
+            if (titleElement) {
+                highlightText(titleElement, searchText);
+            }
+            if (codeElement) {
+                highlightText(codeElement, searchText);
+            }
+            if (brandElement) {
+                highlightText(brandElement, searchText);
+            }
+        });
+    }
+    
+    // Metin vurgulama
+    function highlightText(element, searchText) {
+        const originalText = element.textContent;
+        const regex = new RegExp(`(${searchText})`, 'gi');
+        const highlightedText = originalText.replace(regex, '<mark class="bg-warning">$1</mark>');
+        element.innerHTML = highlightedText;
+    }
+    
+    // Vurguları kaldır
+    function removeHighlights() {
+        const marks = document.querySelectorAll('mark.bg-warning');
+        marks.forEach(mark => {
+            mark.outerHTML = mark.textContent;
+        });
     }
 
     // Aktif filtreleri güncelle
@@ -1472,7 +1523,13 @@
         }
 
         // Sonuç sayısı
-        resultCount.textContent = `${count} ürün`;
+        if (searchText) {
+            resultCount.textContent = `${count} sonuç bulundu`;
+            resultCount.className = count > 0 ? 'badge bg-success' : 'badge bg-warning';
+        } else {
+            resultCount.textContent = `${count} ürün`;
+            resultCount.className = 'badge bg-info';
+        }
 
         // Filtre bölümünü göster/gizle
         activeFilters.style.display = hasFilters ? '' : 'none';
@@ -1492,7 +1549,15 @@
 
         // Event listener'ları ekle
         document.getElementById('searchInput').addEventListener('input', filterProducts);
+        document.getElementById('searchBtn').addEventListener('click', filterProducts);
         document.getElementById('clearFilters').addEventListener('click', clearFilters);
+        
+        // Enter tuşu ile arama
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                filterProducts();
+            }
+        });
 
         // İlk yüklemede ürün sayısını göster
         filterProducts();
