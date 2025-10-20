@@ -92,7 +92,7 @@ def stok_raporu(request):
 
     # Geçerli sıralama alanları
     valid_sort_fields = [
-        'urun__ad', 'renk__ad', 'barkod', 'urun__kategori__ad', 
+        'urun__ad', 'renk__ad', 'barkod', 'urun__kategori__ad',
         'urun__marka__ad', 'urun__alis_fiyati', 'urun__satis_fiyati', 'urun__kar_orani', 'stok_miktari'
     ]
 
@@ -329,14 +329,39 @@ def stok_excel(request):
     ).select_related('urun', 'urun__kategori', 'urun__marka', 'renk', 'beden').order_by('urun__kategori__ad', 'urun__ad')
 
     # Filtreler
+    arama = request.GET.get('arama', '').strip()
+    kategori_id = request.GET.get('kategori')
+    marka_id = request.GET.get('marka')
     durum = request.GET.get('durum')
     cinsiyet = request.GET.get('cinsiyet')
-
+    
+    # Arama filtresi
+    if arama:
+        from django.db.models import Q
+        varyantlar = varyantlar.filter(
+            Q(urun__ad__icontains=arama) |
+            Q(barkod__icontains=arama) |
+            Q(urun__urun_kodu__icontains=arama) |
+            Q(renk__ad__icontains=arama) |
+            Q(beden__ad__icontains=arama)
+        )
+    
+    # Kategori filtresi
+    if kategori_id:
+        varyantlar = varyantlar.filter(urun__kategori_id=kategori_id)
+    
+    # Marka filtresi
+    if marka_id:
+        varyantlar = varyantlar.filter(urun__marka_id=marka_id)
+    
+    # Stok durumu filtresi
     if durum == 'tukendi':
         varyantlar = varyantlar.filter(stok_miktari=0)
     elif durum == 'kritik':
         varyantlar = varyantlar.filter(stok_miktari__gt=0, stok_miktari__lte=5)
-
+    elif durum == 'normal':
+        varyantlar = varyantlar.filter(stok_miktari__gt=5)
+    
     # Cinsiyet filtresi
     if cinsiyet and cinsiyet != 'hepsi':
         varyantlar = varyantlar.filter(urun__cinsiyet=cinsiyet)
