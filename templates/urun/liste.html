@@ -1037,7 +1037,40 @@
         </div>
     </div>
 
-    <!-- Arama bölümü kaldırıldı -->
+    <!-- Ürün Kodu ile Arama -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="productCodeSearch" 
+                                       placeholder="Ürün kodu ile arama yapın..." 
+                                       autocomplete="off">
+                                <button class="btn btn-primary" type="button" id="searchByCodeBtn">
+                                    <i class="fas fa-search me-1"></i>Ara
+                                </button>
+                                <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">
+                                    <i class="fas fa-times me-1"></i>Temizle
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-end">
+                                <span class="badge bg-info" id="searchResultCount">
+                                    {{ urunler|length }} ürün
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- İstatistik Kartları -->
     <div class="row stats-cards">
@@ -1359,7 +1392,41 @@
         localStorage.setItem('productViewType', viewType);
     }
 
-    // Arama fonksiyonları kaldırıldı
+    // Ürün kodu ile arama fonksiyonları
+    function searchByProductCode() {
+        const searchInput = document.getElementById('productCodeSearch');
+        const searchTerm = searchInput.value.trim().toLowerCase();
+        const productItems = document.querySelectorAll('.product-item');
+        const resultCount = document.getElementById('searchResultCount');
+        
+        let visibleCount = 0;
+        
+        productItems.forEach(item => {
+            const productCode = item.getAttribute('data-product-code') || '';
+            
+            if (searchTerm === '' || productCode.includes(searchTerm)) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Sonuç sayısını güncelle
+        if (searchTerm) {
+            resultCount.textContent = `${visibleCount} sonuç bulundu`;
+            resultCount.className = visibleCount > 0 ? 'badge bg-success' : 'badge bg-warning';
+        } else {
+            resultCount.textContent = `${visibleCount} ürün`;
+            resultCount.className = 'badge bg-info';
+        }
+    }
+    
+    function clearSearch() {
+        const searchInput = document.getElementById('productCodeSearch');
+        searchInput.value = '';
+        searchByProductCode();
+    }
 
     // Sayfa yüklendiğinde setup işlemleri
     document.addEventListener('DOMContentLoaded', function () {
@@ -1367,7 +1434,32 @@
         const savedView = localStorage.getItem('productViewType') || 'card';
         switchView(savedView);
 
-        // Arama event listener'ları kaldırıldı
+        // Arama event listener'ları
+        const searchInput = document.getElementById('productCodeSearch');
+        const searchBtn = document.getElementById('searchByCodeBtn');
+        const clearBtn = document.getElementById('clearSearchBtn');
+        
+        if (searchInput && searchBtn && clearBtn) {
+            // Ara butonu
+            searchBtn.addEventListener('click', searchByProductCode);
+            
+            // Temizle butonu
+            clearBtn.addEventListener('click', clearSearch);
+            
+            // Enter tuşu ile arama
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchByProductCode();
+                }
+            });
+            
+            // Real-time arama (opsiyonel)
+            searchInput.addEventListener('input', function() {
+                // Debounce için kısa bir gecikme
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(searchByProductCode, 300);
+            });
+        }
     });
 </script>
 {% endblock %}
