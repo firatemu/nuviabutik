@@ -998,7 +998,6 @@
             font-size: 0.6rem;
         }
     }
-
 </style>
 {% endblock %}
 
@@ -1236,7 +1235,7 @@
                         </thead>
                         <tbody>
                             {% for urun in urunler %}
-                            <tr class="product-row">
+                            <tr class="product-row product-item" data-product-name="{{ urun.ad|lower }}" data-product-code="{{ urun.urun_kodu|lower }}" data-product-brand="{{ urun.marka.ad|default:''|lower }}">
                                 <td>
                                     {% if urun.resim %}
                                     <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}" class="table-product-image">
@@ -1405,9 +1404,17 @@
             const productCode = item.getAttribute('data-product-code') || '';
             
             if (searchTerm === '' || productCode.includes(searchTerm)) {
-                item.style.display = '';
+                // Hem kart hem liste görünümü için uygun display değeri
+                if (item.tagName === 'TR') {
+                    // Liste görünümü (tablo satırı)
+                    item.style.display = '';
+                } else {
+                    // Kart görünümü (div)
+                    item.style.display = '';
+                }
                 visibleCount++;
             } else {
+                // Gizle
                 item.style.display = 'none';
             }
         });
