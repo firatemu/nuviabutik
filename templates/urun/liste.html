@@ -6,12 +6,14 @@
 
 {% block extra_css %}
 <style>
+    /* Performance optimizations */
     .product-card {
-        transition: all 0.3s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
         border: none;
         border-radius: 15px;
         overflow: hidden;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        will-change: transform, box-shadow;
     }
 
     .product-card:hover {
@@ -32,6 +34,8 @@
         max-height: 100%;
         object-fit: cover;
         border-radius: 8px;
+        loading: lazy;
+        decoding: async;
     }
 
     .product-image .no-image {
@@ -215,6 +219,8 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
+        loading: lazy;
+        decoding: async;
     }
 
     .product-list-view .product-image .no-image {
@@ -1113,7 +1119,7 @@
                     <!-- Ürün Görseli -->
                     <div class="product-image">
                         {% if urun.resim %}
-                        <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}">
+                        <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}" loading="lazy" decoding="async">
                         {% else %}
                         <i class="fas fa-image no-image"></i>
                         {% endif %}
@@ -1241,7 +1247,7 @@
                                 data-product-brand="{{ urun.marka.ad|default:''|lower }}">
                                 <td>
                                     {% if urun.resim %}
-                                    <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}" class="table-product-image">
+                                    <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}" class="table-product-image" loading="lazy" decoding="async">
                                     {% else %}
                                     <div class="table-no-image">
                                         <i class="fas fa-image"></i>
@@ -1394,77 +1400,90 @@
         localStorage.setItem('productViewType', viewType);
     }
 
-    // Çoklu alan arama fonksiyonları
+    // Optimized arama fonksiyonları - Cache ile hızlandırıldı
+    let productItemsCache = null;
+    let searchTimeout = null;
+    
+    function getProductItems() {
+        if (!productItemsCache) {
+            productItemsCache = document.querySelectorAll('.product-item');
+        }
+        return productItemsCache;
+    }
+    
     function searchByProductCode() {
         const searchInput = document.getElementById('productCodeSearch');
         const searchTerm = searchInput.value.trim().toLowerCase();
-        const productItems = document.querySelectorAll('.product-item');
+        const productItems = getProductItems();
         const resultCount = document.getElementById('searchResultCount');
-
+        
+        // Boş arama için hızlı çıkış
+        if (!searchTerm) {
+            clearSearch();
+            return;
+        }
+        
         let visibleCount = 0;
-
+        
+        // DocumentFragment kullanarak DOM manipülasyonunu optimize et
+        const fragment = document.createDocumentFragment();
+        
         productItems.forEach(item => {
             const productCode = item.getAttribute('data-product-code') || '';
             const productName = item.getAttribute('data-product-name') || '';
             const productBrand = item.getAttribute('data-product-brand') || '';
-
-            // Kategori bilgisini DOM'dan al
-            let productCategory = '';
-            if (item.tagName === 'TR') {
-                // Liste görünümü - kategori sütunundan al
-                const categoryCell = item.querySelector('td:nth-child(4)');
-                if (categoryCell) {
-                    productCategory = categoryCell.textContent.toLowerCase().trim();
+            
+            // Kategori bilgisini cache'le
+            let productCategory = item._cachedCategory;
+            if (!productCategory) {
+                if (item.tagName === 'TR') {
+                    const categoryCell = item.querySelector('td:nth-child(4)');
+                    productCategory = categoryCell ? categoryCell.textContent.toLowerCase().trim() : '';
+                } else {
+                    const categoryElement = item.querySelector('.product-category');
+                    productCategory = categoryElement ? categoryElement.textContent.toLowerCase().trim() : '';
                 }
-            } else {
-                // Kart görünümü - kategori elementinden al
-                const categoryElement = item.querySelector('.product-category');
-                if (categoryElement) {
-                    productCategory = categoryElement.textContent.toLowerCase().trim();
-                }
+                item._cachedCategory = productCategory;
             }
-
+            
             // Arama terimini tüm alanlarda ara
-            const matchesSearch = searchTerm === '' ||
-                productCode.includes(searchTerm) ||
+            const matchesSearch = productCode.includes(searchTerm) ||
                 productName.includes(searchTerm) ||
                 productBrand.includes(searchTerm) ||
                 productCategory.includes(searchTerm);
-
+            
             if (matchesSearch) {
-                // Hem kart hem liste görünümü için uygun display değeri
-                if (item.tagName === 'TR') {
-                    // Liste görünümü (tablo satırı)
-                    item.style.display = '';
-                } else {
-                    // Kart görünümü (div)
-                    item.style.display = '';
-                }
+                item.style.display = '';
                 visibleCount++;
             } else {
-                // Gizle
                 item.style.display = 'none';
             }
         });
-
+        
         // Sonuç sayısını güncelle
-        if (searchTerm) {
-            resultCount.textContent = `${visibleCount} sonuç bulundu`;
-            resultCount.className = visibleCount > 0 ? 'badge bg-success' : 'badge bg-warning';
-        } else {
-            resultCount.textContent = `${visibleCount} ürün`;
-            resultCount.className = 'badge bg-info';
-        }
+        resultCount.textContent = `${visibleCount} sonuç bulundu`;
+        resultCount.className = visibleCount > 0 ? 'badge bg-success' : 'badge bg-warning';
     }
 
     function clearSearch() {
         const searchInput = document.getElementById('productCodeSearch');
+        const productItems = getProductItems();
+        const resultCount = document.getElementById('searchResultCount');
+        
         searchInput.value = '';
-        searchByProductCode();
+        
+        // Tüm ürünleri görünür yap - batch operation
+        productItems.forEach(item => {
+            item.style.display = '';
+        });
+        
+        // Sonuç sayısını güncelle
+        resultCount.textContent = `${productItems.length} ürün`;
+        resultCount.className = 'badge bg-info';
     }
     
     function ensureAllProductsVisible() {
-        const productItems = document.querySelectorAll('.product-item');
+        const productItems = getProductItems();
         const resultCount = document.getElementById('searchResultCount');
         
         // Tüm ürünleri görünür yap
@@ -1483,13 +1502,13 @@
     document.addEventListener('DOMContentLoaded', function () {
         // Önce tüm ürünlerin görünür olduğundan emin ol
         ensureAllProductsVisible();
-        
+
         // Arama input'unu temizle
         const searchInput = document.getElementById('productCodeSearch');
         if (searchInput) {
             searchInput.value = '';
         }
-        
+
         // Kaydedilmiş görünümü uygula
         const savedView = localStorage.getItem('productViewType') || 'card';
         switchView(savedView);
@@ -1512,11 +1531,11 @@
                 }
             });
 
-            // Real-time arama (opsiyonel)
+            // Real-time arama (optimized debounce)
             searchInput.addEventListener('input', function () {
                 // Debounce için kısa bir gecikme
-                clearTimeout(this.searchTimeout);
-                this.searchTimeout = setTimeout(searchByProductCode, 300);
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(searchByProductCode, 200);
             });
         }
     });
