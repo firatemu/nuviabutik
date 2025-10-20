@@ -9,6 +9,7 @@
         background-color: #e91e63 !important;
         color: white;
     }
+
     .bg-blue {
         background-color: #2196f3 !important;
         color: white;
@@ -43,7 +44,7 @@
                 <!-- Hidden fields for sorting -->
                 <input type="hidden" name="sort" value="{{ sort_field }}">
                 <input type="hidden" name="order" value="{{ sort_order }}">
-                
+
                 <div class="row g-3 mb-3">
                     <!-- Arama -->
                     <div class="col-md-4">
@@ -52,17 +53,11 @@
                             <span class="input-group-text">
                                 <i class="fas fa-search"></i>
                             </span>
-                            <input 
-                                type="text" 
-                                class="form-control" 
-                                id="arama" 
-                                name="arama" 
-                                value="{{ arama }}" 
-                                placeholder="Ürün adı, barkod, renk, beden..."
-                            >
+                            <input type="text" class="form-control" id="arama" name="arama" value="{{ arama }}"
+                                placeholder="Ürün adı, barkod, renk, beden...">
                         </div>
                     </div>
-                    
+
                     <!-- Kategori -->
                     <div class="col-md-2">
                         <label for="kategori" class="form-label">Kategori</label>
@@ -75,7 +70,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    
+
                     <!-- Marka -->
                     <div class="col-md-2">
                         <label for="marka" class="form-label">Marka</label>
@@ -88,7 +83,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    
+
                     <!-- Stok Durumu -->
                     <div class="col-md-2">
                         <label for="durum" class="form-label">Stok Durumu</label>
@@ -99,7 +94,7 @@
                             <option value="tukendi" {% if durum == 'tukendi' %}selected{% endif %}>Tükendi (0)</option>
                         </select>
                     </div>
-                    
+
                     <!-- Cinsiyet -->
                     <div class="col-md-2">
                         <label for="cinsiyet" class="form-label">Cinsiyet</label>
@@ -109,7 +104,7 @@
                             <option value="erkek" {% if cinsiyet == 'erkek' %}selected{% endif %}>Erkek</option>
                         </select>
                     </div>
-                    
+
                     <!-- Butonlar -->
                     <div class="col-md-2">
                         <label class="form-label">&nbsp;</label>
@@ -120,21 +115,25 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Hızlı Filtreler -->
                 <div class="row">
                     <div class="col-12">
                         <div class="btn-group btn-group-sm" role="group">
-                            <a href="?{% if sort_field %}sort={{ sort_field }}&order={{ sort_order }}{% endif %}" class="btn btn-outline-primary {% if not durum and not arama and not kategori_id and not marka_id %}active{% endif %}">
+                            <a href="?{% if sort_field %}sort={{ sort_field }}&order={{ sort_order }}{% endif %}"
+                                class="btn btn-outline-primary {% if not durum and not arama and not kategori_id and not marka_id %}active{% endif %}">
                                 <i class="fas fa-list"></i> Tümü
                             </a>
-                            <a href="?durum=tukendi{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}" class="btn btn-outline-danger {% if durum == 'tukendi' %}active{% endif %}">
+                            <a href="?durum=tukendi{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}"
+                                class="btn btn-outline-danger {% if durum == 'tukendi' %}active{% endif %}">
                                 <i class="fas fa-times-circle"></i> Tükenenler
                             </a>
-                            <a href="?durum=kritik{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}" class="btn btn-outline-warning {% if durum == 'kritik' %}active{% endif %}">
+                            <a href="?durum=kritik{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}"
+                                class="btn btn-outline-warning {% if durum == 'kritik' %}active{% endif %}">
                                 <i class="fas fa-exclamation-triangle"></i> Kritik
                             </a>
-                            <a href="?durum=normal{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}" class="btn btn-outline-success {% if durum == 'normal' %}active{% endif %}">
+                            <a href="?durum=normal{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}"
+                                class="btn btn-outline-success {% if durum == 'normal' %}active{% endif %}">
                                 <i class="fas fa-check-circle"></i> Normal
                             </a>
                             <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
@@ -196,11 +195,11 @@
         <div class="card-header">
             <h5 class="mb-0">
                 {% if durum == 'tukendi' %}
-                    Tükenen Ürünler
+                Tükenen Ürünler
                 {% elif durum == 'kritik' %}
-                    Kritik Stok Seviyesindeki Ürünler
+                Kritik Stok Seviyesindeki Ürünler
                 {% else %}
-                    Tüm Ürünler
+                Tüm Ürünler
                 {% endif %}
             </h5>
         </div>
@@ -266,7 +265,8 @@
                             <td>{{ varyant.urun.kategori.ad }}</td>
                             <td>{{ varyant.urun.marka.ad|default:"-" }}</td>
                             <td>
-                                <span class="badge {% if varyant.urun.cinsiyet == 'kadin' %}bg-pink{% else %}bg-blue{% endif %}">
+                                <span
+                                    class="badge {% if varyant.urun.cinsiyet == 'kadin' %}bg-pink{% else %}bg-blue{% endif %}">
                                     {{ varyant.urun.get_cinsiyet_display }}
                                 </span>
                             </td>
@@ -274,31 +274,34 @@
                                 <span class="text-primary fw-bold">{{ varyant.urun.alis_fiyati|floatformat:2 }} ₺</span>
                             </td>
                             <td>
-                                <span class="text-success fw-bold">{{ varyant.urun.satis_fiyati|floatformat:2 }} ₺</span>
+                                <span class="text-success fw-bold">{{ varyant.urun.satis_fiyati|floatformat:2 }}
+                                    ₺</span>
                             </td>
                             <td>
                                 {% with kar_orani=varyant.urun.kar_orani %}
-                                    <span class="badge {% if kar_orani >= 50 %}bg-success{% elif kar_orani >= 30 %}bg-warning{% else %}bg-danger{% endif %}">
-                                        %{{ kar_orani|floatformat:1 }}
-                                    </span>
+                                <span
+                                    class="badge {% if kar_orani >= 50 %}bg-success{% elif kar_orani >= 30 %}bg-warning{% else %}bg-danger{% endif %}">
+                                    %{{ kar_orani|floatformat:1 }}
+                                </span>
                                 {% endwith %}
                             </td>
                             <td>
-                                <span class="fw-bold {% if varyant.stok_miktari == 0 %}text-danger{% elif varyant.stok_miktari <= 5 %}text-warning{% else %}text-success{% endif %}">
+                                <span
+                                    class="fw-bold {% if varyant.stok_miktari == 0 %}text-danger{% elif varyant.stok_miktari <= 5 %}text-warning{% else %}text-success{% endif %}">
                                     {{ varyant.stok_miktari }}
                                 </span>
                             </td>
                             <td>
                                 {% if varyant.stok_miktari == 0 %}
-                                    <span class="badge bg-danger">Tükendi</span>
-                                {% elif varyant.stok_miktari <= 5 %}
-                                    <span class="badge bg-warning">Kritik</span>
-                                {% else %}
+                                <span class="badge bg-danger">Tükendi</span>
+                                {% elif varyant.stok_miktari <= 5 %} <span class="badge bg-warning">Kritik</span>
+                                    {% else %}
                                     <span class="badge bg-success">Normal</span>
-                                {% endif %}
+                                    {% endif %}
                             </td>
                             <td>
-                                <a href="{% url 'rapor:stok_hareketleri' varyant.id %}" class="btn btn-outline-info btn-sm" title="Stok Hareketlerini Görüntüle">
+                                <a href="{% url 'rapor:stok_hareketleri' varyant.id %}"
+                                    class="btn btn-outline-info btn-sm" title="Stok Hareketlerini Görüntüle">
                                     <i class="fas fa-history"></i> Hareketler
                                 </a>
                             </td>
@@ -319,26 +322,31 @@
     .badge-kar-marji {
         font-size: 0.8em;
     }
+
     .table-responsive {
         border-radius: 0.375rem;
     }
+
     .table thead th {
         border-top: none;
     }
+
     .stok-badge {
         min-width: 50px;
     }
+
     .filter-section {
         background-color: #f8f9fa;
         border-radius: 0.375rem;
         padding: 1rem;
         margin-bottom: 1rem;
     }
+
     .input-group-text {
         background-color: #e9ecef;
         border-color: #dee2e6;
     }
-    
+
     /* Sıralama stilleri */
     .sortable {
         cursor: pointer;
@@ -347,13 +355,13 @@
         background-color: #495057 !important;
         color: #ffffff !important;
     }
-    
+
     /* Hover efekti kaldırıldı - sadece cursor pointer kalacak */
     .sortable:hover {
         background-color: #495057 !important;
         color: #ffffff !important;
     }
-    
+
     /* Tablo başlık stilleri */
     .table thead th {
         border-bottom: 2px solid #dee2e6;
@@ -363,7 +371,7 @@
         background-color: #495057 !important;
         color: #ffffff !important;
     }
-    
+
     .sort-icon {
         opacity: 0.6;
         font-size: 0.8em;
@@ -371,32 +379,34 @@
         display: inline-block;
         color: #ffffff;
     }
-    
+
     .sortable:hover .sort-icon {
         opacity: 0.8;
         color: #ffffff;
     }
-    
+
     .sort-asc .sort-icon,
     .sort-desc .sort-icon {
         opacity: 1;
         color: #ffffff;
     }
-    
+
     .sort-asc .sort-icon {
         transform: rotate(0deg);
     }
-    
+
     .sort-desc .sort-icon {
         transform: rotate(180deg);
     }
-    
+
     .sort-asc .sort-icon::before {
-        content: "\f0de"; /* fa-sort-up */
+        content: "\f0de";
+        /* fa-sort-up */
     }
-    
+
     .sort-desc .sort-icon::before {
-        content: "\f0dd"; /* fa-sort-down */
+        content: "\f0dd";
+        /* fa-sort-down */
     }
 </style>
 
@@ -406,24 +416,24 @@
         // Sıralama parametrelerini koru
         const sortField = document.querySelector('input[name="sort"]').value;
         const sortOrder = document.querySelector('input[name="order"]').value;
-        
+
         // Form alanlarını temizle
         document.getElementById('arama').value = '';
         document.getElementById('kategori').value = '';
         document.getElementById('marka').value = '';
         document.getElementById('durum').value = '';
-        
+
         // Yeni URL oluştur (sadece sıralama ile)
         let newUrl = window.location.pathname;
         if (sortField && sortField !== 'urun__ad') {
             newUrl += `?sort=${sortField}&order=${sortOrder}`;
         }
-        
+
         window.location.href = newUrl;
     }
 
     // Enter tuşu ile arama
-    document.getElementById('arama').addEventListener('keypress', function(e) {
+    document.getElementById('arama').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             e.preventDefault();
             document.getElementById('filterForm').submit();
@@ -431,12 +441,12 @@
     });
 
     // Sayfa yüklendiğinde filtreleri kontrol et ve sayıları hesapla
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // URL parametrelerini kontrol et ve sonuç sayısını güncelle
         const urlParams = new URLSearchParams(window.location.search);
-        const hasFilters = urlParams.get('arama') || urlParams.get('kategori') || 
-                          urlParams.get('marka') || urlParams.get('durum');
-        
+        const hasFilters = urlParams.get('arama') || urlParams.get('kategori') ||
+            urlParams.get('marka') || urlParams.get('durum');
+
         if (hasFilters) {
             // Filtrelenmiş sonuçları vurgula
             const filterCard = document.querySelector('.card-header h6');
@@ -444,7 +454,7 @@
                 filterCard.innerHTML = '<i class="fas fa-filter me-2 text-primary"></i>Filtreleme ve Arama (Aktif)';
             }
         }
-        
+
         // Stok sayılarını hesapla ve sıralama event'lerini ekle
         calculateStockCounts();
         initializeSorting();
@@ -453,37 +463,37 @@
     // Sıralama fonksiyonları
     function initializeSorting() {
         const sortableHeaders = document.querySelectorAll('.sortable');
-        
+
         sortableHeaders.forEach(header => {
-            header.addEventListener('click', function() {
+            header.addEventListener('click', function () {
                 const sortField = this.getAttribute('data-sort');
                 const currentSort = new URLSearchParams(window.location.search).get('sort');
                 const currentOrder = new URLSearchParams(window.location.search).get('order');
-                
+
                 let newOrder = 'asc';
                 if (currentSort === sortField && currentOrder === 'asc') {
                     newOrder = 'desc';
                 }
-                
+
                 // Yeni URL oluştur
                 const params = new URLSearchParams(window.location.search);
                 params.set('sort', sortField);
                 params.set('order', newOrder);
-                
+
                 // Sayfayı yenile
                 window.location.search = params.toString();
             });
         });
-        
+
         // Mevcut sıralama durumunu göster
         const currentSort = new URLSearchParams(window.location.search).get('sort');
         const currentOrder = new URLSearchParams(window.location.search).get('order');
-        
+
         if (currentSort) {
             const activeHeader = document.querySelector(`[data-sort="${currentSort}"]`);
             if (activeHeader) {
                 activeHeader.classList.add(currentOrder === 'desc' ? 'sort-desc' : 'sort-asc');
-                
+
                 // Diğer headerlardan sıralama sınıflarını kaldır
                 sortableHeaders.forEach(header => {
                     if (header !== activeHeader) {
@@ -499,7 +509,7 @@
         const rows = document.querySelectorAll('tbody tr');
         let kritikCount = 0;
         let tukenenCount = 0;
-        
+
         rows.forEach(row => {
             const stokBadge = row.querySelector('.stok-badge');
             if (stokBadge) {
@@ -511,7 +521,7 @@
                 }
             }
         });
-        
+
         // Sayıları güncelle
         document.getElementById('kritikCount').textContent = kritikCount;
         document.getElementById('tukenenCount').textContent = tukenenCount;
@@ -519,9 +529,9 @@
 
     // Canlı arama (300ms gecikme ile)
     let searchTimeout;
-    document.getElementById('arama').addEventListener('input', function() {
+    document.getElementById('arama').addEventListener('input', function () {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(function() {
+        searchTimeout = setTimeout(function () {
             // İsteğe bağlı: otomatik arama
             // document.getElementById('filterForm').submit();
         }, 300);
@@ -532,10 +542,10 @@
         // Mevcut filtreleri al
         const params = new URLSearchParams(window.location.search);
         params.append('export', 'excel');
-        
+
         // Export URL'ini oluştur
         const exportUrl = window.location.pathname + '?' + params.toString();
-        
+
         // Yeni pencerede aç
         window.open(exportUrl, '_blank');
     }
@@ -546,10 +556,10 @@
     }
 
     // Responsive tablo scroll
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const tableContainer = document.querySelector('.table-responsive');
         if (tableContainer) {
-            tableContainer.addEventListener('scroll', function() {
+            tableContainer.addEventListener('scroll', function () {
                 if (this.scrollLeft > 0) {
                     this.classList.add('shadow-sm');
                 } else {
