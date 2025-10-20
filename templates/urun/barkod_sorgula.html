@@ -240,9 +240,9 @@
                                                                 class="btn btn-success" title="Satış Ekranına Ekle">
                                                                 <i class="fas fa-shopping-cart"></i> Satış
                                                             </a>
-                                                            <button type="button" class="btn btn-outline-success"
+                                                            <button type="button" class="btn btn-success"
                                                                 title="Etiket Yazdır" onclick="printLabel({{ v.id }})">
-                                                                <i class="fas fa-print"></i>
+                                                                <i class="fas fa-print"></i> Etiket
                                                             </button>
                                                             <button type="button" class="btn btn-outline-primary"
                                                                 onclick="copyToClipboard('{{ v.barkod }}')"
@@ -702,39 +702,111 @@
                 barkodInput.focus();
             }
 
-            // Etiket yazdırma fonksiyonu - Temporarily disabled
+            // Etiket yazdırma fonksiyonu - Aktif
             window.printLabel = function (varyantId) {
-                // Disabled due to missing etiket_websocket view
-                console.log('Label printing temporarily disabled for variant:', varyantId);
-                alert('Etiket yazdırma özelliği geçici olarak devre dışı.');
-                return;
+                console.log('Etiket yazdırma başlatılıyor, varyant ID:', varyantId);
                 
-                /* Temporarily commented out due to missing etiket_websocket view
-                fetch("/urun/etiket-websocket/0/".replace('0', varyantId), {
-                    method: 'POST',
+                // Loading göstergesi
+                const printBtn = event.target.closest('button');
+                const originalText = printBtn.innerHTML;
+                printBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                printBtn.disabled = true;
+                
+                // API'den ZPL etiket kodunu al
+                fetch(`/api/varyant-etiket/${varyantId}/`, {
+                    method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({
-                        varyant_id: varyantId
-                    })
+                    }
                 })
-                    .then(response => {
-                        if (response.ok) {
-                            return response.json();
-                        }
-                        throw new Error('Etiket yazdırma başarısız');
-                    })
-                    .then(data => {
-                        alert('Etiket yazdırma başlatıldı');
-                    })
-                    .catch(error => {
-                        console.error('Hata:', error);
-                        alert('Etiket yazdırma hatası: ' + error.message);
-                    });
-                */
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.text();
+                })
+                .then(zplCode => {
+                    if (!zplCode || zplCode.trim().length === 0) {
+                        throw new Error('Etiket verisi alınamadı!');
+                    }
+                    
+                    // ZPL kodunu yazdırma için hazırla
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write(`
+                        <html>
+                            <head>
+                                <title>Etiket Yazdır</title>
+                                <style>
+                                    body { margin: 0; padding: 0; }
+                                    @media print {
+                                        body { margin: 0; }
+                                        @page { margin: 0; }
+                                    }
+                                </style>
+                            </head>
+                            <body>
+                                <pre style="font-family: monospace; font-size: 12px; white-space: pre-wrap;">${zplCode}</pre>
+                                <script>
+                                    window.onload = function() {
+                                        // Otomatik yazdırma
+                                        setTimeout(function() {
+                                            window.print();
+                                            setTimeout(function() {
+                                                window.close();
+                                            }, 1000);
+                                        }, 500);
+                                    };
+                                </script>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                    
+                    // Başarı mesajı
+                    showToast('Etiket yazdırma penceresi açıldı!', 'success');
+                    
+                })
+                .catch(error => {
+                    console.error('Etiket yazdırma hatası:', error);
+                    showToast(`Etiket yazdırma hatası: ${error.message}`, 'error');
+                })
+                .finally(() => {
+                    // Butonu eski haline getir
+                    printBtn.innerHTML = originalText;
+                    printBtn.disabled = false;
+                });
             };
+            
+            // Toast bildirim fonksiyonu
+            function showToast(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = 'position-fixed top-0 end-0 p-3';
+                toast.style.zIndex = '9999';
+                
+                const bgClass = type === 'success' ? 'bg-success' : 
+                               type === 'error' ? 'bg-danger' : 'bg-info';
+                const icon = type === 'success' ? 'fa-check-circle' : 
+                           type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+                
+                toast.innerHTML = `
+                    <div class="toast show" role="alert">
+                        <div class="toast-header ${bgClass} text-white">
+                            <i class="fas ${icon} me-2"></i>
+                            <strong class="me-auto">${type === 'success' ? 'Başarılı' : type === 'error' ? 'Hata' : 'Bilgi'}</strong>
+                        </div>
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 4000);
+            }
         });
     </script>
     {% endblock %}
