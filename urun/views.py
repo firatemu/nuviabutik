@@ -1139,9 +1139,31 @@ def stok_duzeltme_view(request):
 def sayim_eksigi_view(request):
     """Sayım eksiği - Stok azaltma işlemi"""
     varyant = None
+    arama_yapildi = False
 
     if request.method == 'POST':
-        if 'islem' in request.POST and request.POST.get('varyant_id'):
+        if 'arama' in request.POST:
+            # Arama işlemi
+            arama_terimi = request.POST.get('arama_terimi', '').strip()
+            arama_yapildi = True
+
+            if arama_terimi:
+                try:
+                    # Önce barkod ile ara
+                    varyant = UrunVaryanti.objects.select_related(
+                        'urun').get(barkod=arama_terimi)
+                except UrunVaryanti.DoesNotExist:
+                    # Sonra ürün adı ile ara
+                    varyantlar = UrunVaryanti.objects.select_related('urun', 'renk', 'beden').filter(
+                        urun__ad__icontains=arama_terimi
+                    )
+                    if varyantlar.exists():
+                        varyant = varyantlar.first()
+                    else:
+                        messages.error(
+                            request, f'❌ "{arama_terimi}" için ürün bulunamadı!')
+
+        elif 'islem' in request.POST and request.POST.get('varyant_id'):
             # Stok azaltma işlemi
             try:
                 with transaction.atomic():
@@ -1182,8 +1204,9 @@ def sayim_eksigi_view(request):
 
     context = {
         'varyant': varyant,
+        'arama_yapildi': arama_yapildi,
         'sayfa_baslik': 'Sayım Eksiği',
-        'sayfa_aciklama': 'Stok azaltma işlemi',
+        'sayfa_aciklama': 'Barkod veya ürün adı ile arayıp stok azaltın',
         'islem_tipi': 'eksik'
     }
     return render(request, 'urun/sayim_islem.html', context)
@@ -1193,9 +1216,31 @@ def sayim_eksigi_view(request):
 def sayim_fazlasi_view(request):
     """Sayım fazlası - Stok artırma işlemi"""
     varyant = None
+    arama_yapildi = False
 
     if request.method == 'POST':
-        if 'islem' in request.POST and request.POST.get('varyant_id'):
+        if 'arama' in request.POST:
+            # Arama işlemi
+            arama_terimi = request.POST.get('arama_terimi', '').strip()
+            arama_yapildi = True
+
+            if arama_terimi:
+                try:
+                    # Önce barkod ile ara
+                    varyant = UrunVaryanti.objects.select_related(
+                        'urun').get(barkod=arama_terimi)
+                except UrunVaryanti.DoesNotExist:
+                    # Sonra ürün adı ile ara
+                    varyantlar = UrunVaryanti.objects.select_related('urun', 'renk', 'beden').filter(
+                        urun__ad__icontains=arama_terimi
+                    )
+                    if varyantlar.exists():
+                        varyant = varyantlar.first()
+                    else:
+                        messages.error(
+                            request, f'❌ "{arama_terimi}" için ürün bulunamadı!')
+
+        elif 'islem' in request.POST and request.POST.get('varyant_id'):
             # Stok artırma işlemi
             try:
                 with transaction.atomic():
@@ -1231,8 +1276,9 @@ def sayim_fazlasi_view(request):
 
     context = {
         'varyant': varyant,
+        'arama_yapildi': arama_yapildi,
         'sayfa_baslik': 'Sayım Fazlası',
-        'sayfa_aciklama': 'Stok artırma işlemi',
+        'sayfa_aciklama': 'Barkod veya ürün adı ile arayıp stok ekleyin',
         'islem_tipi': 'fazla'
     }
     return render(request, 'urun/sayim_islem.html', context)
