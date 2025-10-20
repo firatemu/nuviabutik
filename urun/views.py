@@ -38,10 +38,9 @@ def urun_listesi(request):
 
         return True
 
-    # Sayfalama
+    # Sayfalama - parametre kaldırıldı
     paginator = Paginator(urunler, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginator.get_page(1)  # Her zaman ilk sayfa
 
     # Her ürüne silme izni bilgisi ekle
     for urun in page_obj:
