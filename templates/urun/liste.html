@@ -1049,7 +1049,8 @@
                                     <i class="fas fa-search"></i>
                                 </span>
                                 <input type="text" class="form-control" id="productCodeSearch"
-                                    placeholder="Ürün adı, kodu, kategori veya marka ile arama yapın..." autocomplete="off">
+                                    placeholder="Ürün adı, kodu, kategori veya marka ile arama yapın..."
+                                    autocomplete="off">
                                 <button class="btn btn-primary" type="button" id="searchByCodeBtn">
                                     <i class="fas fa-search me-1"></i>Ara
                                 </button>
@@ -1399,14 +1400,14 @@
         const searchTerm = searchInput.value.trim().toLowerCase();
         const productItems = document.querySelectorAll('.product-item');
         const resultCount = document.getElementById('searchResultCount');
-        
+
         let visibleCount = 0;
-        
+
         productItems.forEach(item => {
             const productCode = item.getAttribute('data-product-code') || '';
             const productName = item.getAttribute('data-product-name') || '';
             const productBrand = item.getAttribute('data-product-brand') || '';
-            
+
             // Kategori bilgisini DOM'dan al
             let productCategory = '';
             if (item.tagName === 'TR') {
@@ -1422,14 +1423,14 @@
                     productCategory = categoryElement.textContent.toLowerCase().trim();
                 }
             }
-            
+
             // Arama terimini tüm alanlarda ara
-            const matchesSearch = searchTerm === '' || 
+            const matchesSearch = searchTerm === '' ||
                 productCode.includes(searchTerm) ||
                 productName.includes(searchTerm) ||
                 productBrand.includes(searchTerm) ||
                 productCategory.includes(searchTerm);
-            
+
             if (matchesSearch) {
                 // Hem kart hem liste görünümü için uygun display değeri
                 if (item.tagName === 'TR') {
@@ -1445,7 +1446,7 @@
                 item.style.display = 'none';
             }
         });
-        
+
         // Sonuç sayısını güncelle
         if (searchTerm) {
             resultCount.textContent = `${visibleCount} sonuç bulundu`;
@@ -1461,15 +1462,39 @@
         searchInput.value = '';
         searchByProductCode();
     }
+    
+    function ensureAllProductsVisible() {
+        const productItems = document.querySelectorAll('.product-item');
+        const resultCount = document.getElementById('searchResultCount');
+        
+        // Tüm ürünleri görünür yap
+        productItems.forEach(item => {
+            item.style.display = '';
+        });
+        
+        // Sonuç sayısını güncelle
+        if (resultCount) {
+            resultCount.textContent = `${productItems.length} ürün`;
+            resultCount.className = 'badge bg-info';
+        }
+    }
 
     // Sayfa yüklendiğinde setup işlemleri
     document.addEventListener('DOMContentLoaded', function () {
+        // Önce tüm ürünlerin görünür olduğundan emin ol
+        ensureAllProductsVisible();
+        
+        // Arama input'unu temizle
+        const searchInput = document.getElementById('productCodeSearch');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        
         // Kaydedilmiş görünümü uygula
         const savedView = localStorage.getItem('productViewType') || 'card';
         switchView(savedView);
 
         // Arama event listener'ları
-        const searchInput = document.getElementById('productCodeSearch');
         const searchBtn = document.getElementById('searchByCodeBtn');
         const clearBtn = document.getElementById('clearSearchBtn');
 
