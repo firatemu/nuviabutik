@@ -141,9 +141,9 @@
                         })
                     });
 
-                        console.log(`📡 Port ${port} yanıt alındı, status:`, response.status);
-                        const result = await response.json();
-                        console.log(`📄 Port ${port} sonuç:`, result);
+                    console.log(`📡 Port ${port} yanıt alındı, status:`, response.status);
+                    const result = await response.json();
+                    console.log(`📄 Port ${port} sonuç:`, result);
 
                     if (result.status === 'success') {
                         console.log(`✅ HTTP Bridge bulundu: localhost:${port}`);

@@ -16,13 +16,13 @@ def urun_listesi(request):
 
     # Ürünleri getir - pagination ile optimize edildi
     from django.core.paginator import Paginator
-    
+
     urunler_queryset = Urun.objects.select_related(
         'kategori', 'marka'
     ).prefetch_related(
         'varyantlar'
     ).all().order_by('-id')
-    
+
     # Pagination - 50 ürün per sayfa
     paginator = Paginator(urunler_queryset, 50)
     page_number = request.GET.get('page', 1)
@@ -46,16 +46,17 @@ def urun_listesi(request):
         # Stok kontrolü - batch olarak hesapla
         if urun.varyasyonlu:
             # Varyasyonlu ürünler için varyant stok toplamı
-            has_stock = any(varyant.stok_miktari > 0 for varyant in urun.varyantlar.all())
+            has_stock = any(varyant.stok_miktari >
+                            0 for varyant in urun.varyantlar.all())
         else:
             # Varyasyonlu olmayan ürünler için ilk varyant stok
             first_varyant = urun.varyantlar.first()
             has_stock = first_varyant and first_varyant.stok_miktari > 0
-            
+
         if has_stock:
             urun.silme_izni = False
             continue
-            
+
         # Silme izni var
         urun.silme_izni = True
 

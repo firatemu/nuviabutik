@@ -334,7 +334,7 @@ def stok_excel(request):
     marka_id = request.GET.get('marka')
     durum = request.GET.get('durum')
     cinsiyet = request.GET.get('cinsiyet')
-    
+
     # Arama filtresi
     if arama:
         from django.db.models import Q
@@ -345,11 +345,11 @@ def stok_excel(request):
             Q(renk__ad__icontains=arama) |
             Q(beden__ad__icontains=arama)
         )
-    
+
     # Kategori filtresi - None kontrolü
     if kategori_id and kategori_id != 'None' and kategori_id != '':
         varyantlar = varyantlar.filter(urun__kategori_id=kategori_id)
-    
+
     # Marka filtresi - None kontrolü
     if marka_id and marka_id != 'None' and marka_id != '':
         varyantlar = varyantlar.filter(urun__marka_id=marka_id)
@@ -359,7 +359,8 @@ def stok_excel(request):
         if durum == 'tukendi':
             varyantlar = varyantlar.filter(stok_miktari=0)
         elif durum == 'kritik':
-            varyantlar = varyantlar.filter(stok_miktari__gt=0, stok_miktari__lte=5)
+            varyantlar = varyantlar.filter(
+                stok_miktari__gt=0, stok_miktari__lte=5)
         elif durum == 'normal':
             varyantlar = varyantlar.filter(stok_miktari__gt=5)
 
