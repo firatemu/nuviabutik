@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load l10n %}
 
 {% block title %}{{ urun.ad }} - Ürün Detayı{% endblock %}
 
@@ -98,10 +99,45 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
+
+    /* Fiyat Kartları için Özel Stiller */
+    .price-card {
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .price-card h3,
+    .price-card h4 {
+        font-size: 1rem !important;
+        white-space: nowrap;
+        line-height: 1.2;
+        font-weight: 600 !important;
+    }
+
+    .price-card h6 {
+        font-size: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .price-card small {
+        font-size: 0.7rem;
+        margin-top: 0.25rem;
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+
+        .price-card h3,
+        .price-card h4 {
+            font-size: 0.9rem !important;
+        }
+    }
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <!-- CSRF Token for AJAX -->
     {% csrf_token %}
@@ -129,15 +165,9 @@
             {% endif %}
 
             <!-- Etiket Yazdırma Butonları -->
-            <button type="button" class="btn btn-success me-2" data-print-product="{{ urun.id }}">
+            <button type="button" class="btn btn-success me-2" data-print-product="{{ urun.id|unlocalize }}">
                 <i class="fas fa-print me-1"></i>Etiket Yazdır
             </button>
-            <!-- Temporarily disabled: ZPL Download functionality 
-            <a href="{% comment %}{% url 'urun:etiket_toplu_websocket' urun.id %}{% endcomment %}" class="btn btn-outline-primary me-2">
-                <i class="fas fa-download me-1"></i>ZPL İndir
-            </a>
-            -->
-            -->
 
             <a href="{% url 'urun:duzenle' urun.id %}" class="btn btn-warning me-2">
                 <i class="fas fa-edit me-1"></i>Düzenle
@@ -211,33 +241,32 @@
                                             {% endif %}
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <td><strong>Alış Fiyatı:</strong></td>
+                                        <td><span class="text-primary fw-bold">{{ urun.alis_fiyati|stringformat:".2f" }}
+                                                ₺</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Peşin Fiyat:</strong></td>
+                                        <td><span class="text-success fw-bold">{{ urun.pesin_fiyat|stringformat:".2f" }}
+                                                ₺</span> <small class="text-muted">(Nakit/Havale)</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Taksitli Fiyat:</strong></td>
+                                        <td>
+                                            <span class="fw-bold" style="color: #FF9800;">
+                                                {{ urun.taksitli_fiyat|stringformat:".2f" }} ₺
+                                            </span>
+                                            <small class="text-muted">
+                                                (9 x {{ urun.aylik_taksit_9|stringformat:".2f" }} ₺)
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Kar Oranı:</strong></td>
+                                        <td>%{{ urun.kar_orani }}</td>
+                                    </tr>
                                 </table>
-                            </div>
-
-                            <!-- Fiyat Bilgileri -->
-                            <div class="mb-4">
-                                <h5 class="text-muted mb-3">Fiyat Bilgileri</h5>
-                                <div class="row">
-                                    <div class="col-6">
-                                        <div class="card bg-light">
-                                            <div class="card-body text-center">
-                                                <h6 class="card-title">Alış Fiyatı</h6>
-                                                <h4 class="text-primary">{{ urun.alis_fiyati }} ₺</h4>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="card bg-light">
-                                            <div class="card-body text-center">
-                                                <h6 class="card-title">Satış Fiyatı</h6>
-                                                <h4 class="text-success">{{ urun.satis_fiyati }} ₺</h4>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mt-2 text-center">
-                                    <small class="text-muted">Kar Oranı: %{{ urun.kar_orani }}</small>
-                                </div>
                             </div>
 
                             <!-- Açıklama -->
@@ -380,7 +409,7 @@
                                     </button>
                                     {% endif %}
                                     <button type="button" class="btn btn-outline-success btn-sm"
-                                        data-print-variant="{{ varyant.id }}" title="Varyant Etiket Yazdır">
+                                        data-print-variant="{{ varyant.id|unlocalize }}" title="Varyant Etiket Yazdır">
                                         <i class="fas fa-print"></i>
                                     </button>
                                 </div>
@@ -440,7 +469,7 @@
                                             </button>
                                             {% endif %}
                                             <button type="button" class="btn btn-outline-success btn-sm"
-                                                data-print-variant="{{ varyant.id }}" title="Varyant Etiket Yazdır">
+                                                data-print-variant="{{ varyant.id|unlocalize }}" title="Varyant Etiket Yazdır">
                                                 <i class="fas fa-print"></i>
                                             </button>
                                             <a href="{% url 'urun:varyant_duzenle' varyant.id %}"
@@ -658,477 +687,12 @@
     document.head.appendChild(style);
 </script>
 
-<!-- Modern WebSocket Print Manager -->
-<script>
-    /**
-     * NuviaButik WebSocket Print Manager v3.1
-     * Modern WebSocket tabanlı etiket yazdırma sistemi
-     */
-
-    class NuviaPrintManager {
-        constructor() {
-            this.websocket = null;
-            this.isConnected = false;
-            this.reconnectAttempts = 0;
-            this.maxReconnectAttempts = 5;
-            this.reconnectDelay = 3000;
-            this.printAgentUrl = 'ws://localhost:9876';
-            // Sadece 9876 portunu kullan (Print Agent fixed port)
-            this.availablePorts = [9876];
-            this.currentPortIndex = 0;
-
-            // Event listeners
-            this.onConnected = null;
-            this.onDisconnected = null;
-            this.onPrintSuccess = null;
-            this.onError = null;
-
-            this.init();
-        }
-
-        init() {
-            this.checkPrintAgent();
-            this.createStatusIndicator();
-        }
-
-        createStatusIndicator() {
-            // Print Agent durum göstergesi oluştur
-            const indicator = document.createElement('div');
-            indicator.id = 'nuvia-print-status';
-            indicator.innerHTML = `
-            <div style="position: fixed; top: 20px; right: 20px; z-index: 10000; 
-                       background: #fff; border: 2px solid #dee2e6; border-radius: 8px; 
-                       padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: Arial;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div id="print-status-indicator" style="width: 12px; height: 12px; border-radius: 50%; background: #dc3545;"></div>
-                    <span id="print-status-text" style="font-size: 12px; font-weight: 600;">Print Agent Bağlantısı Yok</span>
-                </div>
-                <div id="print-retry-button" style="margin-top: 8px; display: none;">
-                    <button onclick="window.nuviaPrintManager.connectToPrintAgent()" 
-                            style="font-size: 11px; padding: 4px 8px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        Yeniden Bağlan
-                    </button>
-                </div>
-            </div>
-        `;
-            document.body.appendChild(indicator);
-        }
-
-        updateStatus(status, message) {
-            const indicator = document.getElementById('print-status-indicator');
-            const text = document.getElementById('print-status-text');
-            const retryButton = document.getElementById('print-retry-button');
-
-            if (!indicator || !text) return;
-
-            switch (status) {
-                case 'connected':
-                    indicator.style.background = '#28a745';
-                    text.textContent = 'Print Agent Bağlı ✓';
-                    retryButton.style.display = 'none';
-                    break;
-                case 'connecting':
-                    indicator.style.background = '#ffc107';
-                    text.textContent = 'Bağlanıyor...';
-                    retryButton.style.display = 'none';
-                    break;
-                case 'disconnected':
-                    indicator.style.background = '#dc3545';
-                    text.textContent = message || 'Print Agent Bağlantısı Yok';
-                    retryButton.style.display = 'block';
-                    break;
-            }
-        }
-
-        async checkPrintAgent() {
-            // Print Agent'ın çalışıp çalışmadığını kontrol et
-            this.updateStatus('connecting', 'Print Agent kontrol ediliyor...');
-
-            try {
-                await this.connectToPrintAgent();
-            } catch (error) {
-                console.warn('Print Agent bulunamadı:', error);
-                this.updateStatus('disconnected', 'Print Agent Bulunamadı');
-                this.showPrintAgentGuide();
-            }
-        }
-
-        async findAvailablePort() {
-            // Sadece 9876 portunu kontrol et
-            const port = this.availablePorts[0]; // 9876
-            try {
-                const testUrl = `ws://localhost:${port}`;
-                const testSocket = new WebSocket(testUrl);
-
-                await new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => {
-                        testSocket.close();
-                        reject(new Error('Timeout'));
-                    }, 1000);
-
-                    testSocket.onopen = () => {
-                        clearTimeout(timeout);
-                        testSocket.close();
-                        this.currentPortIndex = 0;
-                        this.printAgentUrl = testUrl;
-                        resolve();
-                    };
-
-                    testSocket.onerror = () => {
-                        clearTimeout(timeout);
-                        reject(new Error('Connection failed'));
-                    };
-                });
-
-                console.log(`✅ Print Agent port bulundu: ${port}`);
-                return port;
-
-            } catch (error) {
-                throw new Error('Port 9876\'da Print Agent bulunamadı');
-            }
-        }
-
-        async connectToPrintAgent() {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    // Önce mevcut URL'i dene
-                    let connectionSuccessful = false;
-
-                    try {
-                        await this.attemptConnection(this.printAgentUrl);
-                        connectionSuccessful = true;
-                    } catch (error) {
-                        console.log('Port 9876 başarısız, Print Agent kontrol ediliyor...');
-
-                        // Port 9876 kontrolü
-                        try {
-                            await this.findAvailablePort();
-                            await this.attemptConnection(this.printAgentUrl);
-                            connectionSuccessful = true;
-                        } catch (portError) {
-                            reject(new Error('Port 9876\'da Print Agent bulunamadı'));
-                            return;
-                        }
-                    }
-
-                    if (connectionSuccessful) {
-                        resolve();
-                    }
-
-                } catch (error) {
-                    reject(error);
-                }
-            });
-        }
-
-        async attemptConnection(url) {
-            return new Promise((resolve, reject) => {
-                try {
-                    this.websocket = new WebSocket(url);
-
-                    this.websocket.onopen = () => {
-                        console.log(`🔗 Print Agent bağlantısı kuruldu: ${url}`);
-                        this.isConnected = true;
-                        this.reconnectAttempts = 0;
-                        this.updateStatus('connected');
-
-                        if (this.onConnected) this.onConnected();
-                        resolve();
-                    };
-
-                    this.websocket.onmessage = (event) => {
-                        this.handleMessage(JSON.parse(event.data));
-                    };
-
-                    this.websocket.onclose = () => {
-                        console.log('🔌 Print Agent bağlantısı kesildi');
-                        this.isConnected = false;
-                        this.updateStatus('disconnected');
-
-                        if (this.onDisconnected) this.onDisconnected();
-
-                        // Otomatik yeniden bağlanma
-                        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                            setTimeout(() => {
-                                this.reconnectAttempts++;
-                                this.connectToPrintAgent();
-                            }, this.reconnectDelay);
-                        }
-                    };
-
-                    this.websocket.onerror = (error) => {
-                        console.error('❌ WebSocket hatası:', error);
-                        this.updateStatus('disconnected', 'Bağlantı Hatası');
-                        reject(error);
-                    };
-
-                } catch (error) {
-                    reject(error);
-                }
-            });
-        }
-
-        handleMessage(data) {
-            console.log('📨 Print Agent mesajı:', data);
-
-            switch (data.type) {
-                case 'connection':
-                    this.showToast('Print Agent bağlantısı kuruldu! ✓', 'success');
-                    break;
-
-                case 'print_success':
-                    this.showToast(`Etiket yazdırıldı: ${data.etiket_info?.varyant_adi || 'Bilinmeyen'}`, 'success');
-                    if (this.onPrintSuccess) this.onPrintSuccess(data);
-                    break;
-
-                case 'error':
-                    this.showToast(`Print Agent Hatası: ${data.message}`, 'error');
-                    if (this.onError) this.onError(data);
-                    break;
-
-                case 'printers':
-                    console.log('🖨️ Yazıcı listesi:', data.printers);
-                    break;
-            }
-        }
-
-        async printLabel(varyantId) {
-            if (!this.isConnected) {
-                this.showToast('Print Agent bağlantısı yok!', 'error');
-                this.showPrintAgentGuide();
-                return false;
-            }
-
-            try {
-                // Django'dan ZPL etiket kodunu al
-                const response = await fetch(`/api/varyant-etiket/${varyantId}/`, {
-                    method: 'GET',
-                    credentials: 'same-origin'
-                });
-
-                if (!response.ok) {
-                    throw new Error(`API hatası: HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const zplCode = await response.text();
-
-                if (!zplCode || zplCode.trim().length === 0) {
-                    this.showToast('Etiket verisi alınamadı!', 'error');
-                    return false;
-                }
-
-                // Print Agent'a gönder
-                const printMessage = {
-                    type: 'print_label',
-                    zpl_data: zplCode,
-                    etiket_info: {
-                        varyant_id: varyantId,
-                        source: 'varyant_etiket'
-                    }
-                };
-
-                this.websocket.send(JSON.stringify(printMessage));
-                this.showToast('Etiket yazıcıya gönderiliyor...', 'info');
-
-                return true;
-
-            } catch (error) {
-                console.error('❌ Yazdırma hatası:', error);
-                this.showToast(`❌ Hata! ${error.message}`, 'error');
-                return false;
-            }
-        }
-
-        async printMultipleLabels(urunId) {
-            if (!this.isConnected) {
-                this.showToast('Print Agent bağlantısı yok!', 'error');
-                this.showPrintAgentGuide();
-                return false;
-            }
-
-            try {
-                // Django'dan ürün ZPL etiket kodunu al (tüm varyantlar için)
-                const response = await fetch(`/api/urun-etiket/${urunId}/`, {
-                    method: 'GET',
-                    credentials: 'same-origin'
-                });
-
-                if (!response.ok) {
-                    throw new Error(`API hatası: HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const zplCode = await response.text();
-
-                if (!zplCode || zplCode.trim().length === 0) {
-                    this.showToast('Ürün etiket verisi alınamadı!', 'error');
-                    return false;
-                }
-
-                // ZPL kodlarını ayır (her ^XZ ile biten bir etiket)
-                const zplBlocks = zplCode.split('^XZ')
-                    .filter(block => block.trim().length > 0)
-                    .map(block => block.trim() + '^XZ'); // ^XZ'yi geri ekle
-
-                this.showToast(`${zplBlocks.length} adet varyant etiketi yazdırılıyor...`, 'info');
-
-                // Her ZPL bloğunu ayrı ayrı gönder
-                for (let i = 0; i < zplBlocks.length; i++) {
-                    const block = zplBlocks[i];
-
-                    // Print Agent'a gönder
-                    const printMessage = {
-                        type: 'print_label',
-                        zpl_data: block,
-                        etiket_info: {
-                            urun_id: urunId,
-                            varyant_index: i + 1,
-                            total_variants: zplBlocks.length,
-                            source: 'urun_toplu_etiket'
-                        }
-                    };
-
-                    this.websocket.send(JSON.stringify(printMessage));
-
-                    // Varyantlar arası kısa bekleme
-                    if (i < zplBlocks.length - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                    }
-                }
-
-                this.showToast(`Toplam ${zplBlocks.length} varyant etiketi yazıcıya gönderildi!`, 'success');
-                return true;
-
-            } catch (error) {
-                console.error('❌ Ürün etiket yazdırma hatası:', error);
-                this.showToast(`❌ Hata! ${error.message}`, 'error');
-                return false;
-            }
-        }
-
-        showPrintAgentGuide() {
-            // Print Agent uyarısı kapatıldı - performans için
-            console.log('Print Agent uyarısı devre dışı bırakıldı');
-            return;
-        }
-
-        showToast(message, type = 'info') {
-            // Modern toast notification
-            const toast = document.createElement('div');
-            const colors = {
-                success: '#28a745',
-                error: '#dc3545',
-                warning: '#ffc107',
-                info: '#17a2b8'
-            };
-
-            toast.style.cssText = `
-            position: fixed; bottom: 20px; right: 20px; z-index: 10002;
-            background: ${colors[type] || colors.info}; color: white;
-            padding: 12px 20px; border-radius: 8px; font-family: Arial;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 400px;
-            transform: translateX(100%); transition: transform 0.3s ease;
-        `;
-
-            toast.textContent = message;
-            document.body.appendChild(toast);
-
-            // Animasyon
-            setTimeout(() => {
-                toast.style.transform = 'translateX(0)';
-            }, 100);
-
-            // Otomatik kaldır
-            setTimeout(() => {
-                toast.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    if (toast.parentElement) {
-                        toast.remove();
-                    }
-                }, 300);
-            }, 4000);
-        }
-
-        getCSRFToken() {
-            const cookieValue = document.cookie
-                .split('; ')
-                .find(row => row.startsWith('csrftoken='))
-                ?.split('=')[1];
-
-            return cookieValue || document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
-        }
-    }
-
-    // Global instance oluştur
-    window.nuviaPrintManager = new NuviaPrintManager();
-
-    // Modern etiket yazdırma fonksiyonları
-    window.printVariantLabel = async function (varyantId, buttonElement) {
-        if (buttonElement) {
-            const originalText = buttonElement.innerHTML;
-            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Yazdırılıyor...';
-            buttonElement.disabled = true;
-
-            const success = await window.nuviaPrintManager.printLabel(varyantId);
-
-            setTimeout(() => {
-                buttonElement.innerHTML = originalText;
-                buttonElement.disabled = false;
-            }, 2000);
-
-            return success;
-        }
-
-        return await window.nuviaPrintManager.printLabel(varyantId);
-    };
-
-    // Sayfa yüklendiğinde Print Agent bağlantısını kontrol et
-    document.addEventListener('DOMContentLoaded', function () {
-        console.log('🚀 NuviaButik Print Manager v3.1 yüklendi');
-
-        // Mevcut print butonlarını güncelle
-        document.querySelectorAll('[data-print-variant]').forEach(button => {
-            button.addEventListener('click', function (e) {
-                e.preventDefault();
-                const varyantId = this.getAttribute('data-print-variant');
-                printVariantLabel(varyantId, this);
-            });
-        });
-
-        // Ürün etiket yazdırma butonları
-        document.querySelectorAll('[data-print-product]').forEach(button => {
-            button.addEventListener('click', function (e) {
-                e.preventDefault();
-                const urunId = this.getAttribute('data-print-product');
-                printProductLabels(urunId, this);
-            });
-        });
-    });
-
-    // Ürün için toplu etiket yazdırma
-    window.printProductLabels = async function (urunId, buttonElement) {
-        if (buttonElement) {
-            const originalText = buttonElement.innerHTML;
-            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Tüm Varyantlar Yazdırılıyor...';
-            buttonElement.disabled = true;
-
-            const success = await window.nuviaPrintManager.printMultipleLabels(urunId);
-
-            setTimeout(() => {
-                buttonElement.innerHTML = originalText;
-                buttonElement.disabled = false;
-
-                if (success) {
-                    // Başarı animasyonu
-                    showProductPrintSuccess(buttonElement);
-                }
-            }, 2000);
-
-            return success;
-        }
-
-        return await window.nuviaPrintManager.printMultipleLabels(urunId);
-    };
-
-    console.log('📦 NuviaButik Print Manager v3.1 loaded successfully');
-</script>
+<div class="mt-4 mb-4">
+    {% include "urun/etiket_status_widget.html" %}
+</div>
+
+<!-- Modern WebSocket Print Manager (QZ Tray Integration) -->
+<script src="{% static 'js/qz-tray.js' %}"></script>
+<script src="{% static 'js/nuvia-bridge.js' %}"></script>
+<script src="{% static 'js/nuvia-print-manager.js' %}"></script>
 {% endblock %}

@@ -84,7 +84,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -227,11 +227,11 @@
                                     <table class="table table-borderless">
                                         <tr>
                                             <td><strong>Alış Fiyatı:</strong></td>
-                                            <td>{{ urun.alis_fiyati|floatformat:2 }} ₺</td>
+                                            <td>{{ urun.alis_fiyati|turkish_currency }}</td>
                                         </tr>
                                         <tr>
                                             <td><strong>Satış Fiyatı:</strong></td>
-                                            <td class="text-success fw-bold">{{ urun.satis_fiyati|floatformat:2 }} ₺</td>
+                                            <td class="text-success fw-bold">{{ urun.pesin_fiyat|turkish_currency }}</td>
                                         </tr>
                                         <tr>
                                             <td><strong>Kar Oranı:</strong></td>

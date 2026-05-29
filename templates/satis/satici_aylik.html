@@ -155,7 +155,7 @@
 </script>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid py-4">
     <div class="report-header">
         <h2><i class="fas fa-chart-area me-3"></i>{{ title }}</h2>
@@ -221,18 +221,18 @@
         
         <div class="stats-grid">
             <div class="stat-box">
-                <div class="stat-value positive">{{ aylik_ozet.satis_tutari|floatformat:2 }} ₺</div>
+                <div class="stat-value positive">{{ aylik_ozet.satis_tutari|turkish_currency }}</div>
                 <div class="stat-label">Toplam Satış</div>
                 <small class="text-muted">({{ aylik_ozet.satis_adedi }} işlem)</small>
             </div>
             <div class="stat-box">
-                <div class="stat-value negative">{{ aylik_ozet.iade_tutari|floatformat:2 }} ₺</div>
+                <div class="stat-value negative">{{ aylik_ozet.iade_tutari|turkish_currency }}</div>
                 <div class="stat-label">Toplam İade</div>
                 <small class="text-muted">({{ aylik_ozet.iade_adedi }} işlem)</small>
             </div>
             <div class="stat-box">
                 <div class="stat-value {% if aylik_ozet.net_satis > 0 %}positive{% elif aylik_ozet.net_satis < 0 %}negative{% else %}neutral{% endif %}">
-                    {{ aylik_ozet.net_satis|floatformat:2 }} ₺
+                    {{ aylik_ozet.net_satis|turkish_currency }}
                 </div>
                 <div class="stat-label">Net Satış</div>
                 <small class="text-muted">
@@ -242,7 +242,7 @@
                 </small>
             </div>
             <div class="stat-box">
-                <div class="stat-value neutral">{{ aylik_ozet.ortalama_gunluk|floatformat:2 }} ₺</div>
+                <div class="stat-value neutral">{{ aylik_ozet.ortalama_gunluk|turkish_currency }}</div>
                 <div class="stat-label">Günlük Ortalama</div>
                 <small class="text-muted">Net satış bazlı</small>
             </div>
@@ -276,12 +276,12 @@
                     {% if veri.satis_tutari > 0 or veri.iade_tutari > 0 %}
                     <tr>
                         <td><strong>{{ gun }} {{ ay_adi }}</strong></td>
-                        <td class="positive">{{ veri.satis_tutari|floatformat:2 }} ₺</td>
+                        <td class="positive">{{ veri.satis_tutari|turkish_currency }}</td>
                         <td>{{ veri.satis_adedi }}</td>
-                        <td class="negative">{{ veri.iade_tutari|floatformat:2 }} ₺</td>
+                        <td class="negative">{{ veri.iade_tutari|turkish_currency }}</td>
                         <td>{{ veri.iade_adedi }}</td>
                         <td class="{% if veri.net_satis > 0 %}positive{% elif veri.net_satis < 0 %}negative{% else %}neutral{% endif %}">
-                            {{ veri.net_satis|floatformat:2 }} ₺
+                            {{ veri.net_satis|turkish_currency }}
                         </td>
                         <td>
                             <a href="{% url 'satis:satici_gunluk' %}?satici={{ secili_satici.id }}&tarih={{ yil }}-{{ ay|stringformat:"02d" }}-{{ gun|stringformat:"02d" }}" 

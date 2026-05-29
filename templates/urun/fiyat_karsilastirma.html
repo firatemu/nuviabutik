@@ -1,0 +1,56 @@
+{% load fiyat_tags currency_filters %}
+
+<div class="fiyat-karsilastirma-tablo" style="margin: 20px 0;">
+    <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+        <thead>
+            <tr style="background: #f5f5f5;">
+                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Ödeme Tipi</th>
+                <th style="padding: 12px; text-align: right; border-bottom: 2px solid #ddd;">Fiyat</th>
+                <th style="padding: 12px; text-align: right; border-bottom: 2px solid #ddd;">Taksit</th>
+                <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Avantaj</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr style="background: #e8f5e9;">
+                <td style="padding: 12px; border-bottom: 1px solid #ddd;">
+                    <strong style="color: #4CAF50;">💵 Peşin</strong>
+                </td>
+                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #ddd;">
+                    <strong style="font-size: 18px; color: #4CAF50;">{{ pesin|turkish_currency }}</strong>
+                </td>
+                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #ddd;">
+                    <span style="color: #666;">-</span>
+                </td>
+                <td style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd;">
+                    <span
+                        style="background: #4CAF50; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px;">
+                        {{ fark|turkish_currency }} Tasarruf
+                    </span>
+                </td>
+            </tr>
+            <tr style="background: #fff3e0;">
+                <td style="padding: 12px; border-bottom: 1px solid #ddd;">
+                    <strong style="color: #FF9800;">💳 Taksitli</strong>
+                </td>
+                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #ddd;">
+                    <strong style="font-size: 18px; color: #FF9800;">{{ taksitli|turkish_currency }}</strong>
+                </td>
+                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #ddd;">
+                    <span style="color: #666;">9 x {{ taksitli|mul:9|turkish_currency }}</span>
+                </td>
+                <td style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd;">
+                    <span
+                        style="background: #FF9800; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px;">
+                        Esnek Ödeme
+                    </span>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 5px; text-align: center;">
+        <span style="color: #2196F3; font-size: 14px;">
+            ⚡ <strong>Fiyat Farkı:</strong> {{ fark|turkish_currency }} (%{{ fark_yuzde|floatformat:1 }})
+        </span>
+    </div>
+</div>

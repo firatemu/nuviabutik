@@ -2,7 +2,7 @@
 
 {% block title %}Müşteri Raporu{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid mt-4">
     <div class="row">
         <div class="col-12">
@@ -46,7 +46,7 @@
                                     <div class="d-flex justify-content-between">
                                         <div>
                                             <h6 class="card-title">En Yüksek Ciro</h6>
-                                            <h4 class="mb-0">₺{{ musteri_stats.0.toplam_satis|floatformat:0 }}</h4>
+                                            <h4 class="mb-0">{{ musteri_stats.0.toplam_satis|turkish_currency }}</h4>
                                         </div>
                                         <div class="align-self-center">
                                             <i class="fas fa-crown fa-2x"></i>
@@ -62,8 +62,7 @@
                                         <div>
                                             <h6 class="card-title">Toplam Ciro</h6>
                                             <h4 class="mb-0">
-                                                ₺{% for stat in musteri_stats %}{{ stat.toplam_satis|add:0 }}{% if not
-                                                forloop.last %}+{% endif %}{% endfor %}
+                                                ₺{% for stat in musteri_stats %}{{ stat.toplam_satis|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
                                             </h4>
                                         </div>
                                         <div class="align-self-center">
@@ -79,7 +78,7 @@
                                     <div class="d-flex justify-content-between">
                                         <div>
                                             <h6 class="card-title">Ortalama Sepet</h6>
-                                            <h4 class="mb-0">₺{{ musteri_stats.0.ortalama_satis|floatformat:0 }}</h4>
+                                            <h4 class="mb-0">{{ musteri_stats.0.ortalama_satis|turkish_currency }}</h4>
                                         </div>
                                         <div class="align-self-center">
                                             <i class="fas fa-shopping-basket fa-2x"></i>
@@ -142,7 +141,7 @@
                                             </td>
                                             <td>
                                                 <span class="badge bg-success fs-6">
-                                                    ₺{{ stat.toplam_satis|floatformat:2 }}
+                                                    {{ stat.toplam_satis|turkish_currency }}
                                                 </span>
                                             </td>
                                             <td>
@@ -152,7 +151,7 @@
                                             </td>
                                             <td>
                                                 <span class="badge bg-info">
-                                                    ₺{{ stat.ortalama_satis|floatformat:2 }}
+                                                    {{ stat.ortalama_satis|turkish_currency }}
                                                 </span>
                                             </td>
                                             <td>
@@ -233,7 +232,7 @@
                                             <p class="text-success">
                                                 <i class="fas fa-crown"></i>
                                                 {{ musteri_stats.0.musteri.ad_soyad }} -
-                                                ₺{{ musteri_stats.0.toplam_satis|floatformat:2 }}
+                                                {{ musteri_stats.0.toplam_satis|turkish_currency }}
                                             </p>
                                         </div>
                                         <div class="col-md-6">
@@ -266,7 +265,7 @@
     let vipCount = 0, goldCount = 0, silverCount = 0, standardCount = 0;
 
     {% for stat in musteri_stats %}
-    {% with puan = stat.toplam_satis | floatformat: 0 | add: 0 %}
+    {% with puan=stat.toplam_satis|floatformat:0|add:0 %}
     {% if puan >= 10000 %}
     vipCount++;
     {% elif puan >= 5000 %}
@@ -315,16 +314,16 @@
         type: 'bar',
         data: {
             labels: [
-                {% for stat in musteri_stats | slice: ":10" %}
-                '{{ stat.musteri.ad_soyad|truncatechars:15 }}'{% if not forloop.last %}, {% endif %}
-        {% endfor %}
+                {% for stat in musteri_stats %}{% if forloop.counter <= 10 %}
+                '{{ stat.musteri.ad_soyad|truncatechars:15 }}'{% if forloop.counter < 10 and not forloop.last %}, {% endif %}
+        {% endif %}{% endfor %}
         ],
         datasets: [{
             label: 'Toplam Satış (₺)',
             data: [
-                {% for stat in musteri_stats | slice: ":10" %}
-                    {{ stat.toplam_satis }}{% if not forloop.last %}, {% endif %}
-    {% endfor %}
+                {% for stat in musteri_stats %}{% if forloop.counter <= 10 %}
+                    {{ stat.toplam_satis }}{% if forloop.counter < 10 and not forloop.last %}, {% endif %}
+    {% endif %}{% endfor %}
             ],
     backgroundColor: '#007bff',
         borderColor: '#0056b3',

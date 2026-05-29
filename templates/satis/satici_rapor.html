@@ -57,7 +57,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid py-4">
     <div class="report-card">
         <h2><i class="fas fa-chart-line me-3"></i>{{ title }}</h2>
@@ -101,18 +101,18 @@
                     <div class="col-md-9">
                         <div class="stats-row">
                             <div class="stat-item">
-                                <div class="stat-value positive">{{ satici.satis_tutari|floatformat:2 }} ₺</div>
+                                <div class="stat-value positive">{{ satici.satis_tutari|turkish_currency }}</div>
                                 <div class="stat-label">Toplam Satış</div>
                                 <small class="text-muted">({{ satici.satis_adedi }} adet)</small>
                             </div>
                             <div class="stat-item">
-                                <div class="stat-value negative">{{ satici.iade_tutari|floatformat:2 }} ₺</div>
+                                <div class="stat-value negative">{{ satici.iade_tutari|turkish_currency }}</div>
                                 <div class="stat-label">Toplam İade</div>
                                 <small class="text-muted">({{ satici.iade_adedi }} adet)</small>
                             </div>
                             <div class="stat-item">
                                 <div class="stat-value {% if satici.net_satis > 0 %}positive{% elif satici.net_satis < 0 %}negative{% else %}neutral{% endif %}">
-                                    {{ satici.net_satis|floatformat:2 }} ₺
+                                    {{ satici.net_satis|turkish_currency }}
                                 </div>
                                 <div class="stat-label">Net Satış</div>
                                 <small class="text-muted">

@@ -1,7 +1,9 @@
-from django.shortcuts import render
+from decimal import Decimal
+
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from django.db.models import Sum, Count, F
+from django.db.models import Sum, Count, F, Max, ExpressionWrapper, DecimalField
 from datetime import date, datetime, timedelta
 from openpyxl import Workbook
 from reportlab.pdfgen import canvas
@@ -154,6 +156,318 @@ def stok_raporu(request):
         'sort_order': request.GET.get('order', 'asc'),
     }
     return render(request, 'rapor/stok_raporu.html', context)
+
+
+@login_required
+def stok_degeri(request):
+    """Ürün bazında stok maliyeti (alış × stok)."""
+    from collections import defaultdict
+    from urun.models import UrunVaryanti
+
+    by_urun = defaultdict(int)
+    urun_map = {}
+    varyantlar = UrunVaryanti.objects.filter(
+        aktif=True,
+        urun__aktif=True,
+        stok_miktari__gt=0,
+    ).select_related('urun', 'urun__kategori', 'urun__marka')
+    for v in varyantlar:
+        by_urun[v.urun_id] += v.stok_miktari
+        urun_map[v.urun_id] = v.urun
+
+    urun_stok_degerleri = []
+    toplam_stok_degeri = Decimal('0')
+    for uid, ts in by_urun.items():
+        urun = urun_map[uid]
+        alis = urun.alis_fiyati or Decimal('0')
+        if not isinstance(alis, Decimal):
+            alis = Decimal(str(alis))
+        deger = alis * ts
+        toplam_stok_degeri += deger
+        urun_stok_degerleri.append({
+            'urun': urun,
+            'alis_fiyati': alis,
+            'toplam_stok': ts,
+            'stok_degeri': deger,
+        })
+    urun_stok_degerleri.sort(key=lambda x: x['stok_degeri'], reverse=True)
+
+    context = {
+        'toplam_urun_sayisi': len(urun_stok_degerleri),
+        'toplam_stok_degeri': toplam_stok_degeri,
+        'urun_stok_degerleri': urun_stok_degerleri,
+    }
+    return render(request, 'rapor/stok_degeri.html', context)
+
+
+def _fatura_karlilik_tarih_araligi(request):
+    baslangic = request.GET.get('baslangic')
+    bitis = request.GET.get('bitis')
+    if not baslangic:
+        baslangic = date.today().replace(day=1)
+    else:
+        baslangic = datetime.strptime(baslangic, '%Y-%m-%d').date()
+    if not bitis:
+        bitis = date.today()
+    else:
+        bitis = datetime.strptime(bitis, '%Y-%m-%d').date()
+    if baslangic > bitis:
+        baslangic, bitis = bitis, baslangic
+    return baslangic, bitis
+
+
+def _fatura_geneli_kar_ve_ciro_marji(fatura_net, maliyet):
+    fn = fatura_net or Decimal('0')
+    mal = maliyet or Decimal('0')
+    kar = fn - mal
+    marj = (kar / fn * Decimal('100')) if fn > 0 else Decimal('0')
+    return kar, marj
+
+
+def _kar_yuzde_maliyet_ustu(kar, maliyet):
+    mal = maliyet or Decimal('0')
+    k = kar or Decimal('0')
+    return (k / mal * Decimal('100')) if mal > 0 else Decimal('0')
+
+
+@login_required
+def urun_bazli_karlilik(request):
+    """Tamamlanan satışlar üzerinden ürün bazlı karlılık."""
+    baslangic = request.GET.get('baslangic')
+    bitis = request.GET.get('bitis')
+    if not baslangic:
+        baslangic = date.today().replace(day=1)
+    else:
+        baslangic = datetime.strptime(baslangic, '%Y-%m-%d').date()
+    if not bitis:
+        bitis = date.today()
+    else:
+        bitis = datetime.strptime(bitis, '%Y-%m-%d').date()
+    if baslangic > bitis:
+        baslangic, bitis = bitis, baslangic
+
+    money = DecimalField(max_digits=14, decimal_places=2)
+    qs = SatisDetay.objects.filter(
+        satis__satis_tarihi__date__range=[baslangic, bitis],
+        satis__durum='tamamlandi',
+    )
+    agg = qs.values('urun_id', 'urun__ad', 'urun__urun_kodu').annotate(
+        toplam_miktar=Sum('miktar'),
+        birim_alis=Max('urun__alis_fiyati'),
+        brut_tutar=Sum(
+            ExpressionWrapper(
+                F('birim_fiyat') * F('miktar'),
+                output_field=money,
+            )
+        ),
+        toplam_indirim=Sum('indirim_tutari'),
+        net_satis=Sum('toplam_fiyat'),
+        toplam_maliyet=Sum(
+            ExpressionWrapper(
+                F('urun__alis_fiyati') * F('miktar'),
+                output_field=money,
+            )
+        ),
+    ).order_by('-net_satis')
+
+    satirlar = []
+    for row in agg:
+        net = row['net_satis'] or Decimal('0')
+        mal = row['toplam_maliyet'] or Decimal('0')
+        kar = net - mal
+        kar_orani = (kar / mal * Decimal('100')) if mal and mal > 0 else Decimal('0')
+        satirlar.append({**row, 'kar': kar, 'kar_orani': kar_orani})
+
+    toplam_miktar = sum((r['toplam_miktar'] or 0) for r in satirlar)
+    toplam_brut = sum((r['brut_tutar'] or Decimal('0')) for r in satirlar)
+    toplam_indirim = sum((r['toplam_indirim'] or Decimal('0')) for r in satirlar)
+    toplam_net = sum((r['net_satis'] or Decimal('0')) for r in satirlar)
+    toplam_maliyet = sum((r['toplam_maliyet'] or Decimal('0')) for r in satirlar)
+    toplam_kar = toplam_net - toplam_maliyet
+    genel_kar_orani = (
+        (toplam_kar / toplam_maliyet * Decimal('100'))
+        if toplam_maliyet and toplam_maliyet > 0
+        else Decimal('0')
+    )
+
+    context = {
+        'title': 'Ürün Bazlı Karlılık',
+        'baslangic': baslangic,
+        'bitis': bitis,
+        'satirlar': satirlar,
+        'ozet': {
+            'urun_sayisi': len(satirlar),
+            'toplam_miktar': toplam_miktar,
+            'toplam_brut': toplam_brut,
+            'toplam_indirim': toplam_indirim,
+            'toplam_net': toplam_net,
+            'toplam_maliyet': toplam_maliyet,
+            'toplam_kar': toplam_kar,
+            'genel_kar_orani': genel_kar_orani,
+        },
+    }
+    return render(request, 'rapor/urun_bazli_karlilik.html', context)
+
+
+@login_required
+def fatura_bazli_karlilik(request):
+    """Tamamlanan satışlar (fatura) bazında karlılık."""
+    baslangic, bitis = _fatura_karlilik_tarih_araligi(request)
+    money = DecimalField(max_digits=14, decimal_places=2)
+    brut_expr = ExpressionWrapper(
+        F('satisdetay__birim_fiyat') * F('satisdetay__miktar'),
+        output_field=money,
+    )
+    maliyet_expr = ExpressionWrapper(
+        F('satisdetay__urun__alis_fiyati') * F('satisdetay__miktar'),
+        output_field=money,
+    )
+    qs = (
+        Satis.objects.filter(
+            satis_tarihi__date__range=[baslangic, bitis],
+            durum='tamamlandi',
+        )
+        .select_related('musteri', 'satici')
+        .annotate(
+            krl_brut_satir=Sum(brut_expr),
+            krl_indirim_satir=Sum('satisdetay__indirim_tutari'),
+            krl_net_satir=Sum('satisdetay__toplam_fiyat'),
+            krl_maliyet=Sum(maliyet_expr),
+        )
+        .order_by('-satis_tarihi', '-id')
+    )
+
+    satirlar = []
+    for s in qs:
+        fatura_net = s.genel_toplam or Decimal('0')
+        mal = s.krl_maliyet or Decimal('0')
+        kar, _ = _fatura_geneli_kar_ve_ciro_marji(fatura_net, mal)
+        kar_orani = _kar_yuzde_maliyet_ustu(kar, mal)
+        satirlar.append({
+            'satis': s,
+            'brut': s.krl_brut_satir or Decimal('0'),
+            'indirim': s.krl_indirim_satir or Decimal('0'),
+            'net_satir': s.krl_net_satir or Decimal('0'),
+            'fatura_net': fatura_net,
+            'maliyet': mal,
+            'kar': kar,
+            'kar_orani': kar_orani,
+        })
+
+    toplam_fatura_net = sum((r['fatura_net'] for r in satirlar), Decimal('0'))
+    toplam_maliyet = sum((r['maliyet'] for r in satirlar), Decimal('0'))
+    toplam_kar, _ = _fatura_geneli_kar_ve_ciro_marji(toplam_fatura_net, toplam_maliyet)
+    genel_kar_orani = _kar_yuzde_maliyet_ustu(toplam_kar, toplam_maliyet)
+    toplam_brut = sum((r['brut'] for r in satirlar), Decimal('0'))
+    toplam_indirim = sum((r['indirim'] for r in satirlar), Decimal('0'))
+
+    context = {
+        'title': 'Fatura Bazlı Karlılık',
+        'baslangic': baslangic,
+        'bitis': bitis,
+        'satirlar': satirlar,
+        'ozet': {
+            'fatura_adedi': len(satirlar),
+            'toplam_brut': toplam_brut,
+            'toplam_indirim': toplam_indirim,
+            'toplam_fatura_net': toplam_fatura_net,
+            'toplam_maliyet': toplam_maliyet,
+            'toplam_kar': toplam_kar,
+            'genel_kar_orani': genel_kar_orani,
+        },
+    }
+    return render(request, 'rapor/fatura_bazli_karlilik.html', context)
+
+
+@login_required
+def fatura_karlilik_detay(request, pk):
+    """Tek satışın satır bazlı karlılık dökümü."""
+    baslangic, bitis = _fatura_karlilik_tarih_araligi(request)
+    satis = get_object_or_404(Satis, pk=pk, durum='tamamlandi')
+    detay_qs = satis.satisdetay_set.select_related(
+        'urun', 'varyant', 'varyant__renk', 'varyant__beden'
+    ).order_by('id')
+
+    money = DecimalField(max_digits=14, decimal_places=2)
+    brut_expr = ExpressionWrapper(
+        F('birim_fiyat') * F('miktar'),
+        output_field=money,
+    )
+    agg = detay_qs.aggregate(
+        brut=Sum(brut_expr),
+        indirim=Sum('indirim_tutari'),
+        net_satir=Sum('toplam_fiyat'),
+        maliyet=Sum(
+            ExpressionWrapper(
+                F('urun__alis_fiyati') * F('miktar'),
+                output_field=money,
+            )
+        ),
+    )
+
+    detay_satirlari = []
+    for d in detay_qs:
+        brut = (d.birim_fiyat or Decimal('0')) * Decimal(d.miktar)
+        ind = d.indirim_tutari or Decimal('0')
+        net = d.toplam_fiyat or Decimal('0')
+        alis = d.urun.alis_fiyati or Decimal('0')
+        mal = alis * Decimal(d.miktar)
+        kar = net - mal
+        if mal and mal > 0:
+            kar_orani = kar / mal * Decimal('100')
+        elif net and net > 0:
+            kar_orani = kar / net * Decimal('100')
+        else:
+            kar_orani = Decimal('0')
+        varyant_etiket = ''
+        if d.varyant_id:
+            parca = []
+            if getattr(d.varyant, 'renk_id', None) and d.varyant.renk:
+                parca.append(d.varyant.renk.ad)
+            if getattr(d.varyant, 'beden_id', None) and d.varyant.beden:
+                parca.append(d.varyant.beden.ad)
+            varyant_etiket = ' · '.join(parca) if parca else (d.varyant.varyasyon_adi or '')
+
+        detay_satirlari.append({
+            'detay': d,
+            'brut': brut,
+            'indirim': ind,
+            'net': net,
+            'birim_alis': alis,
+            'maliyet': mal,
+            'kar': kar,
+            'kar_orani': kar_orani,
+            'varyant_etiket': varyant_etiket,
+        })
+
+    fatura_net = satis.genel_toplam or Decimal('0')
+    mal_top = agg['maliyet'] or Decimal('0')
+    net_satir = agg['net_satir'] or Decimal('0')
+    kar_top, kar_orani_ciro_marji = _fatura_geneli_kar_ve_ciro_marji(fatura_net, mal_top)
+    kar_orani_maliyet_top = _kar_yuzde_maliyet_ustu(kar_top, mal_top)
+    kar_satir_toplam = net_satir - mal_top
+    kar_orani_satir_maliyet = _kar_yuzde_maliyet_ustu(kar_satir_toplam, mal_top)
+
+    context = {
+        'title': f"Fatura karlılık — {satis.satis_no or satis.siparis_no}",
+        'baslangic': baslangic,
+        'bitis': bitis,
+        'satis': satis,
+        'detay_satirlari': detay_satirlari,
+        'ozet': {
+            'brut': agg['brut'] or Decimal('0'),
+            'indirim': agg['indirim'] or Decimal('0'),
+            'net_satir': net_satir,
+            'fatura_net': fatura_net,
+            'maliyet': mal_top,
+            'kar': kar_top,
+            'kar_orani': kar_orani_maliyet_top,
+            'kar_orani_ciro_marji': kar_orani_ciro_marji,
+            'kar_satir_toplam': kar_satir_toplam,
+            'kar_orani_satir_maliyet': kar_orani_satir_maliyet,
+        },
+    }
+    return render(request, 'rapor/fatura_karlilik_detay.html', context)
 
 
 @login_required
@@ -477,7 +791,6 @@ def stok_hareketleri(request, varyant_id):
 
 
 @login_required
-@login_required
 def satici_raporu(request):
     """Satış elemanlarının performans raporu"""
     from django.contrib.auth import get_user_model
@@ -527,7 +840,7 @@ def satici_raporu(request):
         satis__durum='tamamlandi'
     ).distinct()
 
-    # Her satış elemanı için istatistikler
+    # Her satış elemanı için istatistikler (ciro: genel_toplam = indirim sonrası net tahsilat)
     satici_stats = []
     toplam_satis_tutari = Decimal('0')
     toplam_satis_adedi = 0
@@ -541,14 +854,14 @@ def satici_raporu(request):
             durum='tamamlandi'
         )
 
-        # İstatistikler
+        # İstatistikler — toplam_tutar (KDV+ara) değil; müşterinin ödediği net: genel_toplam
         stats = satislar.aggregate(
-            toplam_tutar=Sum('toplam_tutar'),
+            toplam_tutar=Sum('genel_toplam'),
             satis_sayisi=Count('id')
         )
 
-        # Ortalama satış tutarını ayrı hesapla
-        ortalama_satis = satislar.aggregate(ortalama=Avg('toplam_tutar'))[
+        # Ortalama: net fatura başına
+        ortalama_satis = satislar.aggregate(ortalama=Avg('genel_toplam'))[
             'ortalama'] or Decimal('0')
 
         # Satılan ürün sayısı
@@ -558,7 +871,7 @@ def satici_raporu(request):
             satis__durum='tamamlandi'
         ).aggregate(toplam_adet=Sum('miktar'))['toplam_adet'] or 0
 
-        # En çok sattığı ürün
+        # En çok sattığı ürün (satır neti: toplam_fiyat indirim düşülmüş)
         en_cok_satan = SatisDetay.objects.filter(
             satis__satici=satici,
             satis__satis_tarihi__date__range=[baslangic, bitis],
@@ -570,10 +883,11 @@ def satici_raporu(request):
             toplam_tutar=Sum('toplam_fiyat')
         ).order_by('-toplam_adet').first()
 
-        if stats['toplam_tutar']:
+        net_toplam = stats['toplam_tutar'] or Decimal('0')
+        if stats['satis_sayisi']:
             satici_stats.append({
                 'satici': satici,
-                'toplam_tutar': stats['toplam_tutar'],
+                'toplam_tutar': net_toplam,
                 'satis_sayisi': stats['satis_sayisi'],
                 'urun_sayisi': urun_sayisi,
                 'ortalama_satis': ortalama_satis,
@@ -581,7 +895,7 @@ def satici_raporu(request):
                 'yuzde_pay': Decimal('0')  # Sonra hesaplanacak
             })
 
-            toplam_satis_tutari += stats['toplam_tutar']
+            toplam_satis_tutari += net_toplam
             toplam_satis_adedi += stats['satis_sayisi']
             toplam_urun_adedi += urun_sayisi
 
@@ -608,7 +922,7 @@ def satici_raporu(request):
                 satis_tarihi__date=tarih,
                 durum='tamamlandi'
             ).aggregate(
-                toplam=Sum('toplam_tutar'),
+                toplam=Sum('genel_toplam'),
                 adet=Count('id')
             )
 

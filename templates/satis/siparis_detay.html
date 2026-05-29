@@ -3,7 +3,7 @@
 
 {% block title %}{{ title }}{% endblock %}
 
-{% block content %}
+{% block page_content %}
 {% csrf_token %}
 <div class="container-fluid">
     <div class="row">
@@ -161,20 +161,19 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td class="text-end">₺{{ detay.birim_fiyat|floatformat:2 }}</td>
+                                            <td class="text-end">{{ detay.birim_fiyat|turkish_currency }}</td>
                                             <td class="text-center">
-                                                <span class="badge bg-primary">{{ detay.miktar|floatformat:0 }}</span>
+                                                <span class="badge bg-primary">{{ detay.miktar|turkish_int }}</span>
                                             </td>
                                             <td class="text-end">
                                                 {% if detay.indirim_tutari > 0 %}
-                                                <span class="text-danger">-₺{{ detay.indirim_tutari|floatformat:2
-                                                    }}</span>
+                                                <span class="text-danger">-{{ detay.indirim_tutari|turkish_currency }}</span>
                                                 {% else %}
                                                 <span class="text-muted">-</span>
                                                 {% endif %}
                                             </td>
                                             <td class="text-end fw-bold text-success">
-                                                ₺{{ detay.toplam_tutar|floatformat:2 }}
+                                                {{ detay.toplam_tutar|turkish_currency }}
                                             </td>
                                         </tr>
                                         {% empty %}
@@ -205,26 +204,26 @@
                             <table class="table table-borderless table-sm">
                                 <tr>
                                     <td>Ara Toplam:</td>
-                                    <td class="text-end">₺{{ siparis.ara_toplam|floatformat:2 }}</td>
+                                    <td class="text-end">{{ siparis.ara_toplam|turkish_currency }}</td>
                                 </tr>
                                 <tr>
                                     <td>İndirim:</td>
                                     <td class="text-end text-danger">
                                         {% if siparis.indirim_tutari > 0 %}
-                                        -₺{{ siparis.indirim_tutari|floatformat:2 }}
+                                        -{{ siparis.indirim_tutari|turkish_currency }}
                                         {% else %}
-                                        ₺0.00
+                                        {{ 0|turkish_currency }}
                                         {% endif %}
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>KDV:</td>
-                                    <td class="text-end">₺{{ siparis.kdv_tutari|floatformat:2 }}</td>
+                                    <td class="text-end">{{ siparis.kdv_tutari|turkish_currency }}</td>
                                 </tr>
                                 <tr class="border-top">
                                     <td class="fw-bold">Genel Toplam:</td>
                                     <td class="text-end fw-bold text-success h5">
-                                        ₺{{ siparis.genel_toplam|floatformat:2 }}
+                                        {{ siparis.genel_toplam|turkish_currency }}
                                     </td>
                                 </tr>
                             </table>

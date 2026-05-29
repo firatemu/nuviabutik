@@ -1,188 +1,1161 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Tahsilat Listesi{% endblock %}
+{% block title %}Tahsilat İşlemleri - Nuvia{% endblock %}
 
-{% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="card-title mb-0">
+{% block extra_css %}
+<style>
+    /* Scoped: base.html .sidebar = navigasyon menüsü; burada tahsilat-* kullanıyoruz */
+    .tahsilat-page {
+        --tp-primary: #0d6efd;
+        --tp-primary-dark: #0b5ed7;
+        --tp-primary-soft: rgba(13, 110, 253, 0.1);
+        --tp-success: #198754;
+        --tp-success-soft: rgba(25, 135, 84, 0.1);
+        --tp-danger: #dc3545;
+        --tp-danger-soft: rgba(220, 53, 69, 0.1);
+        --tp-warning: #ffc107;
+        --tp-warning-soft: rgba(255, 193, 7, 0.12);
+        --tp-info: #0dcaf0;
+        --tp-info-soft: rgba(13, 202, 240, 0.1);
+        --tp-dark: #212529;
+        --tp-muted: #6c757d;
+        --tp-border: #dee2e6;
+        --tp-bg: #f4f6f9;
+        --tp-card: #ffffff;
+        --tp-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        --tp-radius: 12px;
+    }
+
+    .tahsilat-page {
+        max-width: 100%;
+    }
+
+    .tahsilat-page__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--tp-border);
+    }
+
+    .tahsilat-page__title {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--tp-dark);
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .tahsilat-page__title i {
+        color: var(--tp-primary);
+    }
+
+    .tahsilat-page__actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .tp-btn {
+        padding: 0.55rem 1.1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .tp-btn--primary {
+        background: var(--tp-primary);
+        color: #fff;
+    }
+
+    .tp-btn--primary:hover {
+        background: var(--tp-primary-dark);
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    .tp-btn--outline {
+        background: var(--tp-card);
+        color: var(--tp-dark);
+        border: 2px solid var(--tp-border);
+    }
+
+    .tp-btn--outline:hover {
+        border-color: var(--tp-primary);
+        color: var(--tp-primary);
+    }
+
+    /* Özet kartlar */
+    .tahsilat-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .tp-stat {
+        background: var(--tp-card);
+        border-radius: var(--tp-radius);
+        padding: 1.1rem 1.25rem;
+        box-shadow: var(--tp-shadow);
+        border: 1px solid var(--tp-border);
+        border-left: 4px solid var(--tp-primary);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .tp-stat--success { border-left-color: var(--tp-success); }
+    .tp-stat--danger { border-left-color: var(--tp-danger); }
+    .tp-stat--warning { border-left-color: var(--tp-warning); }
+
+    .tp-stat__value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--tp-dark);
+        line-height: 1.2;
+    }
+
+    .tp-stat__label {
+        font-size: 0.8rem;
+        color: var(--tp-muted);
+        margin-top: 0.2rem;
+    }
+
+    .tp-stat__icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        background: var(--tp-primary-soft);
+        color: var(--tp-primary);
+    }
+
+    .tp-stat--success .tp-stat__icon {
+        background: var(--tp-success-soft);
+        color: var(--tp-success);
+    }
+
+    .tp-stat--danger .tp-stat__icon {
+        background: var(--tp-danger-soft);
+        color: var(--tp-danger);
+    }
+
+    .tp-stat--warning .tp-stat__icon {
+        background: var(--tp-warning-soft);
+        color: #b8860b;
+    }
+
+    /* Filtre */
+    .tahsilat-filters {
+        background: var(--tp-card);
+        border-radius: var(--tp-radius);
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.25rem;
+        box-shadow: var(--tp-shadow);
+        border: 1px solid var(--tp-border);
+    }
+
+    .tahsilat-filters__row {
+        display: grid;
+        grid-template-columns: 2fr repeat(4, 1fr) auto auto;
+        gap: 0.6rem;
+        align-items: center;
+    }
+
+    .tp-search {
+        position: relative;
+    }
+
+    .tp-search i {
+        position: absolute;
+        left: 0.85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--tp-muted);
+    }
+
+    .tp-search input,
+    .tp-select,
+    .tp-date {
+        width: 100%;
+        padding: 0.65rem 0.85rem 0.65rem 2.5rem;
+        border: 2px solid var(--tp-border);
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+
+    .tp-select,
+    .tp-date {
+        padding-left: 0.85rem;
+    }
+
+    .tp-search input:focus,
+    .tp-select:focus,
+    .tp-date:focus {
+        border-color: var(--tp-primary);
+        outline: none;
+        box-shadow: 0 0 0 3px var(--tp-primary-soft);
+    }
+
+    .tp-filter-submit {
+        width: 44px;
+        height: 44px;
+        border: none;
+        border-radius: 8px;
+        background: var(--tp-primary);
+        color: #fff;
+        cursor: pointer;
+    }
+
+    .tp-filter-clear {
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        background: var(--tp-bg);
+        color: var(--tp-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+
+    .tahsilat-quick-dates {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .tp-chip {
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        border: 1px solid var(--tp-border);
+        background: var(--tp-bg);
+        color: var(--tp-muted);
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .tp-chip:hover {
+        border-color: var(--tp-primary);
+        color: var(--tp-primary);
+        background: var(--tp-primary-soft);
+    }
+
+    /* Ana gövde: tablo + müşteri paneli */
+    .tahsilat-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+        gap: 1.25rem;
+        align-items: start;
+    }
+
+    .tahsilat-main {
+        min-width: 0;
+    }
+
+    .tp-table-wrap {
+        background: var(--tp-card);
+        border-radius: var(--tp-radius);
+        box-shadow: var(--tp-shadow);
+        border: 1px solid var(--tp-border);
+        overflow: hidden;
+    }
+
+    .tp-table-head {
+        background: var(--tp-primary);
+        color: #fff;
+        padding: 0.9rem 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .tp-table-head h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .tp-badge-count {
+        background: rgba(255, 255, 255, 0.25);
+        padding: 0.15rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+    }
+
+    .tp-table-scroll {
+        max-height: calc(100vh - 420px);
+        min-height: 280px;
+        overflow: auto;
+    }
+
+    .tp-table {
+        width: 100%;
+        margin: 0;
+        border-collapse: collapse;
+    }
+
+    .tp-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f8f9fa;
+        padding: 0.75rem 1rem;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--tp-muted);
+        border-bottom: 2px solid var(--tp-border);
+        white-space: nowrap;
+    }
+
+    .tp-table tbody tr {
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .tp-table tbody tr:hover {
+        background: var(--tp-primary-soft);
+    }
+
+    .tp-table tbody tr.is-selected {
+        background: rgba(13, 110, 253, 0.12);
+        box-shadow: inset 3px 0 0 var(--tp-primary);
+    }
+
+    .tp-table tbody td {
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid #f0f0f0;
+        vertical-align: middle;
+    }
+
+    .tp-no {
+        font-weight: 700;
+        color: var(--tp-primary);
+        font-size: 0.9rem;
+    }
+
+    .tp-amount {
+        font-weight: 700;
+        color: var(--tp-success);
+    }
+
+    .tp-pay {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+
+    .tp-pay.nakit { background: var(--tp-success-soft); color: var(--tp-success); }
+    .tp-pay.kart { background: var(--tp-primary-soft); color: var(--tp-primary); }
+    .tp-pay.havale { background: var(--tp-info-soft); color: #0aa2c0; }
+    .tp-pay.cek { background: var(--tp-warning-soft); color: #997404; }
+    .tp-pay.senet { background: #e9ecef; color: var(--tp-muted); }
+
+    .tp-status {
+        padding: 0.3rem 0.65rem;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+
+    .tp-status.tahsil_edildi { background: var(--tp-success-soft); color: var(--tp-success); }
+    .tp-status.beklemede { background: var(--tp-warning-soft); color: #997404; }
+    .tp-status.iptal { background: var(--tp-danger-soft); color: var(--tp-danger); }
+
+    .tp-row-actions {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .tp-icon-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--tp-muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.15s;
+    }
+
+    .tp-icon-btn:hover {
+        background: var(--tp-primary-soft);
+        color: var(--tp-primary);
+    }
+
+    .tp-table-foot {
+        padding: 0.85rem 1.25rem;
+        border-top: 1px solid var(--tp-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .tp-pagination {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .tp-page {
+        min-width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--tp-border);
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: var(--tp-dark);
+        text-decoration: none;
+        background: #fff;
+    }
+
+    .tp-page.active,
+    .tp-page:hover {
+        background: var(--tp-primary);
+        color: #fff;
+        border-color: var(--tp-primary);
+    }
+
+    /* Müşteri detay paneli (sidebar DEĞİL - base ile çakışmaz) */
+    .tahsilat-panel {
+        position: sticky;
+        top: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .tp-panel-card {
+        background: var(--tp-card);
+        border-radius: var(--tp-radius);
+        box-shadow: var(--tp-shadow);
+        border: 1px solid var(--tp-border);
+        overflow: visible;
+    }
+
+    .tp-panel-card__head {
+        background: var(--tp-primary);
+        color: #fff;
+        padding: 0.85rem 1rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .tp-panel-card__head--muted {
+        background: #495057;
+    }
+
+    .tp-panel-card__body {
+        padding: 1rem;
+    }
+
+    .tp-panel-empty {
+        text-align: center;
+        padding: 1.5rem 0.5rem;
+        color: var(--tp-muted);
+    }
+
+    .tp-panel-empty i {
+        font-size: 2rem;
+        opacity: 0.35;
+        margin-bottom: 0.5rem;
+    }
+
+    .tp-panel-empty h6 {
+        margin: 0 0 0.25rem;
+        color: var(--tp-dark);
+    }
+
+    .tp-customer-hero {
+        text-align: center;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--tp-border);
+        margin-bottom: 0.75rem;
+    }
+
+    .tp-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--tp-primary-soft);
+        color: var(--tp-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin: 0 auto 0.5rem;
+    }
+
+    .tp-customer-name {
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: var(--tp-dark);
+    }
+
+    .tp-customer-phone {
+        font-size: 0.85rem;
+        color: var(--tp-muted);
+    }
+
+    .tp-balance-box {
+        text-align: center;
+        padding: 0.75rem;
+        border-radius: 8px;
+        margin-bottom: 0.75rem;
+        background: var(--tp-bg);
+    }
+
+    .tp-balance-box.positive {
+        background: var(--tp-danger-soft);
+        border: 1px solid rgba(220, 53, 69, 0.2);
+    }
+
+    .tp-balance-box.negative {
+        background: var(--tp-success-soft);
+        border: 1px solid rgba(25, 135, 84, 0.2);
+    }
+
+    .tp-balance-label {
+        font-size: 0.8rem;
+        color: var(--tp-muted);
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+        line-height: 1.3;
+    }
+
+    .tp-balance-value {
+        font-size: clamp(1rem, 2.5vw, 1.5rem);
+        font-weight: 700;
+        color: var(--tp-dark);
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: visible;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .tp-balance-box.positive .tp-balance-value { color: var(--tp-danger); }
+    .tp-balance-box.negative .tp-balance-value { color: var(--tp-success); }
+
+    .tp-quick-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+
+    .tp-quick-link {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0.65rem 0.4rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-align: center;
+        border: 1px solid var(--tp-border);
+        color: var(--tp-dark);
+        transition: all 0.15s;
+    }
+
+    .tp-quick-link i {
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .tp-quick-link:hover {
+        border-color: var(--tp-primary);
+        background: var(--tp-primary-soft);
+        color: var(--tp-primary);
+    }
+
+    .tp-quick-link--success:hover {
+        border-color: var(--tp-success);
+        background: var(--tp-success-soft);
+        color: var(--tp-success);
+    }
+
+    .tp-hareket {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .tp-hareket:last-child {
+        border-bottom: none;
+    }
+
+    .tp-hareket-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+    }
+
+    .tp-hareket-icon.borc {
+        background: var(--tp-danger-soft);
+        color: var(--tp-danger);
+    }
+
+    .tp-hareket-icon.alacak {
+        background: var(--tp-success-soft);
+        color: var(--tp-success);
+    }
+
+    .tp-hareket-meta {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .tp-hareket-desc {
+        font-size: 0.8rem;
+        color: var(--tp-dark);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .tp-hareket-date {
+        font-size: 0.72rem;
+        color: var(--tp-muted);
+    }
+
+    .tp-hareket-amt {
+        font-weight: 600;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+
+    .tp-hareket-amt.borc { color: var(--tp-danger); }
+    .tp-hareket-amt.alacak { color: var(--tp-success); }
+
+    .tp-hareket-list {
+        max-height: 220px;
+        overflow-y: auto;
+    }
+
+    .tp-empty-table {
+        text-align: center;
+        padding: 2.5rem;
+        color: var(--tp-muted);
+    }
+
+    @media (max-width: 1200px) {
+        .tahsilat-body {
+            grid-template-columns: 1fr;
+        }
+
+        .tahsilat-panel {
+            position: static;
+        }
+
+        .tahsilat-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .tahsilat-filters__row {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .tahsilat-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .tahsilat-filters__row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="tahsilat-page">
+    {% if filtre_musteri %}
+    <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3" style="border-radius: var(--tp-radius);">
+        <span>
+            <i class="fas fa-user me-2"></i>
+            <strong>{{ filtre_musteri.tam_ad }}</strong> müşterisine ait tahsilatlar listeleniyor.
+        </span>
+        <span class="d-flex gap-2">
+            <a href="{% url 'musteri:detay' filtre_musteri.id %}" class="tp-btn tp-btn--outline" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Müşteri Detay</a>
+            <a href="{% url 'musteri:tahsilat_listesi' %}" class="tp-btn tp-btn--outline" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Filtreyi Kaldır</a>
+        </span>
+    </div>
+    {% endif %}
+
+    <header class="tahsilat-page__header">
+        <h1 class="tahsilat-page__title">
+            <i class="fas fa-money-bill-wave"></i>
+            Tahsilat İşlemleri{% if filtre_musteri %} — {{ filtre_musteri.tam_ad }}{% endif %}
+        </h1>
+        <div class="tahsilat-page__actions">
+            <a href="{% url 'musteri:borc_alacak_listesi' %}" class="tp-btn tp-btn--outline">
+                <i class="fas fa-chart-line"></i> Borç-Alacak
+            </a>
+            <a href="{% url 'musteri:tahsilat_ekle' %}" class="tp-btn tp-btn--primary">
+                <i class="fas fa-plus"></i> Yeni Tahsilat
+            </a>
+        </div>
+    </header>
+
+    <section class="tahsilat-stats">
+        <div class="tp-stat">
+            <div>
+                <div class="tp-stat__value">{{ toplam_tahsilat|default:"0"|turkish_currency }}</div>
+                <div class="tp-stat__label">Toplam Tahsilat (filtre)</div>
+            </div>
+            <div class="tp-stat__icon"><i class="fas fa-coins"></i></div>
+        </div>
+        <div class="tp-stat tp-stat--success">
+            <div>
+                <div class="tp-stat__value">{{ bugunku_tahsilat|default:"0"|turkish_currency }}</div>
+                <div class="tp-stat__label">Bugünkü Tahsilat</div>
+            </div>
+            <div class="tp-stat__icon"><i class="fas fa-calendar-day"></i></div>
+        </div>
+        <div class="tp-stat tp-stat--danger">
+            <div>
+                <div class="tp-stat__value">{{ toplam_borc|default:"0"|turkish_currency }}</div>
+                <div class="tp-stat__label">Toplam Müşteri Borcu</div>
+            </div>
+            <div class="tp-stat__icon"><i class="fas fa-exclamation-circle"></i></div>
+        </div>
+        <div class="tp-stat tp-stat--warning">
+            <div>
+                <div class="tp-stat__value">{{ iptal_sayisi|default:"0" }}</div>
+                <div class="tp-stat__label">İptal Edilen</div>
+            </div>
+            <div class="tp-stat__icon"><i class="fas fa-ban"></i></div>
+        </div>
+    </section>
+
+    <section class="tahsilat-filters">
+        <form method="get" id="filterForm" class="tahsilat-filters__row">
+            {% if musteri_id %}<input type="hidden" name="musteri" value="{{ musteri_id }}">{% endif %}
+            <div class="tp-search">
+                <i class="fas fa-search"></i>
+                <input type="text" name="search" placeholder="Tahsilat no, müşteri ara..." value="{{ search }}">
+            </div>
+            <select name="durum" class="tp-select">
+                <option value="all" {% if durum == 'all' %}selected{% endif %}>Tüm Durumlar</option>
+                <option value="tahsil_edildi" {% if durum == 'tahsil_edildi' %}selected{% endif %}>Tahsil Edildi</option>
+                <option value="beklemede" {% if durum == 'beklemede' %}selected{% endif %}>Beklemede</option>
+                <option value="iptal" {% if durum == 'iptal' %}selected{% endif %}>İptal</option>
+            </select>
+            <select name="tahsilat_tipi" class="tp-select">
+                <option value="all" {% if tahsilat_tipi == 'all' %}selected{% endif %}>Tüm Tipler</option>
+                <option value="nakit" {% if tahsilat_tipi == 'nakit' %}selected{% endif %}>Nakit</option>
+                <option value="kart" {% if tahsilat_tipi == 'kart' %}selected{% endif %}>Kredi Kartı</option>
+                <option value="havale" {% if tahsilat_tipi == 'havale' %}selected{% endif %}>Havale/EFT</option>
+                <option value="cek" {% if tahsilat_tipi == 'cek' %}selected{% endif %}>Çek</option>
+                <option value="senet" {% if tahsilat_tipi == 'senet' %}selected{% endif %}>Senet</option>
+            </select>
+            <input type="date" name="baslangic_tarihi" class="tp-date" value="{{ baslangic_tarihi }}" title="Başlangıç">
+            <input type="date" name="bitis_tarihi" class="tp-date" value="{{ bitis_tarihi }}" title="Bitiş">
+            <button type="submit" class="tp-filter-submit" title="Filtrele"><i class="fas fa-search"></i></button>
+            <a href="{% url 'musteri:tahsilat_listesi' %}" class="tp-filter-clear" title="Temizle"><i class="fas fa-times"></i></a>
+        </form>
+        <div class="tahsilat-quick-dates">
+            <button type="button" class="tp-chip" data-range="today">Bugün</button>
+            <button type="button" class="tp-chip" data-range="week">Bu Hafta</button>
+            <button type="button" class="tp-chip" data-range="month">Bu Ay</button>
+        </div>
+    </section>
+
+    <div class="tahsilat-body">
+        <div class="tahsilat-main">
+            <div class="tp-table-wrap">
+                <div class="tp-table-head">
+                    <h3>
                         <i class="fas fa-list"></i> Tahsilat Listesi
-                    </h4>
-                    <div>
-                        <a href="{% url 'musteri:tahsilat_ekle' %}" class="btn btn-success">
-                            <i class="fas fa-plus"></i> Yeni Tahsilat
-                        </a>
-                        <a href="{% url 'musteri:borc_alacak_listesi' %}" class="btn btn-info">
-                            <i class="fas fa-chart-line"></i> Borç-Alacak
-                        </a>
+                        <span class="tp-badge-count">{{ page_obj.paginator.count|default:"0" }}</span>
+                    </h3>
+                    <small style="opacity: 0.85;"><i class="fas fa-keyboard me-1"></i>↑↓ gezin · Enter yazdır</small>
+                </div>
+                <div class="tp-table-scroll">
+                    <table class="tp-table">
+                        <thead>
+                            <tr>
+                                <th>Tahsilat No</th>
+                                <th>Tarih</th>
+                                <th>Müşteri</th>
+                                <th>Tutar</th>
+                                <th>Tip</th>
+                                <th>Durum</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tahsilatTableBody">
+                            {% for tahsilat in page_obj %}
+                            <tr class="tp-data-row"
+                                data-musteri-id="{{ tahsilat.musteri.id }}"
+                                data-musteri-ad="{{ tahsilat.musteri.tam_ad|escape }}"
+                                data-musteri-telefon="{{ tahsilat.musteri.telefon|default:''|escape }}"
+                                data-musteri-bakiye="{{ tahsilat.musteri.acik_hesap_bakiye }}"
+                                data-musteri-bakiye-fmt="{{ tahsilat.musteri.acik_hesap_bakiye|turkish_currency }}"
+                                data-tahsilat-id="{{ tahsilat.id }}">
+                                <td><span class="tp-no">{{ tahsilat.tahsilat_no }}</span></td>
+                                <td>
+                                    <div>{{ tahsilat.tahsilat_tarihi|date:"d.m.Y" }}</div>
+                                    <small class="text-muted">{{ tahsilat.tahsilat_tarihi|time:"H:i" }}</small>
+                                </td>
+                                <td>
+                                    <strong>{{ tahsilat.musteri.tam_ad }}</strong>
+                                    {% if tahsilat.musteri.telefon %}
+                                    <br><small class="text-muted">{{ tahsilat.musteri.telefon }}</small>
+                                    {% endif %}
+                                </td>
+                                <td><span class="tp-amount">{{ tahsilat.tutar|turkish_currency }}</span></td>
+                                <td>
+                                    <span class="tp-pay {{ tahsilat.tahsilat_tipi }}">
+                                        {{ tahsilat.get_tahsilat_tipi_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="tp-status {{ tahsilat.durum }}">{{ tahsilat.get_durum_display }}</span>
+                                </td>
+                                <td>
+                                    <div class="tp-row-actions" onclick="event.stopPropagation()">
+                                        <a href="{% url 'musteri:tahsilat_detay' tahsilat.id %}" class="tp-icon-btn" title="Detay"><i class="fas fa-eye"></i></a>
+                                        <a href="{% url 'musteri:detay' tahsilat.musteri.id %}" class="tp-icon-btn" title="Müşteri"><i class="fas fa-user"></i></a>
+                                        {% if tahsilat.durum != 'iptal' %}
+                                        <a href="{% url 'musteri:tahsilat_duzenle' tahsilat.id %}" class="tp-icon-btn" title="Düzenle"><i class="fas fa-edit"></i></a>
+                                        <a href="{% url 'musteri:tahsilat_iptal' tahsilat.id %}" class="tp-icon-btn" title="İptal"><i class="fas fa-times"></i></a>
+                                        {% endif %}
+                                        <button type="button" class="tp-icon-btn" title="Yazdır" data-print-id="{{ tahsilat.id }}"><i class="fas fa-print"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7">
+                                    <div class="tp-empty-table">
+                                        <i class="fas fa-inbox fa-2x mb-2 d-block opacity-25"></i>
+                                        Kayıt bulunamadı
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if page_obj.has_other_pages %}
+                <div class="tp-table-foot">
+                    <span class="text-muted small">Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                    <div class="tp-pagination">
+                        {% if page_obj.has_previous %}
+                        <a class="tp-page" href="?page={{ page_obj.previous_page_number }}&search={{ search }}&durum={{ durum }}&tahsilat_tipi={{ tahsilat_tipi }}&baslangic_tarihi={{ baslangic_tarihi }}&bitis_tarihi={{ bitis_tarihi }}{% if musteri_id %}&musteri={{ musteri_id }}{% endif %}"><i class="fas fa-chevron-left"></i></a>
+                        {% endif %}
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <span class="tp-page active">{{ num }}</span>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a class="tp-page" href="?page={{ num }}&search={{ search }}&durum={{ durum }}&tahsilat_tipi={{ tahsilat_tipi }}&baslangic_tarihi={{ baslangic_tarihi }}&bitis_tarihi={{ bitis_tarihi }}{% if musteri_id %}&musteri={{ musteri_id }}{% endif %}">{{ num }}</a>
+                            {% endif %}
+                        {% endfor %}
+                        {% if page_obj.has_next %}
+                        <a class="tp-page" href="?page={{ page_obj.next_page_number }}&search={{ search }}&durum={{ durum }}&tahsilat_tipi={{ tahsilat_tipi }}&baslangic_tarihi={{ baslangic_tarihi }}&bitis_tarihi={{ bitis_tarihi }}{% if musteri_id %}&musteri={{ musteri_id }}{% endif %}"><i class="fas fa-chevron-right"></i></a>
+                        {% endif %}
                     </div>
                 </div>
-                
-                <div class="card-body">
-                    <!-- Filtreler -->
-                    <form method="get" class="row mb-4">
-                        <div class="col-md-3">
-                            <input type="text" name="search" class="form-control" placeholder="Tahsilat no, müşteri ara..." value="{{ search }}">
+                {% endif %}
+            </div>
+        </div>
+
+        <aside class="tahsilat-panel" aria-label="Müşteri bilgisi">
+            <div class="tp-panel-card">
+                <h2 class="tp-panel-card__head"><i class="fas fa-user"></i> Müşteri Bilgisi</h2>
+                <div class="tp-panel-card__body">
+                    <div id="panelEmpty" class="tp-panel-empty">
+                        <i class="fas fa-hand-pointer d-block"></i>
+                        <h6>Müşteri Seçin</h6>
+                        <p class="small mb-0">Listeden bir satıra tıklayın</p>
+                    </div>
+                    <div id="panelFilled" style="display: none;">
+                        <div class="tp-customer-hero">
+                            <div class="tp-avatar"><i class="fas fa-user"></i></div>
+                            <div class="tp-customer-name" id="panelName">-</div>
+                            <div class="tp-customer-phone" id="panelPhone">-</div>
                         </div>
-                        <div class="col-md-2">
-                            <select name="durum" class="form-select">
-                                <option value="all" {% if durum == 'all' %}selected{% endif %}>Tüm Durumlar</option>
-                                <option value="tahsil_edildi" {% if durum == 'tahsil_edildi' %}selected{% endif %}>Tahsil Edildi</option>
-                                <option value="beklemede" {% if durum == 'beklemede' %}selected{% endif %}>Beklemede</option>
-                                <option value="iptal" {% if durum == 'iptal' %}selected{% endif %}>İptal</option>
-                            </select>
+                        <div class="tp-balance-box" id="panelBalanceBox">
+                            <div class="tp-balance-label">Cari Hesap Bakiyesi</div>
+                            <div class="tp-balance-value" id="panelBalance">0,00 ₺</div>
                         </div>
-                        <div class="col-md-2">
-                            <input type="date" name="baslangic_tarihi" class="form-control" value="{{ baslangic_tarihi }}" placeholder="Başlangıç">
-                        </div>
-                        <div class="col-md-2">
-                            <input type="date" name="bitis_tarihi" class="form-control" value="{{ bitis_tarihi }}" placeholder="Bitiş">
-                        </div>
-                        <div class="col-md-3">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Filtrele
-                            </button>
-                            <a href="{% url 'musteri:tahsilat_listesi' %}" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Temizle
+                        <div class="tp-quick-grid">
+                            <a href="#" id="linkTahsilat" class="tp-quick-link tp-quick-link--success">
+                                <i class="fas fa-plus-circle"></i> Yeni Tahsilat
+                            </a>
+                            <a href="#" id="linkMusteri" class="tp-quick-link">
+                                <i class="fas fa-id-card"></i> Müşteri Detay
+                            </a>
+                            <a href="{% url 'musteri:borc_alacak_listesi' %}" class="tp-quick-link">
+                                <i class="fas fa-list"></i> Borç-Alacak
+                            </a>
+                            <a href="#" id="linkBorc" class="tp-quick-link">
+                                <i class="fas fa-file-invoice"></i> Borç Detay
                             </a>
                         </div>
-                    </form>
-                    
-                    <!-- Özet -->
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <div class="alert alert-info">
-                                <strong>Toplam Tahsilat:</strong> {{ toplam_tahsilat|floatformat:2 }}₺
-                                <span class="ms-3"><strong>Kayıt Sayısı:</strong> {{ page_obj.paginator.count }}</span>
-                            </div>
-                        </div>
                     </div>
-                    
-                    <!-- Tahsilat Tablosu -->
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Tahsilat No</th>
-                                    <th>Tarih</th>
-                                    <th>Müşteri</th>
-                                    <th>Tutar</th>
-                                    <th>Tip</th>
-                                    <th>Durum</th>
-                                    <th>Tahsilat Eden</th>
-                                    <th>İşlemler</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for tahsilat in page_obj %}
-                                <tr>
-                                    <td>
-                                        <a href="{% url 'musteri:tahsilat_detay' tahsilat.id %}" class="text-decoration-none">
-                                            <strong>{{ tahsilat.tahsilat_no }}</strong>
-                                        </a>
-                                    </td>
-                                    <td>{{ tahsilat.tahsilat_tarihi|date:"d.m.Y H:i" }}</td>
-                                    <td>
-                                        <div>
-                                            <strong>{{ tahsilat.musteri.tam_ad }}</strong>
-                                            <br><small class="text-muted">{{ tahsilat.musteri.telefon }}</small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="fs-6 text-success fw-bold">{{ tahsilat.tutar|floatformat:2 }}₺</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary">{{ tahsilat.get_tahsilat_tipi_display }}</span>
-                                        {% if tahsilat.tahsilat_tipi == 'cek' or tahsilat.tahsilat_tipi == 'senet' %}
-                                            {% if tahsilat.vade_tarihi %}
-                                                <br><small class="text-muted">Vade: {{ tahsilat.vade_tarihi|date:"d.m.Y" }}</small>
-                                            {% endif %}
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if tahsilat.durum == 'tahsil_edildi' %}
-                                            <span class="badge bg-success">{{ tahsilat.get_durum_display }}</span>
-                                        {% elif tahsilat.durum == 'beklemede' %}
-                                            <span class="badge bg-warning">{{ tahsilat.get_durum_display }}</span>
-                                        {% elif tahsilat.durum == 'iptal' %}
-                                            <span class="badge bg-danger">{{ tahsilat.get_durum_display }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if tahsilat.tahsilat_eden %}
-                                            {{ tahsilat.tahsilat_eden.get_full_name|default:tahsilat.tahsilat_eden.username }}
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{% url 'musteri:tahsilat_detay' tahsilat.id %}" class="btn btn-outline-info" title="Detay">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="{% url 'musteri:musteri_borc_detay' tahsilat.musteri.id %}" class="btn btn-outline-primary" title="Müşteri Detay">
-                                                <i class="fas fa-user"></i>
-                                            </a>
-                                            {% if tahsilat.durum != 'iptal' %}
-                                            <a href="{% url 'musteri:tahsilat_duzenle' tahsilat.id %}" class="btn btn-outline-warning" title="Düzenle">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <a href="{% url 'musteri:tahsilat_iptal' tahsilat.id %}" class="btn btn-outline-danger" title="İptal Et">
-                                                <i class="fas fa-times"></i>
-                                            </a>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="8" class="text-center text-muted py-4">
-                                        <i class="fas fa-search fa-2x mb-2"></i><br>
-                                        Tahsilat kaydı bulunamadı
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Sayfalama -->
-                    {% if page_obj.has_other_pages %}
-                    <nav aria-label="Page navigation" class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            {% if page_obj.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ search }}&durum={{ durum }}&baslangic_tarihi={{ baslangic_tarihi }}&bitis_tarihi={{ bitis_tarihi }}">Önceki</a>
-                                </li>
-                            {% endif %}
-                            
-                            {% for num in page_obj.paginator.page_range %}
-                                {% if page_obj.number == num %}
-                                    <li class="page-item active">
-                                        <span class="page-link">{{ num }}</span>
-                                    </li>
-                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ num }}&search={{ search }}&durum={{ durum }}&baslangic_tarihi={{ baslangic_tarihi }}&bitis_tarihi={{ bitis_tarihi }}">{{ num }}</a>
-                                    </li>
-                                {% endif %}
-                            {% endfor %}
-                            
-                            {% if page_obj.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ search }}&durum={{ durum }}&baslangic_tarihi={{ baslangic_tarihi }}&bitis_tarihi={{ bitis_tarihi }}">Sonraki</a>
-                                </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
-                    {% endif %}
                 </div>
+            </div>
+
+            <div class="tp-panel-card" id="panelHareketler" style="display: none;">
+                <h2 class="tp-panel-card__head tp-panel-card__head--muted"><i class="fas fa-history"></i> Son Hareketler</h2>
+                <div class="tp-panel-card__body" style="padding: 0.5rem 1rem;">
+                    <div class="tp-hareket-list" id="panelHareketList"></div>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<div class="modal fade" id="printModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-print me-2"></i>Makbuz Önizleme</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="printModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" onclick="window.print()"><i class="fas fa-print me-1"></i>Yazdır</button>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    /** Uygulama geneli ile aynı: 49.665,00 ₺ */
+    function formatTurkishCurrency(value) {
+        let num = Number(value);
+        if (Number.isNaN(num)) num = 0;
+        const negative = num < 0;
+        num = Math.abs(num);
+        const parts = num.toFixed(2).split('.');
+        const intPart = parts[0];
+        const decPart = parts[1];
+        const reversed = intPart.split('').reverse().join('');
+        const grouped = reversed.match(/.{1,3}/g) || ['0'];
+        const formattedInt = grouped.join('.').split('').reverse().join('');
+        let result = `${formattedInt},${decPart} ₺`;
+        return negative ? `-${result}` : result;
+    }
+
+    const fmt = formatTurkishCurrency;
+
+    function setPanelBalance(bakiye, bakiyeFmt) {
+        const el = document.getElementById('panelBalance');
+        el.textContent = bakiyeFmt || formatTurkishCurrency(bakiye);
+        const box = document.getElementById('panelBalanceBox');
+        box.classList.remove('positive', 'negative');
+        const n = parseFloat(bakiye) || 0;
+        if (n > 0) box.classList.add('positive');
+        else if (n < 0) box.classList.add('negative');
+    }
+
+    function showMusteriPanel({ id, ad, tel, bakiye, bakiyeFmt }) {
+        document.getElementById('panelEmpty').style.display = 'none';
+        document.getElementById('panelFilled').style.display = 'block';
+        document.getElementById('panelName').textContent = ad || '-';
+        document.getElementById('panelPhone').textContent = tel || '-';
+        setPanelBalance(bakiye, bakiyeFmt);
+
+        document.getElementById('linkTahsilat').href = `/musteri/tahsilat/ekle/?musteri=${id}`;
+        document.getElementById('linkMusteri').href = `/musteri/${id}/`;
+        document.getElementById('linkBorc').href = `/musteri/borc-detay/${id}/`;
+
+        loadHareketler(id);
+
+        fetch(`/musteri/ajax/detay/${id}/`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.musteri) {
+                    setPanelBalance(data.musteri.acik_hesap_bakiye);
+                }
+            })
+            .catch(() => {});
+    }
+
+    function selectRow(row) {
+        if (!row || !row.dataset.musteriId) return;
+
+        document.querySelectorAll('.tp-data-row').forEach(r => r.classList.remove('is-selected'));
+        row.classList.add('is-selected');
+
+        showMusteriPanel({
+            id: row.dataset.musteriId,
+            ad: row.dataset.musteriAd,
+            tel: row.dataset.musteriTelefon || '-',
+            bakiye: row.dataset.musteriBakiye,
+            bakiyeFmt: row.dataset.musteriBakiyeFmt,
+        });
+    }
+
+    async function loadHareketler(musteriId) {
+        const card = document.getElementById('panelHareketler');
+        const list = document.getElementById('panelHareketList');
+        card.style.display = 'block';
+        list.innerHTML = '<p class="text-muted small text-center py-2">Yükleniyor...</p>';
+
+        try {
+            const res = await fetch(`/musteri/ajax/son-hareketler/?musteri_id=${musteriId}`);
+            const data = await res.json();
+            if (data.hareketler && data.hareketler.length) {
+                list.innerHTML = data.hareketler.map(h => `
+                    <div class="tp-hareket">
+                        <div class="tp-hareket-icon ${h.hareket_tipi}"><i class="fas fa-arrow-${h.hareket_tipi === 'borc' ? 'up' : 'down'}"></i></div>
+                        <div class="tp-hareket-meta">
+                            <div class="tp-hareket-desc">${h.aciklama}</div>
+                            <div class="tp-hareket-date">${h.hareket_tarihi}</div>
+                        </div>
+                        <div class="tp-hareket-amt ${h.hareket_tipi}">${h.hareket_tipi === 'borc' ? '+' : '-'}${fmt(h.tutar)}</div>
+                    </div>
+                `).join('');
+            } else {
+                list.innerHTML = '<p class="text-muted small text-center py-2">Hareket yok</p>';
+            }
+        } catch (e) {
+            list.innerHTML = '<p class="text-danger small text-center py-2">Yüklenemedi</p>';
+        }
+    }
+
+    async function printReceipt(tahsilatId) {
+        try {
+            const res = await fetch(`/musteri/tahsilat/${tahsilatId}/?format=json`);
+            const d = await res.json();
+            document.getElementById('printModalBody').innerHTML = `
+                <div style="font-family: monospace; font-size: 13px;">
+                    <div style="text-align:center;font-weight:bold;margin-bottom:12px;">TAHSİLAT MAKBUZU</div>
+                    <div><strong>No:</strong> ${d.tahsilat_no}</div>
+                    <div><strong>Tarih:</strong> ${d.tahsilat_tarihi}</div>
+                    <div><strong>Müşteri:</strong> ${d.musteri}</div>
+                    <div><strong>Ödeme:</strong> ${d.tahsilat_tipi}</div>
+                    ${d.aciklama ? `<div><strong>Açıklama:</strong> ${d.aciklama}</div>` : ''}
+                    <div style="margin-top:10px;font-size:16px;font-weight:bold;">Tutar: ${fmt(d.tutar)}</div>
+                </div>`;
+            new bootstrap.Modal(document.getElementById('printModal')).show();
+        } catch (e) {
+            alert('Makbuz yüklenemedi.');
+        }
+    }
+
+    document.querySelectorAll('.tp-data-row').forEach(row => {
+        row.addEventListener('click', () => selectRow(row));
+    });
+
+    document.querySelectorAll('[data-print-id]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            printReceipt(btn.dataset.printId);
+        });
+    });
+
+    document.querySelectorAll('.tp-chip[data-range]').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const form = document.getElementById('filterForm');
+            const today = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+            let start = new Date(today);
+            const end = iso(today);
+            if (chip.dataset.range === 'week') {
+                start.setDate(today.getDate() - 7);
+            } else if (chip.dataset.range === 'month') {
+                start = new Date(today.getFullYear(), today.getMonth(), 1);
+            }
+            form.querySelector('[name=baslangic_tarihi]').value = iso(start);
+            form.querySelector('[name=bitis_tarihi]').value = end;
+            form.submit();
+        });
+    });
+
+    {% if filtre_musteri %}
+    document.addEventListener('DOMContentLoaded', () => {
+        const firstRow = document.querySelector(
+            `.tp-data-row[data-musteri-id="{{ filtre_musteri.id }}"]`
+        );
+        if (firstRow) {
+            selectRow(firstRow);
+        } else {
+            showMusteriPanel({
+                id: '{{ filtre_musteri.id }}',
+                ad: '{{ filtre_musteri.tam_ad|escapejs }}',
+                tel: '{{ filtre_musteri.telefon|default:""|escapejs }}',
+                bakiye: '{{ filtre_musteri.acik_hesap_bakiye }}',
+                bakiyeFmt: '{{ filtre_musteri.acik_hesap_bakiye|turkish_currency }}',
+            });
+        }
+    });
+    {% endif %}
+
+    document.addEventListener('keydown', (e) => {
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+        const rows = Array.from(document.querySelectorAll('.tp-data-row'));
+        if (!rows.length) return;
+        let idx = rows.findIndex(r => r.classList.contains('is-selected'));
+        if (e.key === 'ArrowDown' && idx < rows.length - 1) {
+            e.preventDefault();
+            selectRow(rows[idx + 1]);
+            rows[idx + 1].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'ArrowUp' && idx > 0) {
+            e.preventDefault();
+            selectRow(rows[idx - 1]);
+            rows[idx - 1].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter' && idx >= 0) {
+            const printBtn = rows[idx].querySelector('[data-print-id]');
+            if (printBtn) printReceipt(printBtn.dataset.printId);
+        }
+    });
+})();
+</script>
 {% endblock %}

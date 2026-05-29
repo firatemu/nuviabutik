@@ -163,10 +163,15 @@ class Satis(models.Model):
             if not self.satis_tarihi:
                 self.satis_tarihi = timezone.now()
         
-        # KDV tutarını hesapla
-        self.kdv_tutari = self.ara_toplam * (self.kdv_orani / 100)
-        self.toplam_tutar = self.ara_toplam + self.kdv_tutari
-        
+        # KDV ve Genel Toplam tutarlarını hesapla
+        from decimal import Decimal
+        a_toplam = Decimal(str(self.ara_toplam or 0))
+        i_tutari = Decimal(str(self.indirim_tutari or 0))
+        k_orani = Decimal(str(self.kdv_orani if self.kdv_orani is not None else 18.00))
+
+        self.kdv_tutari = a_toplam * (k_orani / 100)
+        self.toplam_tutar = a_toplam + self.kdv_tutari
+        self.genel_toplam = self.toplam_tutar - i_tutari
         super().save(*args, **kwargs)
 
     @property
@@ -229,6 +234,26 @@ class Satis(models.Model):
         
         return " + ".join(odeme_listesi)
 
+    @property
+    def brut_tutar(self):
+        """İndirim öncesi brüt tutar (Ara Toplam + KDV)"""
+        return self.toplam_tutar
+
+    @property
+    def brut_ara_toplam(self):
+        """İndirim öncesi brüt tutar (Genel Toplam + İndirim Tutarı)"""
+        return self.genel_toplam + self.indirim_tutari
+
+    @property
+    def toplam_indirim_tutari(self):
+        """Tüm indirimlerin toplamı (Stored Indirim Tutarı)"""
+        return self.indirim_tutari
+
+    @property
+    def net_toplam_tutar(self):
+        """İndirim sonrası net toplam tutar (KDV dahil, indirim düşülmüş)"""
+        return self.genel_toplam
+
 
 class Odeme(models.Model):
     """Ödeme bilgileri modeli"""
@@ -245,6 +270,7 @@ class Odeme(models.Model):
         ('ziraat', 'ZİRAAT BANKASI'),
         ('yapikredi', 'YAPIKREDİ BANKASI'),
         ('akbank', 'AKBANK'),
+        ('diger', 'Diğer'),
     ]
     
     satis = models.ForeignKey(Satis, on_delete=models.CASCADE, verbose_name="Satış")
@@ -297,6 +323,11 @@ class SatisDetay(models.Model):
     indirim_orani = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name="İndirim Oranı (%)")
     indirim_tutari = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="İndirim Tutarı")
 
+    @property
+    def toplam_indirim(self):
+        """Bu satırdaki toplam indirim miktarı (indirim_tutari satır bazlı tutuluyor)"""
+        return self.indirim_tutari
+
     class Meta:
         verbose_name = "Satış Detay"
         verbose_name_plural = "Satış Detayları"
@@ -307,7 +338,8 @@ class SatisDetay(models.Model):
     def save(self, *args, **kwargs):
         # Toplam fiyatı hesapla
         if not self.birim_fiyat:
-            self.birim_fiyat = self.urun.satis_fiyati
+            # Peşin fiyatı kullan (satis_fiyati deprecated)
+            self.birim_fiyat = self.urun.pesin_fiyat
         
         toplam_without_discount = self.birim_fiyat * self.miktar
         
@@ -325,6 +357,11 @@ class SatisDetay(models.Model):
     def ara_toplam(self):
         """Template uyumluluğu için ara_toplam property'si"""
         return self.toplam_fiyat
+
+    @property
+    def toplam_hesaplanan(self):
+        """Birim fiyat ve miktara göre hesaplanan toplam (indirimli). Gösterimde tutarlılık için kullanılır."""
+        return (self.birim_fiyat * self.miktar) - self.indirim_tutari
     
     @property
     def indirimsiz_toplam(self):
@@ -438,6 +475,16 @@ class SatisSiparisi(models.Model):
         """Siparişteki farklı ürün sayısı"""
         return self.detaylar.count()
 
+    @property
+    def brut_ara_toplam(self):
+        """Tüm ürünlerin indirimsiz birim fiyat toplamı (Sipariş)"""
+        return sum((item.birim_fiyat * item.miktar) for item in self.detaylar.all())
+
+    @property
+    def toplam_indirim_tutari(self):
+        """Tüm indirimlerin toplamı (Sipariş) (Brüt Ürün Toplamı - Net Ödenen)"""
+        return self.brut_ara_toplam - self.genel_toplam
+
     def satisa_donustur(self, user=None):
         """Siparişi satışa dönüştür"""
         from decimal import Decimal
@@ -493,6 +540,11 @@ class SatisSiparisiDetay(models.Model):
     indirim_orani = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name="İndirim Oranı (%)")
     indirim_tutari = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="İndirim Tutarı")
     toplam = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Toplam")
+
+    @property
+    def toplam_indirim(self):
+        """Bu satırdaki toplam indirim miktarı (Sipariş)"""
+        return (self.birim_fiyat * self.miktar) - self.toplam
 
     class Meta:
         verbose_name = "Satış Siparişi Detayı"

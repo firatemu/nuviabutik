@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Değişim Fişi — {{ satis.satis_no|default:satis.siparis_no }}</title>
+    <style>
+        @page {
+            size: 80mm auto;
+            margin: 2mm;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 15px;
+            font-weight: bold;
+            line-height: 1.3;
+            margin: 0;
+            padding: 2mm;
+            width: 76mm;
+            color: #000;
+            background: #fff;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+
+        .company-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 3px;
+            letter-spacing: 1px;
+        }
+
+        .company-tagline {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .company-info {
+            font-size: 11px;
+            margin-bottom: 2px;
+            font-weight: bold;
+        }
+
+        .separator {
+            border-bottom: 1px dashed #000;
+            margin: 5px 0;
+        }
+
+        .receipt-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 8px 0 5px 0;
+            letter-spacing: 0.5px;
+        }
+
+        .receipt-subtitle {
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .transaction-info {
+            margin: 8px 0;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .items-section {
+            margin: 8px 0;
+        }
+
+        .item-header {
+            border-top: 2px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 4px 0;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .item-row {
+            padding: 4px 0;
+            font-size: 14px;
+            border-bottom: 1px dotted #ccc;
+        }
+
+        .item-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .item-meta {
+            font-size: 13px;
+            font-weight: bold;
+            margin-left: 4px;
+        }
+
+        .item-qty {
+            text-align: right;
+            font-size: 14px;
+            margin-top: 2px;
+        }
+
+        .notice-box {
+            font-weight: bold;
+            border: 2px solid #000;
+            padding: 6px;
+            margin: 10px 0;
+            text-align: center;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+
+        .barcode {
+            text-align: center;
+            font-family: 'Arial', sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .mali-deger {
+            font-weight: bold;
+            border: 2px solid #000;
+            padding: 4px;
+            margin: 8px 0;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        @media print {
+            body {
+                width: 76mm;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="no-print" style="text-align: center; margin-bottom: 10px;">
+        <button onclick="window.print()"
+            style="padding: 10px 20px; font-size: 14px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            Yazdır
+        </button>
+        <button onclick="window.close()"
+            style="padding: 10px 20px; font-size: 14px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+            Kapat
+        </button>
+    </div>
+
+    <div class="header">
+        <div class="company-name">NUVIA PREMIUM WEAR</div>
+        <div class="company-tagline">MAN & WOMAN</div>
+        <div class="company-info">ADRES TURGUT ÖZAL BUL. AKSA DOĞALGAZ ARASI</div>
+        <div class="company-info">WHATSAPP TEL: 0542112 6001</div>
+        <div class="company-info">INSTAGRAM: nuviagiyim</div>
+        <div class="separator"></div>
+        <div class="receipt-title">DEĞİŞİM FİŞİ</div>
+        <div class="receipt-subtitle">Fiyat bilgisi içermez</div>
+    </div>
+
+    <div class="transaction-info">
+        {% if satis.satis_no %}
+        <div class="info-row">
+            <span>SATIŞ NO:</span>
+            <span>{{ satis.satis_no }}</span>
+        </div>
+        {% endif %}
+        <div class="info-row">
+            <span>SİPARİŞ NO:</span>
+            <span>{{ satis.siparis_no }}</span>
+        </div>
+        <div class="info-row">
+            <span>TARİH:</span>
+            <span>{% if satis.satis_tarihi %}{{ satis.satis_tarihi|date:"d.m.Y" }}{% else %}{{ satis.siparis_tarihi|date:"d.m.Y" }}{% endif %}</span>
+        </div>
+        <div class="info-row">
+            <span>SAAT:</span>
+            <span>{% if satis.satis_tarihi %}{{ satis.satis_tarihi|date:"H:i" }}{% else %}{{ satis.siparis_tarihi|date:"H:i" }}{% endif %}</span>
+        </div>
+        <div class="info-row">
+            <span>YETKİLİ:</span>
+            <span>{{ satis.satici.first_name }} {{ satis.satici.last_name|default:satis.satici.username }}</span>
+        </div>
+        {% if satis.musteri %}
+        <div class="info-row">
+            <span>MÜŞTERİ:</span>
+            <span>{{ satis.musteri.ad }} {{ satis.musteri.soyad }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="items-section">
+        <div class="item-header">ÜRÜN DETAYLARI</div>
+
+        {% for item in satis_detaylari %}
+        <div class="item-row">
+            <div class="item-name">
+                {{ item.urun.urun_kodu|default:"—" }}
+                {% if item.urun.kategori %}{{ item.urun.kategori.ad }}{% endif %}
+            </div>
+            {% if item.urun.ad %}
+            <div class="item-meta">{{ item.urun.ad }}</div>
+            {% endif %}
+            {% if item.varyant %}
+            <div class="item-meta">
+                {% if item.varyant.renk %}Renk: {{ item.varyant.renk.ad }}{% endif %}
+                {% if item.varyant.renk and item.varyant.beden %} · {% endif %}
+                {% if item.varyant.beden %}Beden: {{ item.varyant.beden.ad }}{% endif %}
+            </div>
+            {% endif %}
+            <div class="item-qty">Adet: {{ item.miktar }}</div>
+            {% if item.varyant and item.varyant.barkod %}
+            <div class="item-meta">Barkod: {{ item.varyant.barkod }}</div>
+            {% elif item.urun.barkod %}
+            <div class="item-meta">Barkod: {{ item.urun.barkod }}</div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <div class="item-row" style="text-align: center;">Ürün kaydı yok</div>
+        {% endfor %}
+
+        <div class="item-row" style="border-bottom: none; border-top: 1px solid #000; margin-top: 4px;">
+            <div class="info-row" style="margin-bottom: 0;">
+                <span>TOPLAM ADET:</span>
+                <span>{{ toplam_adet }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="notice-box">
+        Bu belge değişim işlemi içindir.<br>
+        Üzerinde fiyat veya tutar bilgisi bulunmaz.
+    </div>
+
+    {% if satis.siparis_no %}
+    <div class="barcode">
+        <div style="border: 2px solid #000; padding: 8px; font-size: 16px;">
+            ||| {{ satis.siparis_no }} |||
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="mali-deger">MALİ DEĞERİ YOKTUR</div>
+
+    <div class="footer">
+        <div>Değişim için bu fişi saklayınız.</div>
+        <div>Ürünleri kontrol ederek işleme alınız.</div>
+        <div style="margin-top: 12px; border-top: 2px solid #000; padding-top: 8px; font-size: 14px;">
+            Bizi tercih ettiğiniz için teşekkür ederiz!
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                window.close();
+            }
+        });
+    </script>
+</body>
+
+</html>

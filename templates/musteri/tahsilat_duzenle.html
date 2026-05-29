@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load l10n %}
 
 {% block title %}Tahsilat Düzenle{% endblock %}
 
@@ -194,7 +195,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid py-4">
     <div class="tahsilat-container">
         <div class="form-card">
@@ -216,7 +217,7 @@
                         </div>
                         <div class="col-md-4">
                             <strong>Tutar:</strong><br>
-                            {{ tahsilat.tutar|floatformat:2 }} ₺
+                            {{ tahsilat.tutar|turkish_currency }}
                         </div>
                         <div class="col-md-4">
                             <strong>Tip:</strong><br>
@@ -225,51 +226,49 @@
                     </div>
                 </div>
 
-                <!-- Müşteri Seçimi -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="form-floating">
-                            <select class="form-select custom-select" id="musteri_id" name="musteri_id" required>
-                                <option value="">Müşteri Seçiniz...</option>
-                                {% for musteri in musteriler %}
-                                <option value="{{ musteri.id }}" 
-                                        {% if musteri.id == tahsilat.musteri.id %}selected{% endif %}
-                                        data-bakiye="{{ musteri.acik_hesap_bakiye|floatformat:2 }}"
-                                        data-telefon="{{ musteri.telefon }}"
-                                        data-firma="{{ musteri.firma_adi|default:'' }}">
-                                    {{ musteri.ad }} {{ musteri.soyad }}
-                                    {% if musteri.firma_adi %} - {{ musteri.firma_adi }}{% endif %}
-                                    (Bakiye: {{ musteri.acik_hesap_bakiye|floatformat:2 }} ₺)
-                                </option>
-                                {% endfor %}
-                            </select>
-                            <label for="musteri_id">
-                                <i class="fas fa-user me-2"></i>Müşteri Seçimi
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Seçilen Müşteri Bilgileri -->
-                <div id="musteri-bilgi-card" class="musteri-card" style="display: block;">
-                    <div class="musteri-info">
-                        <div>
-                            <h6 class="mb-1" id="musteri-ad">{{ tahsilat.musteri.ad }} {{ tahsilat.musteri.soyad }}</h6>
-                            <small id="musteri-telefon">{{ tahsilat.musteri.telefon }}</small>
-                            {% if tahsilat.musteri.firma_adi %}
-                            <br><small id="musteri-firma">{{ tahsilat.musteri.firma_adi }}</small>
-                            {% endif %}
-                        </div>
-                        <div class="text-end">
-                            <div class="h6 mb-0">Açık Hesap Bakiye</div>
-                            <div class="h4 mb-0" id="musteri-bakiye">{{ tahsilat.musteri.acik_hesap_bakiye|floatformat:2 }} ₺</div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Tahsilat Formu -->
-                <form id="tahsilat-form">
+                <form id="tahsilat-form" method="post">
                     {% csrf_token %}
+
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="form-floating">
+                                <select class="form-select custom-select" id="musteri_id" name="musteri_id" required>
+                                    <option value="">Müşteri Seçiniz...</option>
+                                    {% for musteri in musteriler %}
+                                    <option value="{{ musteri.id }}"
+                                            {% if musteri.id == tahsilat.musteri.id %}selected{% endif %}
+                                            data-bakiye="{{ musteri.acik_hesap_bakiye|floatformat:2 }}"
+                                            data-telefon="{{ musteri.telefon|default:'' }}"
+                                            data-firma="{{ musteri.firma_adi|default:'' }}">
+                                        {{ musteri.ad }} {{ musteri.soyad }}
+                                        {% if musteri.firma_adi %} - {{ musteri.firma_adi }}{% endif %}
+                                        (Bakiye: {{ musteri.acik_hesap_bakiye|turkish_currency }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="musteri_id">
+                                    <i class="fas fa-user me-2"></i>Müşteri Seçimi
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="musteri-bilgi-card" class="musteri-card" style="display: block;">
+                        <div class="musteri-info">
+                            <div>
+                                <h6 class="mb-1" id="musteri-ad">{{ tahsilat.musteri.ad }} {{ tahsilat.musteri.soyad }}</h6>
+                                <small id="musteri-telefon">{{ tahsilat.musteri.telefon }}</small>
+                                {% if tahsilat.musteri.firma_adi %}
+                                <br><small id="musteri-firma">{{ tahsilat.musteri.firma_adi }}</small>
+                                {% endif %}
+                            </div>
+                            <div class="text-end">
+                                <div class="h6 mb-0">Açık Hesap Bakiye</div>
+                                <div class="h4 mb-0" id="musteri-bakiye">{{ tahsilat.musteri.acik_hesap_bakiye|turkish_currency }}</div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Tutar ve Temel Bilgiler -->
                     <div class="row mb-4">
@@ -281,7 +280,7 @@
                                        name="tutar" 
                                        step="0.01" 
                                        min="0.01" 
-                                       value="{{ tahsilat.tutar|floatformat:2 }}"
+                                       value="{{ tahsilat.tutar|unlocalize }}"
                                        placeholder="0.00" 
                                        required>
                                 <label for="tutar">
@@ -484,50 +483,59 @@ $(document).ready(function() {
         }
     });
 
-    // Form gönderimi
-    $('#tahsilat-form').submit(function(e) {
+    function parseAjaxError(xhr) {
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+            return xhr.responseJSON.message;
+        }
+        try {
+            const data = JSON.parse(xhr.responseText);
+            if (data.message) return data.message;
+        } catch (e) { /* ignore */ }
+        if (xhr.status === 403) {
+            return 'Oturum süresi dolmuş olabilir. Sayfayı yenileyip tekrar deneyin.';
+        }
+        return 'Bir hata oluştu. Lütfen tekrar deneyiniz.';
+    }
+
+    // Form gönderimi (AJAX — sayfa yenilenmeden kayıt)
+    $('#tahsilat-form').on('submit', function(e) {
         e.preventDefault();
-        
+
         const kaydetBtn = $('#kaydet-btn');
         const originalText = kaydetBtn.html();
-        
-        // Button durumunu değiştir
+        const musteriId = $('#musteri_id').val();
+
+        if (!musteriId) {
+            showAlert('danger', 'Müşteri seçimi zorunludur.');
+            return;
+        }
+
         kaydetBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Güncelleniyor...');
-        
-        // Form verilerini topla
-        const formData = {
-            'musteri_id': $('#musteri_id').val(),
-            'tutar': $('#tutar').val(),
-            'tahsilat_tipi': $('#tahsilat_tipi').val(),
-            'aciklama': $('#aciklama').val(),
-            'vade_tarihi': $('#vade_tarihi').val(),
-            'cek_senet_no': $('#cek_senet_no').val(),
-            'banka': $('#banka').val() || $('#havale_banka').val(),
-            'referans_no': $('#referans_no').val(),
-            'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
-        };
-        
-        // Ajax isteği
+
+        const formData = $(this).serializeArray();
+        const bankaHavale = $('#havale_banka').val();
+        if (bankaHavale && !$('#banka').val()) {
+            formData.push({ name: 'banka', value: bankaHavale });
+        }
+
         $.ajax({
             url: '{% url "musteri:tahsilat_duzenle" tahsilat.id %}',
             type: 'POST',
-            data: formData,
+            dataType: 'json',
+            data: $.param(formData),
             success: function(response) {
                 if (response.success) {
                     showAlert('success', response.message);
-                    
-                    // 2 saniye sonra detay sayfasına yönlendir
                     setTimeout(function() {
-                        window.location.href = '{% url "musteri:tahsilat_detay" tahsilat.id %}';
-                    }, 2000);
+                        window.location.href = '{% url "musteri:tahsilat_detay" tahsilat.id %}?guncellendi=1';
+                    }, 1200);
                 } else {
-                    showAlert('danger', response.message);
+                    showAlert('danger', response.message || 'Kayıt yapılamadı.');
                     kaydetBtn.prop('disabled', false).html(originalText);
                 }
             },
-            error: function(xhr, status, error) {
-                console.error('Ajax error:', error);
-                showAlert('danger', 'Bir hata oluştu. Lütfen tekrar deneyiniz.');
+            error: function(xhr) {
+                showAlert('danger', parseAjaxError(xhr));
                 kaydetBtn.prop('disabled', false).html(originalText);
             }
         });

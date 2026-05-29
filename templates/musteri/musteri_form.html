@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Müşteri Ekle - Nuvia Otomasyon{% endblock %}
+{% block title %}{% if musteri %}Müşteri Düzenle - Nuvia Otomasyon{% else %}Müşteri Ekle - Nuvia Otomasyon{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -143,15 +143,15 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-lg-8 col-md-10">
             <div class="form-container">
                 <div class="form-header">
                     <i class="fas fa-user-plus customer-icon"></i>
-                    <h2>Yeni Müşteri Ekle</h2>
-                    <p>Müşteri bilgilerini doldurun ve sisteme kaydedin</p>
+                    <h2>{% if musteri %}Müşteri Düzenle{% else %}Yeni Müşteri Ekle{% endif %}</h2>
+                    <p>{% if musteri %}Müşteri bilgilerini güncelleyin{% else %}Müşteri bilgilerini doldurun ve sisteme kaydedin{% endif %}</p>
                 </div>
 
                 <!-- Mesajlar -->
@@ -187,7 +187,7 @@
                                        class="form-control" 
                                        id="ad" 
                                        name="ad" 
-                                       value="{{ request.POST.ad|default:'' }}"
+                                       value="{% if musteri %}{{ musteri.ad }}{% else %}{{ request.POST.ad|default:'' }}{% endif %}"
                                        required
                                        placeholder="Müşteri adı">
                             </div>
@@ -201,7 +201,7 @@
                                        class="form-control" 
                                        id="soyad" 
                                        name="soyad" 
-                                       value="{{ request.POST.soyad|default:'' }}"
+                                       value="{% if musteri %}{{ musteri.soyad }}{% else %}{{ request.POST.soyad|default:'' }}{% endif %}"
                                        required
                                        placeholder="Müşteri soyadı">
                             </div>
@@ -219,7 +219,7 @@
                                        class="form-control" 
                                        id="telefon" 
                                        name="telefon" 
-                                       value="{{ request.POST.telefon|default:'' }}"
+                                       value="{% if musteri %}{{ musteri.telefon }}{% else %}{{ request.POST.telefon|default:'' }}{% endif %}"
                                        required
                                        placeholder="0555 123 45 67"
                                        pattern="[0-9\s\-\(\)\+]{10,15}">
@@ -232,7 +232,7 @@
                                        class="form-control" 
                                        id="email" 
                                        name="email" 
-                                       value="{{ request.POST.email|default:'' }}"
+                                       value="{% if musteri %}{{ musteri.email|default:'' }}{% else %}{{ request.POST.email|default:'' }}{% endif %}"
                                        placeholder="ornek@email.com">
                             </div>
                         </div>
@@ -245,7 +245,7 @@
                                   id="adres" 
                                   name="adres" 
                                   rows="3" 
-                                  placeholder="Müşteri adresi">{{ request.POST.adres|default:'' }}</textarea>
+                                  placeholder="Müşteri adresi">{% if musteri %}{{ musteri.adres|default:'' }}{% else %}{{ request.POST.adres|default:'' }}{% endif %}</textarea>
                     </div>
 
                     <div class="row form-row">
@@ -256,7 +256,7 @@
                                        class="form-control" 
                                        id="il" 
                                        name="il" 
-                                       value="{{ request.POST.il|default:'' }}"
+                                       value="{% if musteri %}{{ musteri.il|default:'' }}{% else %}{{ request.POST.il|default:'' }}{% endif %}"
                                        placeholder="İl adı">
                             </div>
                         </div>
@@ -267,7 +267,7 @@
                                        class="form-control" 
                                        id="ilce" 
                                        name="ilce" 
-                                       value="{{ request.POST.ilce|default:'' }}"
+                                       value="{% if musteri %}{{ musteri.ilce|default:'' }}{% else %}{{ request.POST.ilce|default:'' }}{% endif %}"
                                        placeholder="İlçe adı">
                             </div>
                         </div>
@@ -277,8 +277,8 @@
                     <div class="form-group">
                         <label for="tip" class="form-label">Müşteri Tipi</label>
                         <select class="form-control" id="tip" name="tip">
-                            <option value="bireysel" {% if request.POST.tip == 'bireysel' or not request.POST.tip %}selected{% endif %}>Bireysel</option>
-                            <option value="kurumsal" {% if request.POST.tip == 'kurumsal' %}selected{% endif %}>Kurumsal</option>
+                            <option value="bireysel" {% if musteri.tip == 'bireysel' or not musteri and request.POST.tip != 'kurumsal' %}selected{% endif %}>Bireysel</option>
+                            <option value="kurumsal" {% if musteri.tip == 'kurumsal' or request.POST.tip == 'kurumsal' %}selected{% endif %}>Kurumsal</option>
                         </select>
                     </div>
 
@@ -296,7 +296,7 @@
                                            class="form-control" 
                                            id="tc_no" 
                                            name="tc_no" 
-                                           value="{{ request.POST.tc_no|default:'' }}"
+                                           value="{% if musteri %}{{ musteri.tc_no|default:'' }}{% else %}{{ request.POST.tc_no|default:'' }}{% endif %}"
                                            placeholder="11 haneli TC kimlik numarası"
                                            maxlength="11"
                                            pattern="[0-9]{11}">
@@ -309,7 +309,7 @@
                                            class="form-control" 
                                            id="vergi_no_bireysel" 
                                            name="vergi_no" 
-                                           value="{{ request.POST.vergi_no|default:'' }}"
+                                           value="{% if musteri %}{{ musteri.vergi_no|default:'' }}{% else %}{{ request.POST.vergi_no|default:'' }}{% endif %}"
                                            placeholder="Vergi numarası (opsiyonel)">
                                 </div>
                             </div>
@@ -328,7 +328,7 @@
                                    class="form-control" 
                                    id="firma_adi" 
                                    name="firma_adi" 
-                                   value="{{ request.POST.firma_adi|default:'' }}"
+                                   value="{% if musteri %}{{ musteri.firma_adi|default:'' }}{% else %}{{ request.POST.firma_adi|default:'' }}{% endif %}"
                                    placeholder="Firma/Şirket adı">
                         </div>
                         
@@ -340,7 +340,7 @@
                                            class="form-control" 
                                            id="vergi_no_kurumsal" 
                                            name="vergi_no" 
-                                           value="{{ request.POST.vergi_no|default:'' }}"
+                                           value="{% if musteri %}{{ musteri.vergi_no|default:'' }}{% else %}{{ request.POST.vergi_no|default:'' }}{% endif %}"
                                            placeholder="Vergi numarası">
                                 </div>
                             </div>
@@ -351,7 +351,7 @@
                                            class="form-control" 
                                            id="vergi_dairesi" 
                                            name="vergi_dairesi" 
-                                           value="{{ request.POST.vergi_dairesi|default:'' }}"
+                                           value="{% if musteri %}{{ musteri.vergi_dairesi|default:'' }}{% else %}{{ request.POST.vergi_dairesi|default:'' }}{% endif %}"
                                            placeholder="Vergi dairesi adı">
                                 </div>
                             </div>
@@ -394,13 +394,13 @@
                                   id="notlar" 
                                   name="notlar" 
                                   rows="3" 
-                                  placeholder="Müşteri hakkında notlar">{{ request.POST.notlar|default:'' }}</textarea>
+                                  placeholder="Müşteri hakkında notlar">{% if musteri %}{{ musteri.notlar|default:'' }}{% else %}{{ request.POST.notlar|default:'' }}{% endif %}</textarea>
                     </div>
 
                     <!-- Butonlar -->
                     <div class="form-group text-center">
                         <button type="submit" class="btn btn-primary me-3">
-                            <i class="fas fa-save"></i> Müşteri Kaydet
+                            <i class="fas fa-save"></i> {% if musteri %}Değişiklikleri Kaydet{% else %}Müşteri Kaydet{% endif %}
                         </button>
                         <a href="{% url 'musteri:liste' %}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Geri Dön
@@ -446,11 +446,50 @@ $(document).ready(function() {
         }
     }
     
+    // Sayfa yüklendiğinde initial state - edit modunda doğru başlat
+    function initFields() {
+        const tip = $('#tip').val();
+        if (tip === 'kurumsal') {
+            $('#kurumsalAlanlari').show().addClass('active');
+            $('#bireyselAlanlari').hide().removeClass('active');
+        } else {
+            $('#bireyselAlanlari').show().addClass('active');
+            $('#kurumsalAlanlari').hide().removeClass('active');
+        }
+    }
+    
     // Sayfa yüklendiğinde initial state
-    toggleFields();
+    initFields();
     
     // Tip değişikliğinde
-    $('#tip').on('change', toggleFields);
+    $('#tip').on('change', function() {
+        const tip = $('#tip').val();
+        if (tip === 'kurumsal') {
+            $('#kurumsalAlanlari').show().addClass('active');
+            $('#bireyselAlanlari').hide().removeClass('active');
+            
+            // Kurumsal alanları zorunlu yap
+            $('#firma_adi').prop('required', true);
+            $('#vergi_no_kurumsal').prop('required', true);
+            $('#vergi_dairesi').prop('required', true);
+            
+            // Bireysel alanları zorunlu yapma
+            $('#tc_no').prop('required', false);
+            $('#vergi_no_bireysel').prop('required', false);
+        } else {
+            $('#bireyselAlanlari').show().addClass('active');
+            $('#kurumsalAlanlari').hide().removeClass('active');
+            
+            // Bireysel alanları zorunlu yapma (TC opsiyonel)
+            $('#tc_no').prop('required', false);
+            $('#vergi_no_bireysel').prop('required', false);
+            
+            // Kurumsal alanları zorunlu yapma
+            $('#firma_adi').prop('required', false);
+            $('#vergi_no_kurumsal').prop('required', false);
+            $('#vergi_dairesi').prop('required', false);
+        }
+    });
 
     // TC Kimlik No formatlaması
     $('#tc_no').on('input', function() {

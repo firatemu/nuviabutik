@@ -1,370 +1,936 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ musteri.ad }} {{ musteri.soyad }} - Müşteri Detay{% endblock %}
+{% block title %}{{ musteri.tam_ad }} - Müşteri Detay{% endblock %}
 
 {% block extra_css %}
 <style>
-    .profile-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 15px;
-        color: white;
-        padding: 2rem;
-        margin-bottom: 2rem;
+    :root {
+        --primary: #0d6efd;
+        --primary-dark: #0b5ed7;
+        --success: #198754;
+        --danger: #dc3545;
+        --warning: #ffc107;
+        --info: #0dcaf0;
+        --dark: #212529;
+        --light: #f8f9fa;
+        --border: #dee2e6;
+        --shadow: 0 2px 8px rgba(0,0,0,0.08);
+        --shadow-hover: 0 4px 16px rgba(0,0,0,0.12);
     }
-    
-    .profile-avatar {
-        width: 80px;
-        height: 80px;
+
+    /* Page Header */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 0;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin: 0;
+    }
+
+    .page-title i {
+        color: var(--primary);
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .btn-action {
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-action.primary {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-action.primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .btn-action.secondary {
+        background: white;
+        color: var(--dark);
+        border: 2px solid var(--border);
+    }
+
+    .btn-action.secondary:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    .btn-action.success {
+        background: var(--success);
+        color: white;
+    }
+
+    .btn-action.success:hover {
+        background: #157347;
+    }
+
+    .btn-action.danger {
+        background: var(--danger);
+        color: white;
+    }
+
+    .btn-action.danger:hover {
+        background: #bb2d3b;
+    }
+
+    .btn-action.warning {
+        background: var(--warning);
+        color: var(--dark);
+    }
+
+    .btn-action.warning:hover {
+        background: #ffe69c;
+    }
+
+    /* Customer Header */
+    .customer-header {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .customer-info {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+    }
+
+    .customer-avatar {
+        width: 72px;
+        height: 72px;
         border-radius: 50%;
-        background: rgba(255,255,255,0.2);
+        background: var(--primary);
+        color: white;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2rem;
-        margin-right: 1.5rem;
+        font-size: 1.75rem;
     }
-    
-    .info-card {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        transition: transform 0.3s ease;
+
+    .customer-details h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin: 0 0 0.25rem 0;
     }
-    
-    .info-card:hover {
-        transform: translateY(-5px);
+
+    .customer-meta {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        color: #6c757d;
+        font-size: 0.9375rem;
     }
-    
-    .stat-card {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        border-radius: 15px;
-        color: white;
-        padding: 1.5rem;
-        text-align: center;
-        margin-bottom: 1rem;
+
+    .customer-meta i {
+        margin-right: 0.25rem;
     }
-    
-    .stat-value {
-        font-size: 2rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-    }
-    
-    .stat-label {
-        opacity: 0.9;
-        font-size: 0.9rem;
-    }
-    
-    .action-btn {
-        border-radius: 10px;
-        padding: 0.75rem 1.5rem;
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
         font-weight: 600;
-        margin: 0.25rem;
-        transition: all 0.3s ease;
     }
-    
-    .action-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+
+    .status-badge.aktif {
+        background: rgba(25, 135, 84, 0.1);
+        color: var(--success);
     }
-    
+
+    .status-badge.pasif {
+        background: rgba(220, 53, 69, 0.1);
+        color: var(--danger);
+    }
+
+    /* Dashboard Layout */
+    .dashboard-layout {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 1.5rem;
+    }
+
+    /* Cards */
+    .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-header.primary {
+        background: var(--primary);
+        color: white;
+        border-bottom: none;
+    }
+
+    .card-header.dark {
+        background: var(--dark);
+        color: white;
+        border-bottom: none;
+    }
+
+    .card-header h5 {
+        margin: 0;
+        font-weight: 600;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+
+    /* Stats Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .stat-card {
+        background: var(--light);
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+    }
+
+    .stat-card.balance {
+        grid-column: span 2;
+        background: rgba(220, 53, 69, 0.08);
+        border: 1px solid rgba(220, 53, 69, 0.2);
+    }
+
+    .stat-card.balance.credit {
+        background: rgba(25, 135, 84, 0.08);
+        border: 1px solid rgba(25, 135, 84, 0.2);
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--dark);
+    }
+
+    .stat-card.balance .stat-value {
+        color: var(--danger);
+    }
+
+    .stat-card.balance.credit .stat-value {
+        color: var(--success);
+    }
+
+    .stat-label {
+        font-size: 0.8125rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+
+    /* Contact Items */
+    .contact-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
     .contact-item {
         display: flex;
         align-items: center;
-        margin-bottom: 1rem;
-        padding: 0.75rem;
-        background: #f8f9fa;
+        padding: 0.75rem 1rem;
+        background: var(--light);
         border-radius: 8px;
+        transition: all 0.2s;
     }
-    
+
+    .contact-item:hover {
+        background: #e9ecef;
+    }
+
     .contact-item i {
-        width: 30px;
-        text-align: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         margin-right: 1rem;
-        color: #667eea;
+        font-size: 1rem;
     }
-    
-    .table-hover tbody tr:hover {
-        background-color: rgba(102, 126, 234, 0.1);
+
+    .contact-item.phone i {
+        background: rgba(13, 110, 253, 0.1);
+        color: var(--primary);
     }
-    
-    .badge-custom {
+
+    .contact-item.email i {
+        background: rgba(25, 135, 84, 0.1);
+        color: var(--success);
+    }
+
+    .contact-item.address i {
+        background: rgba(255, 193, 7, 0.1);
+        color: var(--warning);
+    }
+
+    .contact-item.tax i {
+        background: rgba(108, 117, 125, 0.1);
+        color: #6c757d;
+    }
+
+    .contact-content {
+        flex: 1;
+    }
+
+    .contact-label {
         font-size: 0.75rem;
-        padding: 0.5rem 0.75rem;
-        border-radius: 50px;
+        color: #6c757d;
+        text-transform: uppercase;
+        margin-bottom: 0.125rem;
+    }
+
+    .contact-value {
+        font-weight: 600;
+        color: var(--dark);
+    }
+
+    .contact-value a {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .contact-value a:hover {
+        color: var(--primary);
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .quick-action {
+        padding: 0.875rem 1rem;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .quick-action:hover {
+        transform: translateY(-2px);
+    }
+
+    .quick-action.primary {
+        background: rgba(13, 110, 253, 0.1);
+        color: var(--primary);
+        border: 1px solid rgba(13, 110, 253, 0.2);
+    }
+
+    .quick-action.success {
+        background: rgba(25, 135, 84, 0.1);
+        color: var(--success);
+        border: 1px solid rgba(25, 135, 84, 0.2);
+    }
+
+    .quick-action.danger {
+        background: rgba(220, 53, 69, 0.1);
+        color: var(--danger);
+        border: 1px solid rgba(220, 53, 69, 0.2);
+    }
+
+    .quick-action.warning {
+        background: rgba(255, 193, 7, 0.1);
+        color: var(--warning);
+        border: 1px solid rgba(255, 193, 7, 0.2);
+    }
+
+    /* Tables */
+    .data-table {
+        width: 100%;
+        margin: 0;
+    }
+
+    .data-table thead {
+        background: var(--light);
+    }
+
+    .data-table thead th {
+        padding: 0.875rem 1rem;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+        border-bottom: 2px solid var(--border);
+        text-align: left;
+    }
+
+    .data-table tbody tr {
+        transition: background 0.15s;
+    }
+
+    .data-table tbody tr:hover {
+        background: rgba(13, 110, 253, 0.03);
+    }
+
+    .data-table tbody td {
+        padding: 0.875rem 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .table-link {
+        font-weight: 600;
+        color: var(--primary);
+        text-decoration: none;
+    }
+
+    .table-link:hover {
+        text-decoration: underline;
+    }
+
+    .amount-cell {
+        font-weight: 700;
+        color: var(--dark);
+    }
+
+    /* Badge Styles */
+    .badge-status {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+    }
+
+    .badge-status.success {
+        background: rgba(25, 135, 84, 0.1);
+        color: var(--success);
+    }
+
+    .badge-status.warning {
+        background: rgba(255, 193, 7, 0.15);
+        color: #d39e00;
+    }
+
+    .badge-status.danger {
+        background: rgba(220, 53, 69, 0.1);
+        color: var(--danger);
+    }
+
+    .badge-type {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+    }
+
+    .badge-type.bireysel {
+        background: rgba(13, 110, 253, 0.1);
+        color: var(--primary);
+    }
+
+    .badge-type.kurumsal {
+        background: rgba(25, 135, 84, 0.1);
+        color: var(--success);
+    }
+
+    /* Action Buttons */
+    .btn-sm-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: transparent;
+        color: #6c757d;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .btn-sm-icon:hover {
+        background: var(--light);
+        color: var(--primary);
+    }
+
+    .btn-sm-icon.info:hover {
+        background: rgba(13, 202, 240, 0.1);
+        color: var(--info);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: #6c757d;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        opacity: 0.3;
+        margin-bottom: 0.75rem;
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    /* Notes Card */
+    .notes-content {
+        background: #fff3cd;
+        border-radius: 8px;
+        padding: 1rem;
+        border-left: 4px solid var(--warning);
+        color: #664d03;
+    }
+
+    .notes-content p {
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    /* View All Link */
+    .view-all-link {
+        font-size: 0.8125rem;
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .view-all-link:hover {
+        text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .dashboard-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .customer-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .customer-info {
+            flex-direction: column;
+        }
+
+        .customer-meta {
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stat-card.balance {
+            grid-column: span 1;
+        }
+
+        .page-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .header-actions {
+            width: 100%;
+        }
+
+        .header-actions .btn-action {
+            flex: 1;
+            justify-content: center;
+        }
     }
 </style>
 {% endblock %}
 
-{% block content %}
-<div class="container-fluid py-4">
-    <!-- Profil Header -->
-    <div class="profile-header">
-        <div class="d-flex align-items-center">
-            <div class="profile-avatar">
-                <i class="fas fa-user"></i>
-            </div>
-            <div class="flex-grow-1">
-                <h2 class="mb-1">{{ musteri.ad }} {{ musteri.soyad }}</h2>
-                <p class="mb-0 opacity-75">
-                    <i class="fas fa-tag me-2"></i>{{ musteri.get_tip_display }}
-                    {% if musteri.firma_adi %}
-                        • {{ musteri.firma_adi }}
-                    {% endif %}
-                </p>
-            </div>
-            <div class="text-end">
-                {% if musteri.aktif %}
-                    <span class="badge bg-success badge-custom">
-                        <i class="fas fa-check me-1"></i>Aktif
-                    </span>
-                {% else %}
-                    <span class="badge bg-danger badge-custom">
-                        <i class="fas fa-times me-1"></i>Pasif
-                    </span>
-                {% endif %}
-            </div>
+{% block page_content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="fas fa-user-circle"></i>
+            Müşteri Detay
+        </h1>
+        <div class="header-actions">
+            <a href="{% url 'musteri:liste' %}" class="btn-action secondary">
+                <i class="fas fa-arrow-left"></i> Listeye Dön
+            </a>
+            <a href="{% url 'musteri:duzenle' musteri.id %}" class="btn-action warning">
+                <i class="fas fa-edit"></i> Düzenle
+            </a>
         </div>
     </div>
-    
-    <div class="row">
-        <!-- Sol Kolon -->
-        <div class="col-lg-4">
-            <!-- İstatistikler -->
-            <div class="row">
-                <div class="col-md-6 col-lg-12">
-                    <div class="stat-card">
-                        <div class="stat-value">{{ musteri.acik_hesap_bakiye|floatformat:2 }} ₺</div>
-                        <div class="stat-label">Açık Hesap Borcu</div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-12">
-                    <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                        <div class="stat-value">{{ musteri.acik_hesap_limit|floatformat:2 }} ₺</div>
-                        <div class="stat-label">Açık Hesap Limiti</div>
-                    </div>
-                </div>
+
+    <!-- Customer Header -->
+    <div class="customer-header">
+        <div class="customer-info">
+            <div class="customer-avatar">
+                <i class="fas fa-user"></i>
             </div>
-            
-            <!-- İletişim Bilgileri -->
-            <div class="info-card">
-                <h5 class="mb-3">
-                    <i class="fas fa-address-book me-2 text-primary"></i>
-                    İletişim Bilgileri
-                </h5>
-                
-                {% if musteri.telefon %}
-                <div class="contact-item">
-                    <i class="fas fa-phone"></i>
-                    <div>
-                        <strong>Telefon</strong><br>
-                        <a href="tel:{{ musteri.telefon }}" class="text-decoration-none">{{ musteri.telefon }}</a>
-                    </div>
-                </div>
-                {% endif %}
-                
-                {% if musteri.email %}
-                <div class="contact-item">
-                    <i class="fas fa-envelope"></i>
-                    <div>
-                        <strong>E-posta</strong><br>
-                        <a href="mailto:{{ musteri.email }}" class="text-decoration-none">{{ musteri.email }}</a>
-                    </div>
-                </div>
-                {% endif %}
-                
-                {% if musteri.adres %}
-                <div class="contact-item">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <div>
-                        <strong>Adres</strong><br>
-                        {{ musteri.adres }}
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-            
-            <!-- Hızlı İşlemler -->
-            <div class="info-card">
-                <h5 class="mb-3">
-                    <i class="fas fa-bolt me-2 text-warning"></i>
-                    Hızlı İşlemler
-                </h5>
-                
-                <div class="d-grid gap-2">
-                    <a href="{% url 'satis:ekrani' %}?musteri={{ musteri.id }}" class="btn btn-primary action-btn">
-                        <i class="fas fa-shopping-cart me-2"></i>Satış Yap
-                    </a>
-                    
-                    {% if musteri.acik_hesap_bakiye > 0 %}
-                    <a href="{% url 'musteri:tahsilat_ekle' %}?musteri={{ musteri.id }}" class="btn btn-success action-btn">
-                        <i class="fas fa-money-bill me-2"></i>Tahsilat Yap
-                    </a>
+            <div class="customer-details">
+                <h2>{{ musteri.tam_ad }}</h2>
+                <div class="customer-meta">
+                    <span class="badge-type {{ musteri.tip }}">
+                        {% if musteri.tip == 'bireysel' %}
+                            <i class="fas fa-user"></i> Bireysel
+                        {% else %}
+                            <i class="fas fa-building"></i> Kurumsal
+                        {% endif %}
+                    </span>
+                    {% if musteri.firma_adi %}
+                        <span><i class="fas fa-building"></i> {{ musteri.firma_adi }}</span>
                     {% endif %}
-                    
-                    <a href="{% url 'musteri:musteri_borc_detay' musteri.id %}" class="btn btn-info action-btn">
-                        <i class="fas fa-chart-line me-2"></i>Borç Detay
-                    </a>
-                    
-                    <a href="{% url 'musteri:duzenle' musteri.id %}" class="btn btn-outline-primary action-btn">
-                        <i class="fas fa-edit me-2"></i>Düzenle
-                    </a>
+                    {% if musteri.il %}
+                        <span><i class="fas fa-map-marker-alt"></i> {{ musteri.il }}{% if musteri.ilce %}, {{ musteri.ilce }}{% endif %}</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
-        
-        <!-- Sağ Kolon -->
-        <div class="col-lg-8">
-            <!-- Son Satışlar -->
-            <div class="info-card">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0">
-                        <i class="fas fa-shopping-bag me-2 text-success"></i>
-                        Son Satışlar
-                    </h5>
-                    <a href="{% url 'satis:liste' %}?musteri={{ musteri.id }}" class="btn btn-sm btn-outline-primary">
-                        Tümünü Gör
+        <div>
+            <span class="status-badge {% if musteri.aktif %}aktif{% else %}pasif{% endif %}">
+                {% if musteri.aktif %}
+                    <i class="fas fa-check-circle"></i> Aktif
+                {% else %}
+                    <i class="fas fa-times-circle"></i> Pasif
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <div class="dashboard-layout">
+        <!-- Left Column - Info & Actions -->
+        <div class="left-column">
+            <!-- Balance & Limit -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="stats-grid">
+                        <div class="stat-card balance {% if musteri.acik_hesap_bakiye < 0 %}credit{% endif %}">
+                            <div class="stat-value">{{ musteri.acik_hesap_bakiye|turkish_currency }}</div>
+                            <div class="stat-label">Cari Hesap Bakiyesi</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">{{ musteri.acik_hesap_limit|turkish_currency }}</div>
+                            <div class="stat-label">Açık Hesap Limiti</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">{{ toplam_satis|default:"0"|turkish_currency }}</div>
+                            <div class="stat-label">Toplam Satış</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-address-book"></i> İletişim Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <div class="contact-list">
+                        {% if musteri.telefon %}
+                        <div class="contact-item phone">
+                            <i class="fas fa-phone"></i>
+                            <div class="contact-content">
+                                <div class="contact-label">Telefon</div>
+                                <div class="contact-value">
+                                    <a href="tel:{{ musteri.telefon }}">{{ musteri.telefon }}</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if musteri.email %}
+                        <div class="contact-item email">
+                            <i class="fas fa-envelope"></i>
+                            <div class="contact-content">
+                                <div class="contact-label">E-posta</div>
+                                <div class="contact-value">
+                                    <a href="mailto:{{ musteri.email }}">{{ musteri.email }}</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if musteri.adres %}
+                        <div class="contact-item address">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div class="contact-content">
+                                <div class="contact-label">Adres</div>
+                                <div class="contact-value">{{ musteri.adres }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if musteri.tip == 'kurumsal' and musteri.vergi_no %}
+                        <div class="contact-item tax">
+                            <i class="fas fa-file-invoice"></i>
+                            <div class="contact-content">
+                                <div class="contact-label">Vergi No</div>
+                                <div class="contact-value">{{ musteri.vergi_no }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if musteri.tip == 'kurumsal' and musteri.vergi_dairesi %}
+                        <div class="contact-item tax">
+                            <i class="fas fa-building"></i>
+                            <div class="contact-content">
+                                <div class="contact-label">Vergi Dairesi</div>
+                                <div class="contact-value">{{ musteri.vergi_dairesi }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if musteri.tip == 'bireysel' and musteri.tc_no %}
+                        <div class="contact-item tax">
+                            <i class="fas fa-id-card"></i>
+                            <div class="contact-content">
+                                <div class="contact-label">TC Kimlik No</div>
+                                <div class="contact-value">{{ musteri.tc_no }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header dark">
+                    <h5><i class="fas fa-bolt"></i> Hızlı İşlemler</h5>
+                </div>
+                <div class="card-body">
+                    <div class="quick-actions">
+                        <a href="{% url 'satis:ekrani' %}?musteri={{ musteri.id }}" class="quick-action primary">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>Satış Yap</span>
+                        </a>
+
+                        {% if musteri.acik_hesap_bakiye > 0 %}
+                        <a href="{% url 'musteri:tahsilat_ekle' %}?musteri={{ musteri.id }}" class="quick-action success">
+                            <i class="fas fa-money-bill"></i>
+                            <span>Tahsilat Yap</span>
+                        </a>
+                        {% endif %}
+
+                        <a href="{% url 'musteri:borc_alacak_listesi' %}" class="quick-action danger">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Borç-Alacak Gör</span>
+                        </a>
+
+                        <a href="{% url 'musteri:musteri_borc_detay' musteri.id %}" class="quick-action warning">
+                            <i class="fas fa-history"></i>
+                            <span>Hareket Geçmişi</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Tables -->
+        <div class="right-column">
+            <!-- Recent Sales -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-shopping-bag" style="color: var(--success);"></i> Satışlar <span class="text-muted small">({{ satis_sayisi }})</span></h5>
+                    <a href="{% url 'satis:liste' %}?musteri={{ musteri.id }}" class="view-all-link">
+                        Tümünü Gör <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
-                
-                {% if son_satislar %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Satış No</th>
-                                <th>Tarih</th>
-                                <th>Tutar</th>
-                                <th>Durum</th>
-                                <th>İşlemler</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for satis in son_satislar %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'satis:detay' satis.id %}" class="text-decoration-none">
-                                        {{ satis.satis_no }}
-                                    </a>
-                                </td>
-                                <td>{{ satis.satis_tarihi|date:"d.m.Y H:i" }}</td>
-                                <td class="fw-bold">{{ satis.toplam_tutar|floatformat:2 }} ₺</td>
-                                <td>
-                                    {% if satis.durum == 'tamamlandi' %}
-                                        <span class="badge bg-success">Tamamlandı</span>
-                                    {% elif satis.durum == 'iptal' %}
-                                        <span class="badge bg-danger">İptal</span>
-                                    {% else %}
-                                        <span class="badge bg-warning">{{ satis.get_durum_display }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <a href="{% url 'satis:detay' satis.id %}" class="btn btn-sm btn-outline-info">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="card-body" style="padding: 0;">
+                    {% if son_satislar %}
+                    <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                        <table class="table data-table" style="margin: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Satış No</th>
+                                    <th>Tarih</th>
+                                    <th>Tutar</th>
+                                    <th>Durum</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for satis in son_satislar %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'satis:detay' satis.id %}" class="table-link">
+                                            {{ satis.satis_no }}
+                                        </a>
+                                    </td>
+                                    <td>{{ satis.satis_tarihi|date:"d.m.Y H:i" }}</td>
+                                    <td class="amount-cell">{{ satis.genel_toplam|turkish_currency }}</td>
+                                    <td>
+                                        {% if satis.durum == 'tamamlandi' %}
+                                            <span class="badge-status success">Tamamlandı</span>
+                                        {% elif satis.durum == 'iptal' %}
+                                            <span class="badge-status danger">İptal</span>
+                                        {% else %}
+                                            <span class="badge-status warning">{{ satis.get_durum_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'satis:detay' satis.id %}" class="btn-sm-icon info" title="Detay">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-shopping-bag"></i>
+                        <p>Henüz satış işlemi bulunmuyor.</p>
+                    </div>
+                    {% endif %}
                 </div>
-                {% else %}
-                <div class="text-center py-4 text-muted">
-                    <i class="fas fa-shopping-bag fa-3x mb-3"></i>
-                    <p>Henüz satış işlemi bulunmuyor.</p>
-                </div>
-                {% endif %}
             </div>
-            
-            <!-- Son Tahsilatlar -->
-            <div class="info-card">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0">
-                        <i class="fas fa-hand-holding-usd me-2 text-info"></i>
-                        Son Tahsilatlar
-                    </h5>
-                    <a href="{% url 'musteri:tahsilat_listesi' %}?musteri={{ musteri.id }}" class="btn btn-sm btn-outline-primary">
-                        Tümünü Gör
+
+            <!-- Recent Collections -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-hand-holding-usd" style="color: var(--info);"></i> Tahsilatlar <span class="text-muted small">({{ tahsilat_sayisi }})</span></h5>
+                    <a href="{% url 'musteri:tahsilat_listesi' %}?musteri={{ musteri.id }}" class="view-all-link">
+                        Tümünü Gör <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
-                
-                {% if son_tahsilatlar %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Tahsilat No</th>
-                                <th>Tarih</th>
-                                <th>Tutar</th>
-                                <th>Tip</th>
-                                <th>Durum</th>
-                                <th>İşlemler</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for tahsilat in son_tahsilatlar %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'musteri:tahsilat_detay' tahsilat.id %}" class="text-decoration-none">
-                                        {{ tahsilat.tahsilat_no }}
-                                    </a>
-                                </td>
-                                <td>{{ tahsilat.tahsilat_tarihi|date:"d.m.Y H:i" }}</td>
-                                <td class="fw-bold">{{ tahsilat.tutar|floatformat:2 }} ₺</td>
-                                <td>{{ tahsilat.get_tahsilat_tipi_display }}</td>
-                                <td>
-                                    {% if tahsilat.durum == 'tahsil_edildi' %}
-                                        <span class="badge bg-success">Tahsil Edildi</span>
-                                    {% elif tahsilat.durum == 'beklemede' %}
-                                        <span class="badge bg-warning">Beklemede</span>
-                                    {% elif tahsilat.durum == 'iptal' %}
-                                        <span class="badge bg-danger">İptal</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">{{ tahsilat.get_durum_display }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <a href="{% url 'musteri:tahsilat_detay' tahsilat.id %}" class="btn btn-sm btn-outline-info">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="card-body" style="padding: 0;">
+                    {% if son_tahsilatlar %}
+                    <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                        <table class="table data-table" style="margin: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Tahsilat No</th>
+                                    <th>Tarih</th>
+                                    <th>Tutar</th>
+                                    <th>Tip</th>
+                                    <th>Durum</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tahsilat in son_tahsilatlar %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'musteri:tahsilat_detay' tahsilat.id %}" class="table-link">
+                                            {{ tahsilat.tahsilat_no }}
+                                        </a>
+                                    </td>
+                                    <td>{{ tahsilat.tahsilat_tarihi|date:"d.m.Y H:i" }}</td>
+                                    <td class="amount-cell">{{ tahsilat.tutar|turkish_currency }}</td>
+                                    <td>{{ tahsilat.get_tahsilat_tipi_display }}</td>
+                                    <td>
+                                        {% if tahsilat.durum == 'tahsil_edildi' %}
+                                            <span class="badge-status success">Tahsil Edildi</span>
+                                        {% elif tahsilat.durum == 'beklemede' %}
+                                            <span class="badge-status warning">Beklemede</span>
+                                        {% elif tahsilat.durum == 'iptal' %}
+                                            <span class="badge-status danger">İptal</span>
+                                        {% else %}
+                                            <span class="badge-status">{{ tahsilat.get_durum_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'musteri:tahsilat_detay' tahsilat.id %}" class="btn-sm-icon info" title="Detay">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-hand-holding-usd"></i>
+                        <p>Henüz tahsilat işlemi bulunmuyor.</p>
+                    </div>
+                    {% endif %}
                 </div>
-                {% else %}
-                <div class="text-center py-4 text-muted">
-                    <i class="fas fa-hand-holding-usd fa-3x mb-3"></i>
-                    <p>Henüz tahsilat işlemi bulunmuyor.</p>
-                </div>
-                {% endif %}
             </div>
-            
-            <!-- Müşteri Notları -->
+
+            <!-- Notes -->
             {% if musteri.notlar %}
-            <div class="info-card">
-                <h5 class="mb-3">
-                    <i class="fas fa-sticky-note me-2 text-warning"></i>
-                    Notlar
-                </h5>
-                <div class="p-3" style="background: #fff3cd; border-radius: 8px; border-left: 4px solid #f39c12;">
-                    {{ musteri.notlar|linebreaks }}
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-sticky-note" style="color: var(--warning);"></i> Notlar</h5>
+                </div>
+                <div class="card-body">
+                    <div class="notes-content">
+                        <p>{{ musteri.notlar|linebreaks }}</p>
+                    </div>
                 </div>
             </div>
             {% endif %}
-        </div>
-    </div>
-    
-    <!-- Geri Dön Butonu -->
-    <div class="row mt-4">
-        <div class="col-12 text-center">
-            <a href="{% url 'musteri:liste' %}" class="btn btn-outline-secondary action-btn">
-                <i class="fas fa-arrow-left me-2"></i>Müşteri Listesine Dön
-            </a>
         </div>
     </div>
 </div>
@@ -372,43 +938,27 @@
 
 {% block extra_js %}
 <script>
-$(document).ready(function() {
-    // Telefon linklerini güzel görünümlü hale getir
-    $('a[href^="tel:"]').on('click', function(e) {
-        const phone = $(this).attr('href').replace('tel:', '');
-        Swal.fire({
-            title: 'Arama',
-            text: `${phone} numarasını aramak istiyor musunuz?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Ara',
-            cancelButtonText: 'İptal',
-            confirmButtonColor: '#667eea'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = $(this).attr('href');
+document.addEventListener('DOMContentLoaded', function() {
+    // Phone click handler
+    document.querySelectorAll('a[href^="tel:"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            const phone = this.getAttribute('href').replace('tel:', '');
+            if (confirm(phone + ' numarasını aramak istiyor musunuz?')) {
+                return;
             }
+            e.preventDefault();
         });
-        e.preventDefault();
     });
-    
-    // E-posta linklerini güzel görünümlü hale getir
-    $('a[href^="mailto:"]').on('click', function(e) {
-        const email = $(this).attr('href').replace('mailto:', '');
-        Swal.fire({
-            title: 'E-posta Gönder',
-            text: `${email} adresine e-posta göndermek istiyor musunuz?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Gönder',
-            cancelButtonText: 'İptal',
-            confirmButtonColor: '#667eea'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = $(this).attr('href');
+
+    // Email click handler
+    document.querySelectorAll('a[href^="mailto:"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            const email = this.getAttribute('href').replace('mailto:', '');
+            if (confirm(email + ' adresine e-posta göndermek istiyor musunuz?')) {
+                return;
             }
+            e.preventDefault();
         });
-        e.preventDefault();
     });
 });
 </script>

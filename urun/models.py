@@ -15,7 +15,8 @@ import uuid
 
 class UrunKategoriUst(models.Model):
     """Üst kategori modeli"""
-    ad = models.CharField(max_length=100, unique=True, verbose_name="Kategori Adı")
+    ad = models.CharField(max_length=100, unique=True,
+                          verbose_name="Kategori Adı")
     aciklama = models.TextField(blank=True, null=True, verbose_name="Açıklama")
     aktif = models.BooleanField(default=True, verbose_name="Aktif")
     olusturma_tarihi = models.DateTimeField(auto_now_add=True)
@@ -33,8 +34,10 @@ class UrunKategoriUst(models.Model):
 class Renk(models.Model):
     """Renk varyasyon modeli"""
     ad = models.CharField(max_length=50, unique=True, verbose_name="Renk Adı")
-    kod = models.CharField(max_length=1, unique=True, verbose_name="Renk Kodu (1 harf)")
-    hex_kod = models.CharField(max_length=7, blank=True, null=True, verbose_name="Hex Renk Kodu")
+    kod = models.CharField(max_length=1, unique=True,
+                           verbose_name="Renk Kodu (1 harf)")
+    hex_kod = models.CharField(
+        max_length=7, blank=True, null=True, verbose_name="Hex Renk Kodu")
     sira = models.PositiveIntegerField(default=1, verbose_name="Sıra")
     aktif = models.BooleanField(default=True, verbose_name="Aktif")
     olusturma_tarihi = models.DateTimeField(auto_now_add=True)
@@ -51,7 +54,8 @@ class Renk(models.Model):
 class Beden(models.Model):
     """Beden varyasyon modeli"""
     ad = models.CharField(max_length=20, unique=True, verbose_name="Beden Adı")
-    kod = models.CharField(max_length=1, unique=True, verbose_name="Beden Kodu (1 karakter)")
+    kod = models.CharField(max_length=1, unique=True,
+                           verbose_name="Beden Kodu (1 karakter)")
     tip = models.CharField(max_length=20, choices=[
         ('harf', 'Harf (XS, S, M, L, XL, XXL)'),
         ('rakam', 'Rakam (36, 38, 40, 42)')
@@ -71,9 +75,11 @@ class Beden(models.Model):
 
 class Marka(models.Model):
     """Ürün markaları için model"""
-    ad = models.CharField(max_length=100, unique=True, verbose_name="Marka Adı")
+    ad = models.CharField(max_length=100, unique=True,
+                          verbose_name="Marka Adı")
     aciklama = models.TextField(blank=True, null=True, verbose_name="Açıklama")
-    logo = models.ImageField(upload_to='marka_logolari/', blank=True, null=True, verbose_name="Marka Logosu")
+    logo = models.ImageField(upload_to='marka_logolari/',
+                             blank=True, null=True, verbose_name="Marka Logosu")
     aktif = models.BooleanField(default=True, verbose_name="Aktif")
     olusturma_tarihi = models.DateTimeField(auto_now_add=True)
     guncelleme_tarihi = models.DateTimeField(auto_now=True)
@@ -93,7 +99,7 @@ class Urun(models.Model):
         ('kadin', 'Kadın'),
         ('erkek', 'Erkek'),
     ]
-    
+
     BIRIM_SECENEKLERI = [
         ('adet', 'Adet'),
         ('takim', 'Takım'),
@@ -105,36 +111,79 @@ class Urun(models.Model):
         ('m', 'Metre'),
         ('cm', 'Santimetre'),
     ]
-    
+
     # Benzersiz ürün kodu
-    urun_kodu = models.CharField(max_length=5, unique=True, verbose_name="Ürün Kodu (5 hane)", blank=True, null=True)
+    urun_kodu = models.CharField(
+        max_length=5, unique=True, verbose_name="Ürün Kodu (5 hane)", blank=True, null=True)
     ad = models.CharField(max_length=200, verbose_name="Ürün Adı")
     aciklama = models.TextField(blank=True, null=True, verbose_name="Açıklama")
-    kategori = models.ForeignKey(UrunKategoriUst, on_delete=models.CASCADE, verbose_name="Kategori")
-    marka = models.ForeignKey(Marka, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Marka")
-    cinsiyet = models.CharField(max_length=10, choices=CINSIYET_SECENEKLERI, default='kadin', verbose_name="Cinsiyet")
-    birim = models.CharField(max_length=10, choices=BIRIM_SECENEKLERI, default='adet', verbose_name="Birim")
-    
+    kategori = models.ForeignKey(
+        UrunKategoriUst, on_delete=models.CASCADE, verbose_name="Kategori")
+    marka = models.ForeignKey(
+        Marka, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Marka")
+    cinsiyet = models.CharField(
+        max_length=10, choices=CINSIYET_SECENEKLERI, default='kadin', verbose_name="Cinsiyet")
+    birim = models.CharField(
+        max_length=10, choices=BIRIM_SECENEKLERI, default='adet', verbose_name="Birim")
+
     # Varyasyon kontrolü
-    varyasyonlu = models.BooleanField(default=False, verbose_name="Varyasyonlu Ürün")
-    
+    varyasyonlu = models.BooleanField(
+        default=False, verbose_name="Varyasyonlu Ürün")
+
     # Temel fiyat bilgileri
-    alis_fiyati = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Alış Fiyatı")
-    kar_orani = models.DecimalField(max_digits=5, decimal_places=2, default=50.00, verbose_name="Kar Oranı (%)")
-    satis_fiyati = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Satış Fiyatı")
-    
+    alis_fiyati = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00, verbose_name="Alış Fiyatı")
+    kar_orani = models.DecimalField(
+        max_digits=5, decimal_places=2, default=50.00, verbose_name="Kar Oranı (%)")
+
+    # Satış fiyatları - İkili sistem (Peşin ve Taksitli)
+    pesin_fiyat = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        verbose_name="Peşin Fiyat",
+        help_text="Peşin ödeme fiyatı"
+    )
+    taksitli_fiyat = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        verbose_name="Taksitli Fiyat",
+        help_text="Otomatik hesaplanır (Peşin + %5)"
+    )
+    taksit_orani = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=5.00,
+        verbose_name="Taksit Fark Oranı (%)",
+        help_text="Peşin fiyata eklenecek yüzde"
+    )
+
+    # Geriye dönük uyumluluk için eski alan (deprecated)
+    satis_fiyati = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        verbose_name="Satış Fiyatı (ESKİ - Kullanılmıyor)",
+        help_text="Artık pesin_fiyat kullanılıyor"
+    )
+
     # Ürün resmi
-    resim = models.ImageField(upload_to='urun_resimleri/', blank=True, null=True, verbose_name="Ana Ürün Resmi")
-    
+    resim = models.ImageField(upload_to='urun_resimleri/',
+                              blank=True, null=True, verbose_name="Ana Ürün Resmi")
+
     # Durum bilgisi
     aktif = models.BooleanField(default=True, verbose_name="Aktif")
-    stok_takibi = models.BooleanField(default=True, verbose_name="Stok Takibi Yapılsın")
-    kritik_stok_seviyesi = models.PositiveIntegerField(default=5, verbose_name="Kritik Stok Seviyesi")
-    
+    stok_takibi = models.BooleanField(
+        default=True, verbose_name="Stok Takibi Yapılsın")
+    kritik_stok_seviyesi = models.PositiveIntegerField(
+        default=5, verbose_name="Kritik Stok Seviyesi")
+
     # Tarih bilgileri
     olusturma_tarihi = models.DateTimeField(auto_now_add=True)
     guncelleme_tarihi = models.DateTimeField(auto_now=True)
-    olusturan = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Oluşturan")
+    olusturan = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Oluşturan")
 
     class Meta:
         verbose_name = "Ürün"
@@ -153,16 +202,60 @@ class Urun(models.Model):
         # Ürün kodu otomatik oluştur
         if not self.urun_kodu:
             # Son ürün kodunu bul ve 1 artır
-            son_urun = Urun.objects.filter(urun_kodu__isnull=False).order_by('-urun_kodu').first()
+            son_urun = Urun.objects.filter(
+                urun_kodu__isnull=False).order_by('-urun_kodu').first()
             if son_urun and son_urun.urun_kodu.isdigit():
                 yeni_kod = str(int(son_urun.urun_kodu) + 1).zfill(5)
             else:
                 yeni_kod = '00001'
             self.urun_kodu = yeni_kod
+
+        # Taksitli fiyatı otomatik hesapla (sadece manuel girilmemişse)
+        # Manuel girilen taksitli fiyatı korumak için kontrol ekle
+        if not hasattr(self, '_manuel_taksitli_fiyat') or not self._manuel_taksitli_fiyat:
+            if self.pesin_fiyat > 0 and self.taksitli_fiyat == 0:
+                # Taksitli fiyat 0 ise otomatik hesapla
+                self.taksitli_fiyat = self.pesin_fiyat * \
+                    (1 + (self.taksit_orani / 100))
+            elif self.pesin_fiyat > 0 and self.taksitli_fiyat <= self.pesin_fiyat:
+                # Taksitli fiyat peşinden küçük veya eşitse otomatik hesapla
+                self.taksitli_fiyat = self.pesin_fiyat * \
+                    (1 + (self.taksit_orani / 100))
+            # Aksi halde mevcut taksitli_fiyat değerini koru (manuel girilmiş)
+
+        # Geriye dönük uyumluluk için satis_fiyati = pesin_fiyat
+        self.satis_fiyati = self.pesin_fiyat
+
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.urun_kodu} - {self.ad}"
+
+    @property
+    def fiyat_farki(self):
+        """Peşin ve taksitli arasındaki fark (TL)"""
+        return self.taksitli_fiyat - self.pesin_fiyat
+
+    @property
+    def fiyat_farki_yuzdesi(self):
+        """Peşin ve taksitli arasındaki fark (%)"""
+        if self.pesin_fiyat > 0:
+            return ((self.taksitli_fiyat - self.pesin_fiyat) / self.pesin_fiyat) * 100
+        return 0
+
+    @property
+    def aylik_taksit_9(self):
+        """9 taksit için aylık tutar"""
+        if self.taksitli_fiyat > 0:
+            return self.taksitli_fiyat / 9
+        return 0
+
+    @property
+    def aylik_taksit_6(self):
+        """6 taksit için aylık tutar"""
+        if self.taksitli_fiyat > 0:
+            return self.taksitli_fiyat / 6
+        return 0
 
     @property
     def toplam_stok(self):
@@ -178,15 +271,15 @@ class Urun(models.Model):
         """Barkod için özellik kodunu oluştur"""
         if not self.varyasyonlu:
             return "00"  # Varyasyonsuz ürün
-        
+
         # Varyantları kontrol et
         varyant = self.varyantlar.first()
         if not varyant:
             return "00"
-        
+
         renk_var = varyant.renk is not None
         beden_var = varyant.beden is not None
-        
+
         if renk_var and beden_var:
             return "03"  # Renk + Beden
         elif renk_var:
@@ -195,7 +288,6 @@ class Urun(models.Model):
             return "02"  # Sadece beden
         else:
             return "00"  # Varyasyonsuz
-
 
 
 # PRN Etiket Template
@@ -223,26 +315,33 @@ PRINT 1,1"""
 
 class UrunVaryanti(models.Model):
     """Ürün varyantları - her renk/beden kombinasyonu için ayrı kayıt"""
-    urun = models.ForeignKey(Urun, on_delete=models.CASCADE, related_name='varyantlar', verbose_name="Ürün")
-    renk = models.ForeignKey(Renk, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Renk")
-    beden = models.ForeignKey(Beden, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Beden")
-    
+    urun = models.ForeignKey(
+        Urun, on_delete=models.CASCADE, related_name='varyantlar', verbose_name="Ürün")
+    renk = models.ForeignKey(
+        Renk, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Renk")
+    beden = models.ForeignKey(
+        Beden, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Beden")
+
     # Barkod - otomatik oluşturulacak
-    barkod = models.CharField(max_length=20, unique=True, verbose_name="Barkod", blank=True)
-    
+    barkod = models.CharField(
+        max_length=20, unique=True, verbose_name="Barkod", blank=True)
+
     # Stok bilgisi
-    stok_miktari = models.PositiveIntegerField(default=1, verbose_name="Stok Miktarı")
+    stok_miktari = models.PositiveIntegerField(
+        default=1, verbose_name="Stok Miktarı")
+
     def ilk_stok_ayarla(self, miktar, kullanici, aciklama="İlk stok girişi"):
         """
         Sadece yeni oluşturulan varyantlar için stok ayarlama
         Bu metod sadece stok_kaydedildi=False olan varyantlarda çalışır
         """
         if self.stok_kaydedildi:
-            raise ValueError("Bu ürünün stoğu zaten kaydedilmiş. Artık sadece Stok Hareket sistemi kullanılabilir!")
-        
+            raise ValueError(
+                "Bu ürünün stoğu zaten kaydedilmiş. Artık sadece Stok Hareket sistemi kullanılabilir!")
+
         # Stok miktarını ayarla
         self.stok_miktari = miktar
-        
+
         # İlk stok hareketini kaydet
         from .models import StokHareket  # Circular import'u önlemek için burada import
         StokHareket.stok_hareketi_olustur(
@@ -252,12 +351,13 @@ class UrunVaryanti(models.Model):
             kullanici=kullanici,
             aciklama=aciklama
         )
-        
+
         # Stok kaydedildi olarak işaretle
         self.stok_kaydedildi = True
         self.save(ilk_kayit=True)
-        
+
         return True
+
     def set_current_user(self, user, ip_address=None):
         """Stok loglama için kullanıcı bilgisi set et"""
         self._current_user = user
@@ -272,12 +372,11 @@ class UrunVaryanti(models.Model):
         """Stok değişiklik geçmişi"""
         return self.stok_loglari.all()[:limit]
 
-
     def stok_degistirilebilir_mi(self):
         """Stoğun değiştirilebilir olup olmadığını kontrol et"""
         return not self.stok_kaydedildi
 
-    @property 
+    @property
     def stok_durumu(self):
         """Stok durumu bilgisi"""
         if not self.stok_kaydedildi:
@@ -285,12 +384,15 @@ class UrunVaryanti(models.Model):
         else:
             return "Stok kaydedildi - Sadece Stok Hareket sistemi ile değiştirilebilir"
 
-    stok_kaydedildi = models.BooleanField(default=False, verbose_name="Stok Kaydedildi Mi?")
-    
+    stok_kaydedildi = models.BooleanField(
+        default=False, verbose_name="Stok Kaydedildi Mi?")
+
     # Ek bilgiler
-    ek_aciklama = models.TextField(blank=True, null=True, verbose_name="Ek Açıklama")
-    resim = models.ImageField(upload_to='varyant_resimleri/', blank=True, null=True, verbose_name="Varyant Resmi")
-    
+    ek_aciklama = models.TextField(
+        blank=True, null=True, verbose_name="Ek Açıklama")
+    resim = models.ImageField(upload_to='varyant_resimleri/',
+                              blank=True, null=True, verbose_name="Varyant Resmi")
+
     # Durum
     aktif = models.BooleanField(default=True, verbose_name="Aktif")
     olusturma_tarihi = models.DateTimeField(auto_now_add=True)
@@ -327,60 +429,68 @@ class UrunVaryanti(models.Model):
         # Stok değişiklik kontrolü (sadece stok hareket sistemi dışındaki değişiklikler için)
         if not stok_hareket_guncelleme and not is_new:
             original = UrunVaryanti.objects.get(pk=self.pk)
-            
+
             # Eğer stok değiştirilmeye çalışılıyorsa ve bu varyant kilitliyse
             if original.stok_miktari != self.stok_miktari and original.stok_kaydedildi:
                 self.stok_miktari = original.stok_miktari  # Eski değeri geri yükle
-                raise ValueError("Bu varyasyonun stoğu kilitlenmiştir! Sadece Stok Hareket sistemi ile değiştirilebilir.")
+                raise ValueError(
+                    "Bu varyasyonun stoğu kilitlenmiştir! Sadece Stok Hareket sistemi ile değiştirilebilir.")
 
         # Barkod otomatik oluştur
         if not self.barkod:
             self.barkod = self.olustur_barkod()
-        
+
         super().save(*args, **kwargs)
-        
-        # YENİ MANTIK 2: Stok miktarı güncellendiğinde bu varyantı hemen kilitle
+
+        # Stok kilidi: Varyasyon Yönetimi'nde "Stokları Kaydet" veya stok_hareketi_olustur yoluyla
+        # stok_kaydedildi güncellenir. Yeni kayıtta sadece stok_miktari>0 diye kilitleme yapılmaz
+        # (yanlışlıkla hep "1" ile kilitlenmesini ve bellek/DB tutarsızlığını önlemek için).
         if not stok_hareket_guncelleme:
-            # Yeni varyant için: İlk kez stok giriliyorsa kilitle
-            if is_new and self.stok_miktari > 0:
-                self.stok_kaydedildi = True
             # Mevcut varyant için: Stok değiştirilmişse ve henüz kaydedilmemişse kilitle
-            elif not is_new and old_stock is not None and old_stock != self.stok_miktari and not original.stok_kaydedildi:
+            if not is_new and old_stock is not None and old_stock != self.stok_miktari and not original.stok_kaydedildi:
                 self.stok_kaydedildi = True
-                UrunVaryanti.objects.filter(pk=self.pk).update(stok_kaydedildi=True)
+                UrunVaryanti.objects.filter(
+                    pk=self.pk).update(stok_kaydedildi=True)
 
     def olustur_barkod(self):
-        "Code 128 formatında barkod oluştur"
+        "Code 128 formatında barkod oluştur - Yeni Format (Fiyatsız)"
         # 1. Özellik kodu (2 hane)
         ozellik_kodu = self.urun.ozellik_kodu
+
         # 2. Varyant kodu (2 hane)
         renk_kodu = self.renk.kod if self.renk else "0"
         beden_kodu = self.beden.kod if self.beden else "0"
         varyant_kodu = f"{renk_kodu}{beden_kodu}"
-        
+
         # 3. Ürün numarası (5 hane)
         urun_numarasi = self.urun.urun_kodu
-        
-        # 4. Fiyat (4 hane)
-        fiyat_kodu = str(int(self.urun.satis_fiyati)).zfill(4)
-        
-        # Barkod birleştir
-        # Code 128 için veri hazırla
-        code128_data = f"NUV{ozellik_kodu}{varyant_kodu}{urun_numarasi}{fiyat_kodu}"
-        
+
+        # 4. Varyant sıra numarası (3 hane) - Benzersizlik için
+        # Aynı ürün-renk-beden kombinasyonu için sıra no
+        ayni_kombinasyon = UrunVaryanti.objects.filter(
+            urun=self.urun,
+            renk=self.renk,
+            beden=self.beden
+        ).exclude(pk=self.pk).count()
+        sira_no = str(ayni_kombinasyon + 1).zfill(3)
+
+        # Yeni Format Barkod: NUV + Özellik(2) + Varyant(2) + Ürün(5) + Sıra(3) = 15 karakter
+        code128_data = f"NUV{ozellik_kodu}{varyant_kodu}{urun_numarasi}{sira_no}"
+
         return code128_data
+
     def barkod_gorseli_olustur(self, format='PNG'):
         """Code 128 barkod görselini oluştur"""
         try:
             # Barkod verisini al
             barkod_data = self.olustur_barkod()
-            
+
             # Code 128 barkod oluştur
             code128 = Code128(barkod_data, writer=ImageWriter())
-            
+
             # Görsel buffer'ı oluştur
             buffer = io.BytesIO()
-            
+
             # Barkod görselini oluştur
             code128.write(buffer, options={
                 'module_width': 0.2,
@@ -391,10 +501,10 @@ class UrunVaryanti(models.Model):
                 'background': 'white',
                 'foreground': 'black',
             })
-            
+
             # Buffer'ı sıfırla
             buffer.seek(0)
-            
+
             if format.upper() == 'BASE64':
                 # Base64 formatında döndür
                 image_data = buffer.getvalue()
@@ -404,7 +514,7 @@ class UrunVaryanti(models.Model):
                 # PIL Image olarak döndür
                 image = Image.open(buffer)
                 return image
-                
+
         except Exception as e:
             # Barkod görseli oluşturulurken hata meydana geldi
             return None
@@ -429,18 +539,18 @@ class UrunVaryanti(models.Model):
                 date_str = custom_date
             else:
                 date_str = datetime.now().strftime("%d.%m.%Y")
-            
+
             # Ürün adı ve varyasyon
             product_name = f"{self.urun.ad}"
             if self.varyasyon_adi != "Standart":
                 product_name += f" {self.varyasyon_adi}"
-            
+
             # Barkod
             barcode = self.olustur_barkod()
-            
+
             # Fiyat
             price = float(self.urun.satis_fiyati)
-            
+
             # PRN içeriği oluştur
             prn_content = PRN_TEMPLATE.format(
                 product_name=product_name[:30],  # Etiket boyutu limiti
@@ -448,9 +558,9 @@ class UrunVaryanti(models.Model):
                 price=f"{price:.2f}",
                 date=date_str
             )
-            
+
             return prn_content
-            
+
         except Exception as e:
             # Etiket oluşturulurken hata meydana geldi
             return None
@@ -482,20 +592,20 @@ class UrunVaryanti(models.Model):
         """Birden fazla varyant için etiket oluştur"""
         os.makedirs(output_dir, exist_ok=True)
         created_files = []
-        
+
         for i, varyant in enumerate(varyant_list, 1):
             # Dosya adını oluştur
-            safe_name = "".join(c for c in varyant.urun.ad if c.isalnum() or c in (' ', '-', '_')).strip()
+            safe_name = "".join(
+                c for c in varyant.urun.ad if c.isalnum() or c in (' ', '-', '_')).strip()
             file_name = f"label_{i:03d}_{safe_name[:20]}.prn"
             file_path = os.path.join(output_dir, file_name)
-            
+
             # Etiket oluştur
             success = varyant.etiket_kaydet(file_path)
             if success:
                 created_files.append(file_path)
-        
-        return created_files
 
+        return created_files
 
     @property
     def varyasyon_adi(self):
@@ -512,44 +622,66 @@ class UrunVaryanti(models.Model):
 
     @classmethod
     def barkod_cozumle(cls, barkod):
-        """Code 128 formatında barkod çözümleme algoritması"""
-        # Code 128 formatı: NUV + 13 karakterlik veri
-        if not barkod or len(barkod) < 16:
+        """Code 128 formatında barkod çözümleme algoritması - Yeni ve Eski Format Destekli"""
+        if not barkod:
             return None
 
         try:
             # NUV prefix kontrolü
             if not barkod.startswith('NUV'):
-                # Eski format için backward compatibility
+                # Eski format için backward compatibility (prefix olmadan)
                 if len(barkod) == 13:
                     return cls._legacy_barkod_cozumle(barkod)
                 return None
-            
+
             # NUV prefix'ini çıkar
             veri = barkod[3:]  # NUV'dan sonraki kısım
-            
-            if len(veri) != 13:
+
+            # YENİ FORMAT: 12 karakter (Özellik(2) + Varyant(2) + Ürün(5) + Sıra(3))
+            if len(veri) == 12:
+                # Barkodu parçalara ayır
+                ozellik_kodu = veri[:2]
+                varyant_kodu = veri[2:4]
+                urun_numarasi = veri[4:9]
+                sira_no = veri[9:12]
+
+                # Renk ve beden kodlarını ayır
+                renk_kodu = varyant_kodu[0]
+                beden_kodu = varyant_kodu[1]
+
+                return {
+                    'ozellik_kodu': ozellik_kodu,
+                    'renk_kodu': renk_kodu if renk_kodu != '0' else None,
+                    'beden_kodu': beden_kodu if beden_kodu != '0' else None,
+                    'urun_numarasi': urun_numarasi,
+                    'sira_no': sira_no,
+                    'format': 'code128_v2'  # Yeni format
+                }
+
+            # ESKİ FORMAT: 13 karakter (Fiyatlı) - Backward Compatibility
+            elif len(veri) == 13:
+                # Barkodu parçalara ayır
+                ozellik_kodu = veri[:2]
+                varyant_kodu = veri[2:4]
+                urun_numarasi = veri[4:9]
+                fiyat_kodu = veri[9:13]
+
+                # Renk ve beden kodlarını ayır
+                renk_kodu = varyant_kodu[0]
+                beden_kodu = varyant_kodu[1]
+
+                return {
+                    'ozellik_kodu': ozellik_kodu,
+                    'renk_kodu': renk_kodu if renk_kodu != '0' else None,
+                    'beden_kodu': beden_kodu if beden_kodu != '0' else None,
+                    'urun_numarasi': urun_numarasi,
+                    'fiyat_kodu': fiyat_kodu,
+                    'format': 'code128_v1'  # Eski format (fiyatlı)
+                }
+
+            else:
                 return None
-                
-            # Barkodu parçalara ayır
-            ozellik_kodu = veri[:2]
-            varyant_kodu = veri[2:4]
-            urun_numarasi = veri[4:9]
-            fiyat_kodu = veri[9:13]
-            
-            # Renk ve beden kodlarını ayır
-            renk_kodu = varyant_kodu[0]
-            beden_kodu = varyant_kodu[1]
-            
-            return {
-                'ozellik_kodu': ozellik_kodu,
-                'renk_kodu': renk_kodu if renk_kodu != '0' else None,
-                'beden_kodu': beden_kodu if beden_kodu != '0' else None,
-                'urun_numarasi': urun_numarasi,
-                'fiyat_kodu': fiyat_kodu,
-                'format': 'code128'
-            }
-            
+
         except Exception:
             return None
 
@@ -565,11 +697,11 @@ class UrunVaryanti(models.Model):
             varyant_kodu = barkod[2:4]
             urun_numarasi = barkod[4:9]
             fiyat_kodu = barkod[9:13]
-            
+
             # Renk ve beden kodlarını ayır
             renk_kodu = varyant_kodu[0]
             beden_kodu = varyant_kodu[1]
-            
+
             return {
                 'ozellik_kodu': ozellik_kodu,
                 'renk_kodu': renk_kodu if renk_kodu != '0' else None,
@@ -578,17 +710,14 @@ class UrunVaryanti(models.Model):
                 'fiyat_kodu': fiyat_kodu,
                 'format': 'legacy'
             }
-            
+
         except Exception:
             return None
-
-    
-
 
 
 class StokDegisiklikLog(models.Model):
     """Stok değişiklik logları"""
-    
+
     ISLEM_TIPLERI = [
         ('ilk_kayit', 'İlk Kayıt'),
         ('admin_degisiklik', 'Admin Değişiklik'),
@@ -597,27 +726,32 @@ class StokDegisiklikLog(models.Model):
         ('stok_hareket', 'Stok Hareket'),
         ('koruma_kaldirma', 'Koruma Kaldırma'),
     ]
-    
-    varyant = models.ForeignKey('UrunVaryanti', on_delete=models.CASCADE, related_name='stok_loglari')
-    islem_tipi = models.CharField(max_length=20, choices=ISLEM_TIPLERI, verbose_name="İşlem Tipi")
+
+    varyant = models.ForeignKey(
+        'UrunVaryanti', on_delete=models.CASCADE, related_name='stok_loglari')
+    islem_tipi = models.CharField(
+        max_length=20, choices=ISLEM_TIPLERI, verbose_name="İşlem Tipi")
     eski_miktar = models.PositiveIntegerField(verbose_name="Eski Miktar")
     yeni_miktar = models.PositiveIntegerField(verbose_name="Yeni Miktar")
-    kullanici = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Kullanıcı")
-    ip_adresi = models.GenericIPAddressField(null=True, blank=True, verbose_name="IP Adresi")
+    kullanici = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Kullanıcı")
+    ip_adresi = models.GenericIPAddressField(
+        null=True, blank=True, verbose_name="IP Adresi")
     aciklama = models.TextField(blank=True, null=True, verbose_name="Açıklama")
-    olusturma_tarihi = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturma Tarihi")
-    
+    olusturma_tarihi = models.DateTimeField(
+        auto_now_add=True, verbose_name="Oluşturma Tarihi")
+
     class Meta:
         verbose_name = "Stok Değişiklik Logu"
         verbose_name_plural = "Stok Değişiklik Logları"
         ordering = ['-olusturma_tarihi']
-    
+
     def __str__(self):
         return f"{self.varyant} - {self.get_islem_tipi_display()} ({self.eski_miktar}→{self.yeni_miktar})"
-    
+
     def miktar_degisimi(self):
         return self.yeni_miktar - self.eski_miktar
-    
+
     @classmethod
     def log_olustur(cls, varyant, islem_tipi, eski_miktar, yeni_miktar, kullanici=None, ip_adresi=None, aciklama=None):
         """Stok değişiklik logu oluştur"""
@@ -643,30 +777,36 @@ class StokHareket(models.Model):
         ('transfer', 'Transfer'),
         ('fire', 'Fire'),
     ]
-    
-    varyant = models.ForeignKey('UrunVaryanti', on_delete=models.CASCADE, verbose_name="Ürün Varyantı")
-    hareket_tipi = models.CharField(max_length=20, choices=HAREKET_TIPLERI, verbose_name="Hareket Tipi")
+
+    varyant = models.ForeignKey(
+        'UrunVaryanti', on_delete=models.CASCADE, verbose_name="Ürün Varyantı")
+    hareket_tipi = models.CharField(
+        max_length=20, choices=HAREKET_TIPLERI, verbose_name="Hareket Tipi")
     miktar = models.IntegerField(verbose_name="Miktar")
     onceki_stok = models.IntegerField(verbose_name="Önceki Stok")
     yeni_stok = models.IntegerField(verbose_name="Yeni Stok")
     aciklama = models.TextField(blank=True, null=True, verbose_name="Açıklama")
-    referans_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="Referans ID")  # Satış ID vs.
-    kullanici = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Kullanıcı")
-    olusturma_tarihi = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturma Tarihi")
-    
+    # Satış ID vs.
+    referans_id = models.CharField(
+        max_length=100, blank=True, null=True, verbose_name="Referans ID")
+    kullanici = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Kullanıcı")
+    olusturma_tarihi = models.DateTimeField(
+        auto_now_add=True, verbose_name="Oluşturma Tarihi")
+
     class Meta:
         verbose_name = "Stok Hareket"
         verbose_name_plural = "Stok Hareketleri"
         ordering = ['-olusturma_tarihi']
-    
+
     def __str__(self):
         return f"{self.varyant} - {self.get_hareket_tipi_display()} ({self.miktar})"
-    
+
     @classmethod
     def stok_hareketi_olustur(cls, varyant, hareket_tipi, miktar, kullanici, aciklama=None, referans_id=None):
         """Stok hareketi oluşturur"""
         onceki_stok = varyant.stok_miktari
-        
+
         if hareket_tipi == 'giris':
             yeni_stok = onceki_stok + miktar
         elif hareket_tipi == 'cikis':
@@ -677,7 +817,7 @@ class StokHareket(models.Model):
             yeni_stok = onceki_stok + miktar
         else:
             yeni_stok = miktar  # Düzeltme vb. için direkt miktar
-        
+
         # Stok hareketini kaydet
         hareket = cls.objects.create(
             varyant=varyant,
@@ -689,9 +829,248 @@ class StokHareket(models.Model):
             referans_id=referans_id,
             kullanici=kullanici
         )
-        
+
         # Varyantın stok miktarını güncelle (güvenli güncelleme)
         varyant.stok_miktari = yeni_stok
         varyant.save(stok_hareket_guncelleme=True)
-        
+
         return hareket
+
+# Import fiyat models for migrations
+from .fiyat_models import FiyatGecmisi, FiyatKampanya, FiyatUyari  # noqa
+
+
+# ============== ETİKET ŞABLON MODELLERİ ==============
+
+class EtiketSablonu(models.Model):
+    """Etiket şablonu modeli"""
+    
+    ad = models.CharField(
+        max_length=100,
+        verbose_name="Şablon Adı",
+        help_text="Şablon için bir isim giriniz"
+    )
+    
+    genislik_mm = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=54,
+        verbose_name="Genişlik (mm)",
+        help_text="Nuvia ZPL şablonu: 54×40 mm (^PW432 ^LL320, 8 dot/mm)",
+    )
+    
+    yukseklik_mm = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=40,
+        verbose_name="Yükseklik (mm)",
+        help_text="Nuvia ZPL şablonu: 54×40 mm",
+    )
+    
+    tasarim_json = models.JSONField(
+        default=dict,
+        verbose_name="Tasarım Verisi",
+        help_text="Canvas durumu JSON formatında"
+    )
+    
+    varsayilan = models.BooleanField(
+        default=False,
+        verbose_name="Varsayılan Şablon"
+    )
+    
+    kategori = models.ForeignKey(
+        'UrunKategoriUst',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='etiket_sablonlari',
+        verbose_name="Kategori"
+    )
+    
+    olusturan = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='olusturulan_sablonlar',
+        verbose_name="Oluşturan"
+    )
+    
+    olusturma_tarihi = models.DateTimeField(auto_now_add=True)
+    guncelleme_tarihi = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'urun_etiket_sablonu'
+        verbose_name = 'Etiket Şablonu'
+        verbose_name_plural = 'Etiket Şablonları'
+        ordering = ['-guncelleme_tarihi']
+    
+    def __str__(self):
+        return f"{self.ad} ({self.genislik_mm}x{self.yukseklik_mm}mm)"
+
+
+class EtiketSablonEleman(models.Model):
+    """Etiket şablon elementi modeli"""
+    
+    ELEMENT_TYPES = [
+        ('text', 'Metin'),
+        ('barcode_1d', '1D Barkod'),
+        ('barcode_2d', '2D Barkod (QR)'),
+        ('image', 'Resim/Logo'),
+        ('rectangle', 'Dikdörtgen'),
+        ('line', 'Çizgi'),
+    ]
+    
+    FONT_FAMILIES = [
+        ('Arial', 'Arial'),
+        ('Helvetica', 'Helvetica'),
+        ('Times New Roman', 'Times New Roman'),
+        ('Courier New', 'Courier New'),
+    ]
+    
+    BARCODE_TYPES = [
+        ('CODE128', 'Code 128'),
+        ('CODE39', 'Code 39'),
+        ('EAN13', 'EAN-13'),
+        ('EAN8', 'EAN-8'),
+        ('UPCA', 'UPC-A'),
+        ('UPCE', 'UPC-E'),
+    ]
+    
+    sablon = models.ForeignKey(
+        EtiketSablonu,
+        on_delete=models.CASCADE,
+        related_name='elemanlar',
+        verbose_name="Şablon"
+    )
+    
+    eleman_tipi = models.CharField(
+        max_length=20,
+        choices=ELEMENT_TYPES,
+        verbose_name="Element Tipi"
+    )
+    
+    # Konum ve boyut (piksel cinsinden, canvas koordinatları)
+    pozisyon_x = models.IntegerField(default=0, verbose_name="X Pozisyonu")
+    pozisyon_y = models.IntegerField(default=0, verbose_name="Y Pozisyonu")
+    genislik = models.IntegerField(default=50, verbose_name="Genişlik")
+    yukseklik = models.IntegerField(default=20, verbose_name="Yükseklik")
+    donderece = models.IntegerField(default=0, verbose_name="Döndürme Açısı")
+    
+    # İçerik ayarları
+    icerik = models.TextField(blank=True, verbose_name="İçerik")
+    veri_alan = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="Veri Alanı",
+        help_text="Örn: {urun_ad}, {barkod}, {fiyat}"
+    )
+    
+    # Stil ayarları
+    font_aile = models.CharField(
+        max_length=50,
+        choices=FONT_FAMILIES,
+        default='Arial',
+        verbose_name="Font Ailesi"
+    )
+    font_boyut = models.IntegerField(default=12, verbose_name="Font Boyutu (pt)")
+    font_kalin = models.BooleanField(default=False, verbose_name="Kalın")
+    font_renk = models.CharField(max_length=7, default='#000000', verbose_name="Font Rengi")
+    arka_plan_renk = models.CharField(max_length=7, default='#FFFFFF', verbose_name="Arka Plan Rengi")
+    
+    # Barkod ayarları
+    barkod_tipi = models.CharField(
+        max_length=20,
+        choices=BARCODE_TYPES,
+        blank=True,
+        verbose_name="Barkod Tipi"
+    )
+    barkod_yukseklik = models.IntegerField(default=20, verbose_name="Barkod Yüksekliği (mm)")
+    insan_okunabilir = models.BooleanField(default=True, verbose_name="İnsan Okunabilir Metin")
+    
+    # Şekil ayarları
+    kenarlik_kalinligi = models.IntegerField(default=1, verbose_name="Kenarlık Kalınlığı")
+    kenarlik_rengi = models.CharField(max_length=7, default='#000000', verbose_name="Kenarlık Rengi")
+    dolgu_rengi = models.CharField(max_length=7, default='#FFFFFF', verbose_name="Dolgu Rengi")
+    kose_yuvarlakligi = models.IntegerField(default=0, verbose_name="Köşe Yuvarlaklığı")
+    
+    # Görsel ayarları
+    gorunum_url = models.CharField(max_length=500, blank=True, verbose_name="Görsel URL")
+    
+    # Sıralama
+    siralama = models.IntegerField(default=0, verbose_name="Sıralama")
+    
+    class Meta:
+        db_table = 'urun_etiket_sablon_eleman'
+        verbose_name = 'Şablon Elemanı'
+        verbose_name_plural = 'Şablon Elemanları'
+        ordering = ['siralama']
+    
+    def __str__(self):
+        return f"{self.get_eleman_tipi_display()} - {self.sablon.ad}"
+
+
+class YaziciAyarlari(models.Model):
+    """Kullanıcı yazıcı ayarları modeli"""
+    
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='yazici_ayarlari',
+        verbose_name="Kullanıcı"
+    )
+    
+    yazici_ad = models.CharField(
+        max_length=100,
+        default='Xprinter XP-470B',
+        verbose_name="Yazıcı Adı"
+    )
+    
+    yazici_tipi = models.CharField(
+        max_length=50,
+        default='Xprinter XP-470B',
+        verbose_name="Yazıcı Tipi"
+    )
+    
+    etiket_genislik_mm = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=40,
+        verbose_name="Etiket Genişliği (mm)"
+    )
+    
+    etiket_yukseklik_mm = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=30,
+        verbose_name="Etiket Yüksekliği (mm)"
+    )
+    
+    kopya_sayisi = models.IntegerField(
+        default=1,
+        verbose_name="Kopya Sayısı"
+    )
+    
+    aktif = models.BooleanField(
+        default=True,
+        verbose_name="Aktif"
+    )
+    
+    print_agent_token = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Print Agent Token"
+    )
+    
+    son_test_tarihi = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Son Test Tarihi"
+    )
+    
+    class Meta:
+        db_table = 'urun_yazici_ayarlari'
+        verbose_name = 'Yazıcı Ayarları'
+        verbose_name_plural = 'Yazıcı Ayarları'
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.yazici_ad}"

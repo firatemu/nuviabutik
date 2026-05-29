@@ -1,0 +1,1565 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Etiket Şablon Tasarımcısı | NUVIA PREMIUM WEAR{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Etiket Tasarımcı Özel Stiller */
+    .designer-container {
+        display: flex;
+        gap: 20px;
+        height: calc(100vh - 180px);
+        min-height: 600px;
+    }
+    
+    .designer-canvas-area {
+        flex: 1;
+        background: #f5f5f5;
+        border-radius: 10px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .canvas-wrapper {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: auto;
+        background: #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+    }
+    
+    .label-canvas {
+        background: white;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        position: relative;
+        border: 1px dashed #ccc;
+        overflow: visible;
+        box-sizing: border-box;
+    }
+    
+    .canvas-element {
+        position: absolute;
+        cursor: move;
+        user-select: none;
+        border: 1px solid transparent;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+    
+    .canvas-element:hover,
+    .canvas-element.selected {
+        border-color: #3498db;
+    }
+    
+    .canvas-element .resize-handle {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: #3498db;
+        border: 1px solid white;
+        border-radius: 2px;
+    }
+    
+    .canvas-element .resize-handle.se { bottom: -5px; right: -5px; cursor: se-resize; }
+    .canvas-element .resize-handle.sw { bottom: -5px; left: -5px; cursor: sw-resize; }
+    .canvas-element .resize-handle.ne { top: -5px; right: -5px; cursor: ne-resize; }
+    .canvas-element .resize-handle.nw { top: -5px; left: -5px; cursor: nw-resize; }
+    
+    .designer-sidebar {
+        width: 350px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .tool-panel {
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .panel-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--info-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .tool-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    
+    .tool-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 12px 8px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        background: #fafafa;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .tool-btn:hover {
+        border-color: var(--info-color);
+        background: #e3f2fd;
+    }
+    
+    .tool-btn i {
+        font-size: 1.5rem;
+        margin-bottom: 5px;
+        color: var(--info-color);
+    }
+    
+    .tool-btn span {
+        font-size: 0.75rem;
+        color: #666;
+    }
+    
+    .property-group {
+        margin-bottom: 15px;
+    }
+    
+    .property-label {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 5px;
+        display: block;
+    }
+    
+    .property-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 0.9rem;
+    }
+    
+    .property-input:focus {
+        border-color: var(--info-color);
+        outline: none;
+    }
+    
+    .btn-tool {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+    }
+    
+    .btn-tool i {
+        margin-right: 5px;
+    }
+    
+    .sablon-liste {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .sablon-item {
+        padding: 10px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .sablon-item:hover {
+        background: #f5f5f5;
+        border-color: var(--info-color);
+    }
+    
+    .sablon-item.active {
+        background: #e3f2fd;
+        border-color: var(--info-color);
+    }
+    
+    .sablon-item .sablon-info {
+        flex: 1;
+    }
+    
+    .sablon-item .sablon-name {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .sablon-item .sablon-size {
+        font-size: 0.8rem;
+        color: #888;
+    }
+    
+    .size-presets {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .size-preset {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .size-preset:hover,
+    .size-preset.active {
+        border-color: var(--info-color);
+        background: #e3f2fd;
+    }
+    
+    .size-preset .size-value {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .size-preset .size-label {
+        font-size: 0.75rem;
+        color: #888;
+    }
+    
+    .canvas-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .zoom-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .zoom-value {
+        font-weight: 600;
+        min-width: 50px;
+        text-align: center;
+    }
+    
+    .grid-controls {
+        display: flex;
+        gap: 10px;
+    }
+    
+    /* Element Styles */
+    .element-text {
+        font-family: Arial, sans-serif;
+        white-space: nowrap;
+        overflow: hidden;
+        justify-content: flex-start !important;
+        align-items: flex-start !important;
+        text-align: left !important;
+        padding: 0 1px;
+        box-sizing: border-box;
+    }
+    
+    .element-barcode {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .element-barcode canvas {
+        max-width: 100%;
+    }
+    
+    .element-qrcode {
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+    }
+    .element-qrcode canvas,
+    .element-qrcode img {
+        max-width: 100%;
+        max-height: 100%;
+    }
+    
+    /* Modal Stiller */
+    .modal-lg {
+        max-width: 90%;
+    }
+    
+    .preview-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 400px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        padding: 20px;
+    }
+    
+    .preview-label {
+        background: white;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    
+    /* Data Binding Dropdown */
+    .data-field-select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: white;
+    }
+    
+    .data-field-info {
+        font-size: 0.8rem;
+        color: #888;
+        margin-top: 5px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1200px) {
+        .designer-container {
+            flex-direction: column;
+            height: auto;
+        }
+        
+        .designer-sidebar {
+            width: 100%;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        
+        .tool-panel {
+            flex: 1;
+            min-width: 300px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="page-title">
+    <h2><i class="fas fa-vector-square me-2"></i>Etiket Şablon Tasarımcısı</h2>
+</div>
+
+<div class="designer-container">
+    <!-- Canvas Alanı -->
+    <div class="designer-canvas-area">
+        <div class="canvas-toolbar">
+            <div class="d-flex gap-2">
+                <input type="text" id="sablonAdi" class="form-control" placeholder="Şablon Adı" value="Yeni Şablon" style="width: 200px;">
+                <button type="button" class="btn btn-primary" id="btnKaydet" title="Şablonu Kaydet">
+                    <i class="fas fa-save"></i> Kaydet
+                </button>
+                <button type="button" class="btn btn-success" id="btnOnizleme" title="Önizleme">
+                    <i class="fas fa-eye"></i> Önizle
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="btnYazdir" title="Test Yazdır">
+                    <i class="fas fa-print"></i> Test Yazdır
+                </button>
+            </div>
+            
+            <div class="zoom-controls">
+                <span>Zoom:</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomOut">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <span class="zoom-value" id="zoomValue">100%</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomIn">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            
+            <div class="grid-controls">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="toggleGrid" title="Izgara">
+                    <i class="fas fa-th"></i> Izgara
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-warning" id="btnGeriAl" title="Geri Al">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-warning" id="btnYinele" title="Yinele">
+                    <i class="fas fa-redo"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="canvas-wrapper">
+            <div class="label-canvas" id="labelCanvas" style="width: 432px; height: 320px;">
+                <!-- Canvas: 54×40 mm @ 8 px/mm = 432×320 (ZPL ^PW432 ^LL0320) -->
+            </div>
+        </div>
+        
+        <div class="mt-3 p-3 bg-light rounded">
+            <div class="row">
+                <div class="col-md-4">
+                    <small class="text-muted">Seçili: </small>
+                    <span id="selectedInfo">Hiçbiri</span>
+                </div>
+                <div class="col-md-4">
+                    <small class="text-muted">Konum: </small>
+                    <span id="positionInfo">X: 0, Y: 0</span>
+                </div>
+                <div class="col-md-4">
+                    <small class="text-muted">Boyut: </small>
+                    <span id="sizeInfo">0 x 0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="designer-sidebar">
+        <!-- Element Ekleme -->
+        <div class="tool-panel">
+            <h6 class="panel-title"><i class="fas fa-plus-circle"></i> Element Ekle</h6>
+            <div class="tool-grid">
+                <button type="button" class="tool-btn" data-element="text">
+                    <i class="fas fa-font"></i>
+                    <span>Metin</span>
+                </button>
+                <button type="button" class="tool-btn" data-element="barcode_1d">
+                    <i class="fas fa-barcode"></i>
+                    <span>1D Barkod</span>
+                </button>
+                <button type="button" class="tool-btn" data-element="barcode_2d">
+                    <i class="fas fa-qrcode"></i>
+                    <span>QR Code</span>
+                </button>
+                <button type="button" class="tool-btn" data-element="image">
+                    <i class="fas fa-image"></i>
+                    <span>Logo</span>
+                </button>
+                <button type="button" class="tool-btn" data-element="rectangle">
+                    <i class="fas fa-square"></i>
+                    <span>Dikdörtgen</span>
+                </button>
+                <button type="button" class="tool-btn" data-element="line">
+                    <i class="fas fa-minus"></i>
+                    <span>Çizgi</span>
+                </button>
+            </div>
+            <p class="small text-muted mt-2 mb-0">
+                Nuvia baskı şablonu ile aynı ölçek: <strong>54×40 mm</strong> (432×320 dot @ 8 dot/mm).
+            </p>
+        </div>
+        
+        <div class="tool-panel">
+            <h6 class="panel-title"><i class="fas fa-magic"></i> Dinamik alan ekle</h6>
+            <p class="small text-muted mb-2">Aşağıdakilere tıklayın; öğe tuvalda seçilip sürüklenerek yerleştirilir.</p>
+            <div class="d-flex flex-wrap gap-1">
+                <button type="button" class="btn btn-sm btn-outline-primary dyn-field-btn" data-add-type="text" data-field="{pesin_fiyat}" data-w="14" data-h="5">Peşin fiyat</button>
+                <button type="button" class="btn btn-sm btn-outline-primary dyn-field-btn" data-add-type="text" data-field="{taksitli_fiyat}" data-w="14" data-h="5">Taksitli fiyat</button>
+                <button type="button" class="btn btn-sm btn-outline-primary dyn-field-btn" data-add-type="text" data-field="{urun_kodu}" data-w="16" data-h="5">Ürün kodu</button>
+                <button type="button" class="btn btn-sm btn-outline-primary dyn-field-btn" data-add-type="text" data-field="{beden}" data-w="10" data-h="5">Beden</button>
+                <button type="button" class="btn btn-sm btn-outline-primary dyn-field-btn" data-add-type="text" data-field="{barkod}" data-w="22" data-h="5">Barkod (metin)</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary dyn-field-btn" data-add-type="barcode_1d" data-field="{barkod}" data-w="32" data-h="10">Çizgili barkod</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary dyn-field-btn" data-add-type="barcode_2d" data-field="{barkod}" data-w="18" data-h="18">QR (barkod)</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary dyn-field-btn" data-add-type="text" data-field="{fiyat}" data-w="18" data-h="5">Fiyat (biçimli)</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary dyn-field-btn" data-add-type="text" data-field="{urun_ad}" data-w="40" data-h="8">Ürün adı</button>
+            </div>
+        </div>
+        
+        <!-- Özellikler Paneli -->
+        <div class="tool-panel" id="propertiesPanel" style="display: none;">
+            <h6 class="panel-title"><i class="fas fa-cog"></i> Element Özellikleri</h6>
+            
+            <!-- Metin Özellikleri -->
+            <div id="textProperties">
+                <div class="property-group">
+                    <label class="property-label">İçerik</label>
+                    <input type="text" class="property-input" id="propContent" placeholder="Metin içeriği">
+                </div>
+                <div class="property-group">
+                    <label class="property-label">Veri Alanı</label>
+                    <select class="data-field-select" id="propDataField">
+                        <option value="">-- Seçin (sabit metin) --</option>
+                        <option value="{urun_ad}">Ürün adı</option>
+                        <option value="{marka}">Marka</option>
+                        <option value="{urun_kodu}">Ürün kodu</option>
+                        <option value="{barkod}">Barkod</option>
+                        <option value="{beden}">Beden</option>
+                        <option value="{renk}">Renk</option>
+                        <option value="{fiyat}">Fiyat (biçimli TL)</option>
+                        <option value="{pesin_fiyat}">Peşin fiyat (sayı)</option>
+                        <option value="{taksitli_fiyat}">Taksitli fiyat (sayı)</option>
+                        <option value="{stok}">Stok</option>
+                        <option value="{tarih}">Tarih</option>
+                        <option value="{sira_no}">Sıra no</option>
+                        <option value="{serbest}">Serbest metin</option>
+                    </select>
+                    <div class="data-field-info">Dinamik veri bağlamak için seçin</div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="property-group">
+                            <label class="property-label">Font</label>
+                            <select class="property-input" id="propFontFamily">
+                                <option value="Arial">Arial</option>
+                                <option value="Helvetica">Helvetica</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Courier New">Courier New</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="property-group">
+                            <label class="property-label">Boyut (pt)</label>
+                            <input type="number" class="property-input" id="propFontSize" value="12" min="8" max="72">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="property-group">
+                            <label class="property-label">Renk</label>
+                            <input type="color" class="property-input" id="propFontColor" value="#000000">
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="property-group">
+                            <label class="property-label">Arka Plan</label>
+                            <input type="color" class="property-input" id="propBgColor" value="#ffffff">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="propBold">
+                    <label class="form-check-label" for="propBold">Kalın (Bold)</label>
+                </div>
+            </div>
+            
+            <!-- Barkod Özellikleri -->
+            <div id="barcodeProperties" style="display: none;">
+                <div class="property-group">
+                    <label class="property-label">Barkod Tipi</label>
+                    <select class="property-input" id="propBarcodeType">
+                        <option value="CODE128">Code 128</option>
+                        <option value="CODE39">Code 39</option>
+                        <option value="EAN13">EAN-13</option>
+                        <option value="EAN8">EAN-8</option>
+                        <option value="UPCA">UPC-A</option>
+                    </select>
+                </div>
+                <div class="property-group">
+                    <label class="property-label">Veri Alanı</label>
+                    <select class="data-field-select" id="propBarcodeDataField">
+                        <option value="{barkod}">Barkod</option>
+                        <option value="{urun_kodu}">Ürün kodu</option>
+                    </select>
+                </div>
+                <div class="property-group">
+                    <label class="property-label">Yükseklik (mm)</label>
+                    <input type="number" class="property-input" id="propBarcodeHeight" value="20" min="10" max="50">
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="propHumanReadable" checked>
+                    <label class="form-check-label" for="propHumanReadable">İnsan Okunabilir</label>
+                </div>
+            </div>
+            
+            <!-- QR Code Özellikleri -->
+            <div id="qrcodeProperties" style="display: none;">
+                <div class="property-group">
+                    <label class="property-label">Veri Alanı</label>
+                    <select class="data-field-select" id="propQrDataField">
+                        <option value="{barkod}">Barkod</option>
+                        <option value="{urun_kodu}">Ürün kodu</option>
+                        <option value="{serbest}">Serbest</option>
+                    </select>
+                </div>
+                <div class="property-group">
+                    <label class="property-label">Boyut (mm)</label>
+                    <input type="number" class="property-input" id="propQrSize" value="20" min="10" max="50">
+                </div>
+            </div>
+            
+            <!-- Ortak Özellikler -->
+            <div class="mt-3 pt-3 border-top">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="property-group">
+                            <label class="property-label">X (mm)</label>
+                            <input type="number" class="property-input" id="propPosX" value="0" step="0.1">
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="property-group">
+                            <label class="property-label">Y (mm)</label>
+                            <input type="number" class="property-input" id="propPosY" value="0" step="0.1">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="property-group">
+                            <label class="property-label">Genişlik (mm)</label>
+                            <input type="number" class="property-input" id="propWidth" value="50" step="0.1">
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="property-group">
+                            <label class="property-label">Yükseklik (mm)</label>
+                            <input type="number" class="property-input" id="propHeight" value="20" step="0.1">
+                        </div>
+                    </div>
+                </div>
+                <div class="property-group">
+                    <label class="property-label">Döndürme (°)</label>
+                    <input type="range" class="form-range" id="propRotation" min="0" max="270" step="90" value="0">
+                    <small class="text-muted" id="rotationValue">0°</small>
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <button type="button" class="btn btn-danger btn-sm w-100" id="btnDeleteElement">
+                    <i class="fas fa-trash"></i> Elementi Sil
+                </button>
+            </div>
+        </div>
+        
+        <!-- Şablon Ayarları -->
+        <div class="tool-panel">
+            <h6 class="panel-title"><i class="fas fa-ruler-combined"></i> Şablon Boyutu</h6>
+            <div class="size-presets">
+                <div class="size-preset active" data-width="54" data-height="40">
+                    <div class="size-value">54×40</div>
+                    <div class="size-label">Nuvia ZPL</div>
+                </div>
+                <div class="size-preset" data-width="40" data-height="30">
+                    <div class="size-value">40×30</div>
+                    <div class="size-label">Küçük</div>
+                </div>
+                <div class="size-preset" data-width="50" data-height="30">
+                    <div class="size-value">50×30</div>
+                    <div class="size-label">Promosyon</div>
+                </div>
+                <div class="size-preset" data-width="60" data-height="40">
+                    <div class="size-value">60×40</div>
+                    <div class="size-label">Geniş</div>
+                </div>
+                <div class="size-preset" data-width="100" data-height="50">
+                    <div class="size-value">100×50</div>
+                    <div class="size-label">Kargo</div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-6">
+                    <div class="property-group">
+                        <label class="property-label">Genişlik (mm)</label>
+                        <input type="number" class="property-input" id="templateWidth" value="54" min="20" max="150" step="0.1">
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="property-group">
+                        <label class="property-label">Yükseklik (mm)</label>
+                        <input type="number" class="property-input" id="templateHeight" value="40" min="10" max="100" step="0.1">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Kayıtlı Şablonlar -->
+        <div class="tool-panel">
+            <h6 class="panel-title"><i class="fas fa-layer-group"></i> Kayıtlı Şablonlar</h6>
+            <div class="sablon-liste" id="sablonListesi">
+                {% for sablon in sablonlar %}
+                <div class="sablon-item {% if forloop.first %}active{% endif %}" data-id="{{ sablon.id }}">
+                    <div class="sablon-info">
+                        <div class="sablon-name">{{ sablon.ad }}</div>
+                        <div class="sablon-size">{{ sablon.genislik_mm }}x{{ sablon.yukseklik_mm }}mm</div>
+                    </div>
+                    {% if sablon.varsayilan %}
+                    <span class="badge bg-success">Varsayılan</span>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="text-muted text-center py-3">
+                    <i class="fas fa-inbox"></i> Henüz şablon yok
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-3" id="btnYeniSablon">
+                <i class="fas fa-plus"></i> Yeni Şablon Oluştur
+            </button>
+        </div>
+        
+        <!-- Yazıcı Ayarları -->
+        <div class="tool-panel">
+            <h6 class="panel-title"><i class="fas fa-print"></i> Hızlı Ayarlar</h6>
+            <a href="{% url 'urun:yazici_ayarlari' %}" class="btn btn-outline-secondary btn-sm w-100">
+                <i class="fas fa-cog"></i> Yazıcı Ayarları
+            </a>
+            <a href="{% url 'urun:etiket_sablon_liste' %}" class="btn btn-outline-secondary btn-sm w-100 mt-2">
+                <i class="fas fa-list"></i> Tüm Şablonlar
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Önizleme Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-eye me-2"></i>Etiket Önizleme</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="preview-container" id="previewContent">
+                    <!-- Önizleme içeriği buraya yüklenecek -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="btnPreviewPrint">
+                    <i class="fas fa-print"></i> Yazdır
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- JsBarcode -->
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<!-- QRCode.js -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Global değişkenler
+    let currentSablonId = null;
+    let elements = [];
+    let selectedElement = null;
+    let zoom = 100;
+    let gridEnabled = true;
+    let undoStack = [];
+    let redoStack = [];
+    
+    // Canvas boyutları (mm); 54×40 mm = ZPL ^PW432 ^LL320 @ 8 dot/mm
+    let canvasWidth = 54;
+    let canvasHeight = 40;
+    const MM_TO_PX = 8; // 1 mm = 8 px (ekran ölçeği yazıcı dot/mm ile hizalı)
+    
+    const DATA_FIELD_LABELS = {
+        '{urun_ad}': 'Ürün adı',
+        '{marka}': 'Marka',
+        '{urun_kodu}': 'Ürün kodu',
+        '{barkod}': 'Barkod',
+        '{beden}': 'Beden',
+        '{renk}': 'Renk',
+        '{fiyat}': 'Fiyat',
+        '{pesin_fiyat}': 'Peşin',
+        '{taksitli_fiyat}': 'Taksitli',
+        '{stok}': 'Stok',
+        '{tarih}': 'Tarih',
+        '{sira_no}': 'Sıra',
+        '{serbest}': 'Serbest',
+    };
+    const ZPL_SAMPLE_VALUES = {
+        '{urun_ad}': 'NUVIA ORNEK URUN',
+        '{marka}': 'NUVIA',
+        '{urun_kodu}': '0001',
+        '{barkod}': '123456789012',
+        '{beden}': 'XXL',
+        '{renk}': 'Siyah',
+        '{fiyat}': '1.200,00 TL',
+        '{pesin_fiyat}': '1200',
+        '{taksitli_fiyat}': '1400',
+        '{stok}': '5',
+        '{tarih}': '19.04.2026',
+        '{sira_no}': '001',
+        '{serbest}': '',
+    };
+    function barcodePreviewValue(el) {
+        const key = el.dataField || '{barkod}';
+        if (ZPL_SAMPLE_VALUES[key] !== undefined) return String(ZPL_SAMPLE_VALUES[key]);
+        return el.content || '123456789012';
+    }
+    function mapServerElemanToClient(e) {
+        const pxToMm = (v) => (parseFloat(v) || 0) / MM_TO_PX;
+        return {
+            id: e.id || Date.now(),
+            type: e.eleman_tipi,
+            x: pxToMm(e.pozisyon_x),
+            y: pxToMm(e.pozisyon_y),
+            width: Math.max(1, pxToMm(e.genislik)),
+            height: Math.max(1, pxToMm(e.yukseklik)),
+            rotation: e.donderece || 0,
+            content: e.icerik || '',
+            dataField: e.veri_alan || '',
+            fontFamily: e.font_aile || 'Arial',
+            fontSize: e.font_boyut || 12,
+            bold: !!e.font_kalin,
+            fontColor: e.font_renk || '#000000',
+            bgColor: e.arka_plan_renk || '#ffffff',
+            barcodeType: e.barkod_tipi || 'CODE128',
+            barcodeHeight: e.barkod_yukseklik || 20,
+            humanReadable: e.insan_okunabilir !== false,
+            qrModule: 5,
+            borderMm: 3,
+        };
+    }
+    
+    // DOM elemanları
+    const $canvas = $('#labelCanvas');
+    const $propertiesPanel = $('#propertiesPanel');
+    
+    // Şablon boyutunu güncelle
+    function updateCanvasSize() {
+        const widthPx = canvasWidth * MM_TO_PX;
+        const heightPx = canvasHeight * MM_TO_PX;
+        $canvas.css({
+            width: widthPx,
+            height: heightPx
+        });
+        renderElements();
+    }
+    
+    // Boyut preset seçimi
+    $('.size-preset').on('click', function() {
+        $('.size-preset').removeClass('active');
+        $(this).addClass('active');
+        canvasWidth = parseFloat($(this).data('width')) || 54;
+        canvasHeight = parseFloat($(this).data('height')) || 40;
+        $('#templateWidth').val(canvasWidth);
+        $('#templateHeight').val(canvasHeight);
+        updateCanvasSize();
+    });
+    
+    // Manuel boyut girişi
+    $('#templateWidth, #templateHeight').on('change', function() {
+        canvasWidth = parseFloat($('#templateWidth').val()) || 54;
+        canvasHeight = parseFloat($('#templateHeight').val()) || 40;
+        $('.size-preset').removeClass('active');
+        updateCanvasSize();
+    });
+    
+    // Element ekleme
+    $('.tool-btn').on('click', function() {
+        const elementType = $(this).data('element');
+        addElement(elementType);
+    });
+    
+    $('.dyn-field-btn').on('click', function() {
+        const type = $(this).data('addType');
+        const field = $(this).data('field') || '';
+        const w = parseFloat($(this).data('w'));
+        const h = parseFloat($(this).data('h'));
+        const preset = { dataField: field };
+        if (!isNaN(w)) preset.width = w;
+        if (!isNaN(h)) preset.height = h;
+        addElement(type, preset);
+    });
+    
+    // Element ekle (preset: { dataField, width, height, x, y, content })
+    function addElement(type, preset) {
+        preset = preset || {};
+        const id = Date.now();
+        let defW = 28;
+        let defH = 6;
+        if (type === 'barcode_1d') { defW = 32; defH = 10; }
+        else if (type === 'barcode_2d') { defW = 18; defH = 18; }
+        else if (type === 'rectangle') { defW = 40; defH = 12; }
+        else if (type === 'line') { defW = 36; defH = 2; }
+        else if (type === 'image') { defW = 20; defH = 20; }
+        const df = preset.dataField || '';
+        let content = preset.content || '';
+        if (df && DATA_FIELD_LABELS[df]) {
+            content = DATA_FIELD_LABELS[df];
+        }
+        const element = {
+            id: id,
+            type: type,
+            x: preset.x != null ? preset.x : 4,
+            y: preset.y != null ? preset.y : 4,
+            width: preset.width != null ? preset.width : defW,
+            height: preset.height != null ? preset.height : defH,
+            rotation: preset.rotation || 0,
+            content: content,
+            dataField: df,
+            fontFamily: 'Arial',
+            fontSize: type === 'text' ? 11 : 12,
+            fontColor: '#000000',
+            bgColor: type === 'rectangle' ? 'transparent' : '#ffffff',
+            bold: false,
+            barcodeType: 'CODE128',
+            barcodeHeight: 20,
+            humanReadable: true,
+            qrModule: 5,
+            borderMm: 3,
+        };
+        elements.push(element);
+        saveUndo();
+        renderElements();
+        selectElement(id);
+    }
+    
+    // Elementleri render et
+    function renderElements() {
+        $canvas.find('.canvas-element').remove();
+        
+        elements.forEach(function(el) {
+            if (el.qrModule == null) el.qrModule = 5;
+            if (el.borderMm == null) el.borderMm = 3;
+            const $el = $('<div class="canvas-element"></div>')
+                .attr('data-id', el.id)
+                .css({
+                    left: el.x * MM_TO_PX,
+                    top: el.y * MM_TO_PX,
+                    width: el.width * MM_TO_PX,
+                    height: el.height * MM_TO_PX,
+                    transform: `rotate(${el.rotation}deg)`
+                });
+            
+            // Element içeriği
+            let content = '';
+            switch(el.type) {
+                case 'text':
+                    content = `<div class="element-text" style="font-family: ${el.fontFamily || 'Arial'}; font-size: ${el.fontSize}pt; color: ${el.fontColor}; background: ${el.bgColor}; ${el.bold ? 'font-weight: bold;' : ''} width: 100%; height: 100%; display: flex; align-items: flex-start; justify-content: flex-start; text-align: left;">${el.content || 'Metin'}</div>`;
+                    break;
+                case 'barcode_1d':
+                    content = `<div class="element-barcode"><svg id="barcode-${el.id}"></svg></div>`;
+                    break;
+                case 'barcode_2d':
+                    content = `<div class="element-qrcode"><div id="qrcode-${el.id}"></div></div>`;
+                    break;
+                case 'rectangle':
+                    content = `<div style="width: 100%; height: 100%; border: ${Math.max(2, Math.min(4, el.borderMm || 3))}px solid #000; background: ${el.bgColor === 'transparent' ? 'transparent' : el.bgColor}; box-sizing: border-box;"></div>`;
+                    break;
+                case 'line':
+                    content = `<div style="width: 100%; height: 2px; background: #000; margin-top: 50%;"></div>`;
+                    break;
+                case 'image':
+                    content = `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #888;"><i class="fas fa-image fa-2x"></i></div>`;
+                    break;
+            }
+            
+            $el.html(content + `
+                <div class="resize-handle se"></div>
+                <div class="resize-handle sw"></div>
+                <div class="resize-handle ne"></div>
+                <div class="resize-handle nw"></div>
+            `);
+            
+            $canvas.append($el);
+            
+            // Barkod oluştur
+            if (el.type === 'barcode_1d') {
+                try {
+                    JsBarcode(`#barcode-${el.id}`, barcodePreviewValue(el), {
+                        format: el.barcodeType,
+                        height: el.barcodeHeight,
+                        displayValue: el.humanReadable
+                    });
+                } catch(e) {
+                    console.log('Barkod hatası:', e);
+                }
+            }
+            
+            // QR Code oluştur
+            if (el.type === 'barcode_2d') {
+                new QRCode(document.getElementById(`qrcode-${el.id}`), {
+                    text: barcodePreviewValue(el),
+                    width: el.width * MM_TO_PX,
+                    height: el.height * MM_TO_PX
+                });
+            }
+        });
+        
+        updateInfo();
+    }
+    
+    // Element seçimi
+    $canvas.on('click', '.canvas-element', function(e) {
+        e.stopPropagation();
+        const id = parseInt($(this).data('id'));
+        selectElement(id);
+    });
+    
+    function selectElement(id) {
+        $('.canvas-element').removeClass('selected');
+        $(`.canvas-element[data-id="${id}"]`).addClass('selected');
+        selectedElement = elements.find(el => el.id === id);
+        
+        if (selectedElement) {
+            $propertiesPanel.show();
+            showPropertiesPanel(selectedElement.type);
+            updatePropertiesValues();
+            updateInfo();
+        }
+    }
+    
+    // Özellikler panelini göster
+    function showPropertiesPanel(type) {
+        $('#textProperties, #barcodeProperties, #qrcodeProperties').hide();
+        
+        switch(type) {
+            case 'text':
+                $('#textProperties').show();
+                break;
+            case 'barcode_1d':
+                $('#barcodeProperties').show();
+                break;
+            case 'barcode_2d':
+                $('#qrcodeProperties').show();
+                break;
+        }
+    }
+    
+    // Özellik değerlerini güncelle
+    function updatePropertiesValues() {
+        if (!selectedElement) return;
+        
+        $('#propContent').val(selectedElement.content);
+        $('#propDataField').val(selectedElement.dataField);
+        $('#propFontFamily').val(selectedElement.fontFamily);
+        $('#propFontSize').val(selectedElement.fontSize);
+        $('#propFontColor').val(selectedElement.fontColor);
+        $('#propBgColor').val(selectedElement.bgColor);
+        $('#propBold').prop('checked', selectedElement.bold);
+        $('#propPosX').val(selectedElement.x);
+        $('#propPosY').val(selectedElement.y);
+        $('#propWidth').val(selectedElement.width);
+        $('#propHeight').val(selectedElement.height);
+        $('#propRotation').val(selectedElement.rotation);
+        $('#rotationValue').text(selectedElement.rotation + '°');
+        
+        if (selectedElement.type === 'barcode_1d') {
+            $('#propBarcodeType').val(selectedElement.barcodeType);
+            $('#propBarcodeDataField').val(selectedElement.dataField);
+            $('#propBarcodeHeight').val(selectedElement.barcodeHeight);
+            $('#propHumanReadable').prop('checked', selectedElement.humanReadable);
+        }
+        
+        if (selectedElement.type === 'barcode_2d') {
+            $('#propQrDataField').val(selectedElement.dataField);
+            $('#propQrSize').val(selectedElement.width);
+        }
+    }
+    
+    // Özellik değişiklikleri
+    $('#propContent, #propFontFamily, #propFontSize, #propFontColor, #propBgColor').on('change input', function() {
+        if (!selectedElement) return;
+        
+        selectedElement.content = $('#propContent').val();
+        selectedElement.fontFamily = $('#propFontFamily').val();
+        selectedElement.fontSize = parseInt($('#propFontSize').val());
+        selectedElement.fontColor = $('#propFontColor').val();
+        selectedElement.bgColor = $('#propBgColor').val();
+        
+        saveUndo();
+        renderElements();
+    });
+    
+    $('#propBold').on('change', function() {
+        if (!selectedElement) return;
+        selectedElement.bold = $(this).prop('checked');
+        saveUndo();
+        renderElements();
+    });
+    
+    // Konum ve boyut - hem input hem change event
+    $('#propPosX, #propPosY, #propWidth, #propHeight').on('input change', function() {
+        if (!selectedElement) return;
+        
+        selectedElement.x = parseFloat($('#propPosX').val()) || 0;
+        selectedElement.y = parseFloat($('#propPosY').val()) || 0;
+        selectedElement.width = parseFloat($('#propWidth').val()) || 10;
+        selectedElement.height = parseFloat($('#propHeight').val()) || 10;
+        
+        renderElements();
+    }).on('blur', function() {
+        if (selectedElement) saveUndo();
+    });
+    
+    // Döndürme
+    $('#propRotation').on('input', function() {
+        if (!selectedElement) return;
+        selectedElement.rotation = parseInt($(this).val());
+        $('#rotationValue').text(selectedElement.rotation + '°');
+        renderElements();
+    });
+    
+    // Barkod özellikleri
+    $('#propBarcodeType, #propBarcodeHeight').on('change', function() {
+        if (!selectedElement) return;
+        selectedElement.barcodeType = $('#propBarcodeType').val();
+        selectedElement.barcodeHeight = parseInt($('#propBarcodeHeight').val());
+        selectedElement.dataField = $('#propBarcodeDataField').val();
+        saveUndo();
+        renderElements();
+    });
+    
+    $('#propHumanReadable').on('change', function() {
+        if (!selectedElement) return;
+        selectedElement.humanReadable = $(this).prop('checked');
+        saveUndo();
+        renderElements();
+    });
+    
+    // Veri alanı seçimi
+    $('#propDataField, #propBarcodeDataField, #propQrDataField').on('change', function() {
+        if (!selectedElement) return;
+        selectedElement.dataField = $(this).val();
+        
+        if (selectedElement.type === 'text' && selectedElement.dataField && DATA_FIELD_LABELS[selectedElement.dataField]) {
+            selectedElement.content = DATA_FIELD_LABELS[selectedElement.dataField];
+        }
+        if (selectedElement.type === 'barcode_1d' || selectedElement.type === 'barcode_2d') {
+            const k = selectedElement.dataField || '{barkod}';
+            selectedElement.content = (ZPL_SAMPLE_VALUES[k] !== undefined)
+                ? String(ZPL_SAMPLE_VALUES[k])
+                : '123456789012';
+        }
+        
+        saveUndo();
+        renderElements();
+    });
+    
+    // Element silme
+    $('#btnDeleteElement').on('click', function() {
+        if (!selectedElement) return;
+        
+        elements = elements.filter(el => el.id !== selectedElement.id);
+        selectedElement = null;
+        $propertiesPanel.hide();
+        saveUndo();
+        renderElements();
+    });
+    
+    // Zoom kontrolleri
+    $('#zoomIn').on('click', function() {
+        zoom = Math.min(zoom + 25, 200);
+        updateZoom();
+    });
+    
+    $('#zoomOut').on('click', function() {
+        zoom = Math.max(zoom - 25, 50);
+        updateZoom();
+    });
+    
+    function updateZoom() {
+        $canvas.css('transform', `scale(${zoom / 100})`);
+        $('#zoomValue').text(zoom + '%');
+    }
+    
+    // Grid toggle
+    $('#toggleGrid').on('click', function() {
+        gridEnabled = !gridEnabled;
+        $canvas.css('background-image', gridEnabled ? 
+            'linear-gradient(#ddd 1px, transparent 1px), linear-gradient(90deg, #ddd 1px, transparent 1px)' : 'none');
+        $canvas.css('background-size', `${MM_TO_PX}px ${MM_TO_PX}px`);
+    });
+    
+    // Undo/Redo
+    function saveUndo() {
+        undoStack.push(JSON.stringify(elements));
+        redoStack = [];
+    }
+    
+    $('#btnGeriAl').on('click', function() {
+        if (undoStack.length > 0) {
+            redoStack.push(JSON.stringify(elements));
+            elements = JSON.parse(undoStack.pop());
+            selectedElement = null;
+            $propertiesPanel.hide();
+            renderElements();
+        }
+    });
+    
+    $('#btnYinele').on('click', function() {
+        if (redoStack.length > 0) {
+            undoStack.push(JSON.stringify(elements));
+            elements = JSON.parse(redoStack.pop());
+            selectedElement = null;
+            $propertiesPanel.hide();
+            renderElements();
+        }
+    });
+    
+    // Şablon kaydet
+    $('#btnKaydet').on('click', function() {
+        const ad = $('#sablonAdi').val() || 'Yeni Şablon';
+        
+        $.ajax({
+            url: '{% url "urun:etiket_sablon_kaydet" %}',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                id: currentSablonId,
+                ad: ad,
+                genislik_mm: canvasWidth,
+                yukseklik_mm: canvasHeight,
+                tasarim_json: { elements: elements }
+            }),
+            success: function(response) {
+                if (response.success) {
+                    currentSablonId = response.id;
+                    Swal.fire('Başarılı', response.message, 'success');
+                    loadSablonListesi();
+                }
+            },
+            error: function(xhr) {
+                Swal.fire('Hata', 'Kayıt sırasında hata oluştu', 'error');
+            }
+        });
+    });
+    
+    // Şablon seçimi
+    $(document).on('click', '.sablon-item', function() {
+        const id = $(this).data('id');
+        loadSablon(id);
+    });
+    
+    function loadSablon(id) {
+        $.ajax({
+            url: `/urun/api/sablon/${id}/`,
+            success: function(response) {
+                currentSablonId = response.id;
+                $('#sablonAdi').val(response.ad);
+                canvasWidth = parseFloat(response.genislik_mm) || 54;
+                canvasHeight = parseFloat(response.yukseklik_mm) || 40;
+                $('#templateWidth').val(canvasWidth);
+                $('#templateHeight').val(canvasHeight);
+                if (response.tasarim_json && response.tasarim_json.elements && response.tasarim_json.elements.length) {
+                    elements = response.tasarim_json.elements;
+                } else {
+                    elements = (response.elemanlar || []).map(mapServerElemanToClient);
+                }
+                selectedElement = null;
+                $propertiesPanel.hide();
+                updateCanvasSize();
+                
+                $('.sablon-item').removeClass('active');
+                $(`.sablon-item[data-id="${id}"]`).addClass('active');
+            },
+            error: function() {
+                Swal.fire('Hata', 'Şablon yüklenemedi', 'error');
+            }
+        });
+    }
+    
+    // Yeni şablon
+    $('#btnYeniSablon').on('click', function() {
+        currentSablonId = null;
+        $('#sablonAdi').val('Yeni Şablon');
+        canvasWidth = 54;
+        canvasHeight = 40;
+        $('#templateWidth').val(54);
+        $('#templateHeight').val(40);
+        elements = [];
+        selectedElement = null;
+        $propertiesPanel.hide();
+        updateCanvasSize();
+        $('.sablon-item').removeClass('active');
+    });
+    
+    // Şablon listesini yenile
+    function loadSablonListesi() {
+        $.ajax({
+            url: '{% url "urun:etiket_tasarimci" %}',
+            success: function(html) {
+                // Minimal reload
+                location.reload();
+            }
+        });
+    }
+    
+    // Önizleme
+    $('#btnOnizleme').on('click', function() {
+        const previewHtml = generatePreviewHtml();
+        $('#previewContent').html(previewHtml);
+        $('#previewModal').modal('show');
+    });
+    
+    function generatePreviewHtml() {
+        const PREVIEW_SCALE = MM_TO_PX;
+        let html = `<div class="preview-label" style="width: ${canvasWidth * PREVIEW_SCALE}px; min-height: ${canvasHeight * PREVIEW_SCALE}px; padding: 0; position: relative; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.2); overflow: visible; box-sizing: border-box;">`;
+        
+        elements.forEach(function(el) {
+            const left = el.x * PREVIEW_SCALE;
+            const top = el.y * PREVIEW_SCALE;
+            const width = el.width * PREVIEW_SCALE;
+            const height = el.height * PREVIEW_SCALE;
+            
+            switch(el.type) {
+                case 'text':
+                    html += `<div style="position: absolute; left: ${left}px; top: ${top}px; width: ${width}px; height: ${height}px; font-family: ${el.fontFamily || 'Arial'}; font-size: ${Math.min(24, (el.fontSize || 12) * 1.12)}pt; line-height: 1.05; color: ${el.fontColor}; ${el.bold ? 'font-weight: bold;' : ''} background: ${el.bgColor}; display: flex; align-items: flex-start; justify-content: flex-start; overflow: hidden; text-align: left; box-sizing: border-box; padding: 0 1px;">${el.content || 'Metin'}</div>`;
+                    break;
+                case 'barcode_1d':
+                    html += `<div style="position: absolute; left: ${left}px; top: ${top}px; width: ${width}px; height: ${height}px; background: white;"><svg id="preview-barcode-${el.id}" style="width: 100%; height: 100%;"></svg></div>`;
+                    break;
+                case 'barcode_2d':
+                    html += `<div style="position: absolute; left: ${left}px; top: ${top}px; width: ${width}px; height: ${height}px; background: white; overflow: hidden; display: flex; align-items: center; justify-content: center; box-sizing: border-box;"><div id="preview-qrcode-${el.id}" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;"></div></div>`;
+                    break;
+                case 'rectangle':
+                    html += `<div style="position: absolute; left: ${left}px; top: ${top}px; width: ${width}px; height: ${height}px; border: ${Math.max(2, Math.min(4, el.borderMm || 3))}px solid #000; background: ${el.bgColor === 'transparent' ? 'transparent' : el.bgColor}; box-sizing: border-box;"></div>`;
+                    break;
+                case 'line':
+                    html += `<div style="position: absolute; left: ${left}px; top: ${top + height/2}px; width: ${width}px; height: 2px; background: #000;"></div>`;
+                    break;
+                case 'image':
+                    html += `<div style="position: absolute; left: ${left}px; top: ${top}px; width: ${width}px; height: ${height}px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc;"><i class="fas fa-image" style="font-size: 20px; color: #999;"></i></div>`;
+                    break;
+            }
+        });
+        
+        html += '</div>';
+        
+        // Barkod / QR önizleme (tuval ile aynı ölçek)
+        setTimeout(function() {
+            elements.forEach(function(el) {
+                if (el.type === 'barcode_1d') {
+                    try {
+                        if (typeof JsBarcode !== 'undefined') {
+                            JsBarcode(`#preview-barcode-${el.id}`, barcodePreviewValue(el), {
+                                format: el.barcodeType || 'CODE128',
+                                height: el.barcodeHeight || 30,
+                                displayValue: el.humanReadable !== false
+                            });
+                        }
+                    } catch(e) {
+                        console.log('Preview barkod hatası:', e);
+                    }
+                }
+                if (el.type === 'barcode_2d') {
+                    try {
+                        var node = document.getElementById('preview-qrcode-' + el.id);
+                        if (node && typeof QRCode !== 'undefined') {
+                            node.innerHTML = '';
+                            var dim = Math.max(48, Math.min(Math.floor(el.width * PREVIEW_SCALE), Math.floor(el.height * PREVIEW_SCALE)) - 4);
+                            new QRCode(node, {
+                                text: barcodePreviewValue(el),
+                                width: dim,
+                                height: dim,
+                                correctLevel: QRCode.CorrectLevel.M
+                            });
+                        }
+                    } catch (e) {
+                        console.log('Preview QR hatası:', e);
+                    }
+                }
+            });
+        }, 120);
+        
+        return html;
+    }
+    
+    // Test yazdırma
+    $('#btnYazdir, #btnPreviewPrint').on('click', function() {
+        if (typeof window.nuviaBridge !== 'undefined') {
+            // Test ZPL kodu oluştur
+            const testZpl = generateTestZpl();
+            window.nuviaBridge.printLabel(testZpl);
+        } else {
+            Swal.fire('Uyarı', 'Yazdırma için Local Agent\'ı başlatın', 'warning');
+        }
+    });
+    
+    function zplStripText(s) {
+        return String(s).replace(/[\^~\\\r\n\x00-\x1F]/g, ' ').trim().substring(0, 120);
+    }
+    function zplTextForPrint(el) {
+        if (el.dataField && ZPL_SAMPLE_VALUES[el.dataField] !== undefined) {
+            return zplStripText(ZPL_SAMPLE_VALUES[el.dataField]);
+        }
+        return zplStripText(el.content || '');
+    }
+    function zplBarcodePayload(el) {
+        const key = el.dataField || '{barkod}';
+        const v = ZPL_SAMPLE_VALUES[key] !== undefined ? ZPL_SAMPLE_VALUES[key] : (el.content || '123456789012');
+        let raw = String(v).replace(/[^\w]/g, '');
+        if (!raw) raw = '0';
+        return raw.substring(0, 48);
+    }
+    function generateTestZpl() {
+        const pw = Math.round(canvasWidth * 8);
+        const ll = Math.round(canvasHeight * 8);
+        let zpl = '^XA~TA000~JSN^LT0^MNW^MTT^PON^PMN^LH0,0^JMA^PR4,4~SD15^JUS^LRN^CI0^XZ\n';
+        zpl += '^XA\n^MMT\n';
+        zpl += `^PW${pw}\n^LL${ll}\n^LS0\n`;
+        elements.forEach(function(el) {
+            const x = Math.max(0, Math.round(el.x * 8));
+            const y = Math.max(0, Math.round(el.y * 8));
+            switch (el.type) {
+                case 'text': {
+                    const fh = Math.max(18, Math.round((el.fontSize || 12) * 2));
+                    const fw = Math.max(16, Math.round((el.fontSize || 12) * 1.8));
+                    zpl += `^FO${x},${y}^A0N,${fh},${fw}^FD${zplTextForPrint(el)}^FS\n`;
+                    break;
+                }
+                case 'barcode_1d': {
+                    const barcodeMap = { CODE128: 'BC', CODE39: 'BA', EAN13: 'BE', EAN8: 'B8', UPCA: 'BU' };
+                    const cmd = barcodeMap[el.barcodeType] || 'BC';
+                    const bh = Math.max(40, Math.round((el.barcodeHeight || 20) * 2));
+                    zpl += `^FO${x},${y}^${cmd}N,${bh},Y,N,N^FD${zplBarcodePayload(el)}^FS\n`;
+                    break;
+                }
+                case 'barcode_2d': {
+                    const mod = Math.min(10, Math.max(2, el.qrModule || 5));
+                    zpl += `^FO${x},${y}^BQN,2,${mod}^FDLA,${zplBarcodePayload(el)}^FS\n`;
+                    break;
+                }
+                case 'rectangle': {
+                    const w = Math.max(1, Math.round(el.width * 8));
+                    const h = Math.max(1, Math.round(el.height * 8));
+                    const t = Math.max(1, Math.round(el.borderMm || 3));
+                    zpl += `^FO${x},${y}^GB${w},${h},${t}^FS\n`;
+                    break;
+                }
+                case 'line': {
+                    const w = Math.max(1, Math.round(el.width * 8));
+                    zpl += `^FO${x},${y}^GB${w},2,2^FS\n`;
+                    break;
+                }
+                default:
+                    break;
+            }
+        });
+        zpl += '^PQ1,0,1,Y^XZ';
+        return zpl;
+    }
+    
+    // Bilgi güncelleme
+    function updateInfo() {
+        if (selectedElement) {
+            $('#selectedInfo').text(selectedElement.type.toUpperCase());
+            $('#positionInfo').text(`X: ${selectedElement.x.toFixed(1)}, Y: ${selectedElement.y.toFixed(1)}`);
+            $('#sizeInfo').text(`${selectedElement.width.toFixed(1)} x ${selectedElement.height.toFixed(1)}`);
+        } else {
+            $('#selectedInfo').text('Hiçbiri');
+            $('#positionInfo').text('X: 0, Y: 0');
+            $('#sizeInfo').text('0 x 0');
+        }
+    }
+    
+    // Aktif şablon varsa yükle
+    {% if aktif_sablon %}
+    $(document).ready(function() {
+        loadSablon({{ aktif_sablon.id }});
+    });
+    {% endif %}
+    
+    // İlk yükleme
+    updateCanvasSize();
+    
+    // Canvas click - seçimi kaldır
+    $canvas.on('click', function(e) {
+        if (e.target === this) {
+            $('.canvas-element').removeClass('selected');
+            selectedElement = null;
+            $propertiesPanel.hide();
+            updateInfo();
+        }
+    });
+    
+    // Drag functionality - element taşıma
+    let isDragging = false;
+    let isResizing = false;
+    let resizeHandle = '';
+    let dragOffset = { x: 0, y: 0 };
+    let resizeStart = { x: 0, y: 0, w: 0, h: 0 };
+    
+    $canvas.on('mousedown', '.canvas-element', function(e) {
+        if (e.target.classList.contains('resize-handle')) {
+            // Resize başlat
+            e.preventDefault();
+            isResizing = true;
+            resizeHandle = e.target.className.split(' ')[1]; // se, sw, ne, nw
+            resizeStart = {
+                x: selectedElement.x,
+                y: selectedElement.y,
+                w: selectedElement.width,
+                h: selectedElement.height,
+                mouseX: e.clientX,
+                mouseY: e.clientY
+            };
+            return;
+        }
+        
+        isDragging = true;
+        const $el = $(this);
+        const rect = $el[0].getBoundingClientRect();
+        dragOffset.x = e.clientX - rect.left;
+        dragOffset.y = e.clientY - rect.top;
+    });
+    
+    $(document).on('mousemove', function(e) {
+        const scale = zoom / 100;
+        
+        if (isResizing && selectedElement) {
+            const dx = (e.clientX - resizeStart.mouseX) / MM_TO_PX / scale;
+            const dy = (e.clientY - resizeStart.mouseY) / MM_TO_PX / scale;
+            
+            let newW = resizeStart.w;
+            let newH = resizeStart.h;
+            let newX = resizeStart.x;
+            let newY = resizeStart.y;
+            
+            // Boyut hesaplama
+            if (resizeHandle.includes('e')) newW = Math.max(10, resizeStart.w + dx);
+            if (resizeHandle.includes('w')) { newW = Math.max(10, resizeStart.w - dx); newX = resizeStart.x + dx; }
+            if (resizeHandle.includes('s')) newH = Math.max(10, resizeStart.h + dy);
+            if (resizeHandle.includes('n')) { newH = Math.max(10, resizeStart.h - dy); newY = resizeStart.y + dy; }
+            
+            // Sınır kontrolü
+            newW = Math.min(newW, canvasWidth - newX);
+            newH = Math.min(newH, canvasHeight - newY);
+            
+            selectedElement.x = newX;
+            selectedElement.y = newY;
+            selectedElement.width = newW;
+            selectedElement.height = newH;
+            
+            renderElements();
+            updatePropertiesValues();
+            return;
+        }
+        
+        if (!isDragging || !selectedElement) return;
+        
+        const canvasRect = $canvas[0].getBoundingClientRect();
+        
+        let newX = (e.clientX - canvasRect.left - dragOffset.x) / MM_TO_PX / scale;
+        let newY = (e.clientY - canvasRect.top - dragOffset.y) / MM_TO_PX / scale;
+        
+        // Sınır kontrolü
+        newX = Math.max(0, Math.min(newX, canvasWidth - selectedElement.width));
+        newY = Math.max(0, Math.min(newY, canvasHeight - selectedElement.height));
+        
+        selectedElement.x = newX;
+        selectedElement.y = newY;
+        
+        renderElements();
+        updatePropertiesValues();
+    });
+    
+    $(document).on('mouseup', function() {
+        if (isDragging || isResizing) {
+            isDragging = false;
+            isResizing = false;
+            saveUndo();
+        }
+    });
+    
+    console.log('Etiket Tasarımcı yüklendi');
+});
+</script>
+{% endblock %}

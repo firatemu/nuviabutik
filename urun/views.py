@@ -1,3 +1,5 @@
+import re
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -10,58 +12,117 @@ from .models import Urun, UrunKategoriUst, Renk, Beden, Marka, UrunVaryanti, Sto
 from .forms import StokGirisForm, StokCikisForm, StokDuzeltmeForm, StokSayimForm
 
 
+def _parse_varyant_pk(val):
+    """
+    Formdan gelen varyant birincil anahtarı.
+    USE_THOUSAND_SEPARATOR açıkken şablonda id 1793 -> '1.793' olabilir; bunu düzeltir.
+    """
+    if val is None:
+        return None
+    s = str(val).strip()
+    if not s:
+        return None
+    if re.fullmatch(r'[\d.,]+', s):
+        cleaned = s.replace('.', '').replace(',', '')
+        if cleaned.isdigit():
+            return int(cleaned)
+    try:
+        return int(s)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_stok_miktari_post(raw):
+    """
+    Varyasyon toplu stok formundan tam sayı.
+    TR binlik (1.234) ile ondalık (2,5 veya 2.5) ayrımı: sonra tek virgül/nokta varsa ondalık sayılır.
+    """
+    if raw is None:
+        return 0
+    s = str(raw).strip().replace('\u00a0', '')
+    if not s:
+        return 0
+    try:
+        return int(s)
+    except ValueError:
+        pass
+    only_digits_and_seps = re.fullmatch(r'[\d.,]+', s)
+    if not only_digits_and_seps:
+        raise ValueError(f'Geçersiz stok değeri: {raw!r}')
+    comma, dot = s.count(','), s.count('.')
+    if comma == 1 and dot == 0:
+        parts = s.split(',')
+        if len(parts[1]) <= 2 and parts[0].replace('.', '').isdigit():
+            try:
+                return int(round(float(s.replace(',', '.'))))
+            except ValueError:
+                pass
+    if dot == 1 and comma == 0:
+        parts = s.split('.')
+        if len(parts[1]) <= 2 and parts[0].isdigit():
+            try:
+                return int(round(float(s)))
+            except ValueError:
+                pass
+    cleaned = s.replace('.', '').replace(',', '')
+    if cleaned.isdigit():
+        return int(cleaned)
+    raise ValueError(f'Geçersiz stok değeri: {raw!r}')
+
+
 @login_required
 def urun_listesi(request):
     """Ürün listesi - Optimized version"""
 
     # Ürünleri getir - pagination ile optimize edildi
     from django.core.paginator import Paginator
+    from django.db.models import Sum
+    from django.db.models.functions import Coalesce
 
-    urunler_queryset = Urun.objects.select_related(
-        'kategori', 'marka'
-    ).prefetch_related(
-        'varyantlar'
-    ).all().order_by('-id')
+    # Arama ve filtre parametreleri
+    search_query = request.GET.get('q', '').strip()
+    kategori_filter = request.GET.get('kategori', '')
+    marka_filter = request.GET.get('marka', '')
+    cinsiyet_filter = request.GET.get('cinsiyet', '')
+
+    # Base queryset (stok toplamı DB'de hesaplanır; property çağrıları engellenir)
+    urunler_queryset = Urun.objects.select_related('kategori', 'marka').annotate(
+        stok_toplam=Coalesce(
+            Sum('varyantlar__stok_miktari', filter=Q(varyantlar__aktif=True)),
+            0
+        )
+    ).all()
+
+    # Arama filtresi uygula
+    if search_query:
+        urunler_queryset = urunler_queryset.filter(
+            Q(ad__icontains=search_query) |
+            Q(urun_kodu__icontains=search_query) |
+            Q(kategori__ad__icontains=search_query) |
+            Q(marka__ad__icontains=search_query)
+        )
+
+    # Kategori filtresi
+    if kategori_filter:
+        urunler_queryset = urunler_queryset.filter(kategori_id=kategori_filter)
+
+    # Marka filtresi
+    if marka_filter:
+        urunler_queryset = urunler_queryset.filter(marka_id=marka_filter)
+
+    # Cinsiyet filtresi
+    if cinsiyet_filter:
+        urunler_queryset = urunler_queryset.filter(cinsiyet=cinsiyet_filter)
+
+    urunler_queryset = urunler_queryset.order_by('-id')
 
     # Pagination - 50 ürün per sayfa
     paginator = Paginator(urunler_queryset, 50)
     page_number = request.GET.get('page', 1)
     urunler = paginator.get_page(page_number)
 
-    # Silme izni kontrolü - batch processing ile optimize edildi
-    from satis.models import SatisDetay
-
-    # Satış yapılmış ürün ID'lerini tek sorguda al
-    satis_yapilan_urun_ids = set(
-        SatisDetay.objects.values_list('urun_id', flat=True).distinct()
-    )
-
-    # Her ürüne silme izni bilgisi ekle (optimized)
-    for urun in urunler:
-        # Satış kontrolü (set lookup - O(1))
-        if urun.id in satis_yapilan_urun_ids:
-            urun.silme_izni = False
-            continue
-
-        # Stok kontrolü - batch olarak hesapla
-        if urun.varyasyonlu:
-            # Varyasyonlu ürünler için varyant stok toplamı
-            has_stock = any(varyant.stok_miktari >
-                            0 for varyant in urun.varyantlar.all())
-        else:
-            # Varyasyonlu olmayan ürünler için ilk varyant stok
-            first_varyant = urun.varyantlar.first()
-            has_stock = first_varyant and first_varyant.stok_miktari > 0
-
-        if has_stock:
-            urun.silme_izni = False
-            continue
-
-        # Silme izni var
-        urun.silme_izni = True
-
     # İstatistikler - Cache ile optimize edildi
-    from django.db.models import Count, Q
+    from django.db.models import Count
     from django.core.cache import cache
 
     # Cache kontrolü - 5 dakika cache
@@ -82,23 +143,27 @@ def urun_listesi(request):
         toplam_urun = stats['toplam']
         aktif_urun = stats['aktif']
 
-        # Stok istatistikleri için sadece gerekli alanları al
-        stok_urunler = Urun.objects.prefetch_related('varyantlar').only(
-            'id', 'aktif', 'varyasyonlu', 'kritik_stok_seviyesi'
-        ).all()
+        # Stok istatistikleri: ürün başına toplam stok (aktif varyantlardan) tek sorgu
+        urun_stock = Urun.objects.annotate(
+            stok_toplam=Coalesce(
+                Sum('varyantlar__stok_miktari', filter=Q(varyantlar__aktif=True)),
+                0
+            )
+        ).values('stok_toplam')
 
-        kritik_stok = 0
-        tukenen_stok = 0
-
-        for urun in stok_urunler:
-            if urun.toplam_stok == 0:
-                tukenen_stok += 1
-            elif 0 < urun.toplam_stok <= 10:  # varsayılan kritik seviye
-                kritik_stok += 1
+        tukenen_stok = sum(1 for row in urun_stock if (row['stok_toplam'] or 0) == 0)
+        kritik_stok = sum(1 for row in urun_stock if 0 < (row['stok_toplam'] or 0) <= 10)
 
         # Cache'e kaydet (5 dakika)
         cache.set(cache_key, (toplam_urun, aktif_urun,
                   kritik_stok, tukenen_stok), 300)
+
+    # Kategori ve marka listeleri
+    kategoriler = UrunKategoriUst.objects.filter(aktif=True).order_by('ad')
+    markalar = Marka.objects.filter(aktif=True).order_by('ad')
+
+    # Cinsiyet seçenekleri
+    cinsiyet_secenekleri = Urun.CINSIYET_SECENEKLERI
 
     context = {
         'urunler': urunler,
@@ -109,6 +174,11 @@ def urun_listesi(request):
         'tukenen_stok': tukenen_stok,
         'paginator': paginator,
         'page_obj': urunler,
+        'search_query': search_query,
+        'kategoriler': kategoriler,
+        'markalar': markalar,
+        'cinsiyet_secenekleri': cinsiyet_secenekleri,
+        'cinsiyet_filter': cinsiyet_filter,
     }
     return render(request, 'urun/liste.html', context)
 
@@ -180,7 +250,7 @@ def urun_ekle(request):
                                 urun=urun,
                                 renk=renk,
                                 beden=beden,
-                                stok_miktari=1,  # Varsayılan stok
+                                stok_miktari=0,
                                 stok_kaydedildi=False,  # Henüz kaydedilmemiş
                                 aktif=True
                             )
@@ -534,45 +604,6 @@ def en_cok_satanlar(request):
 
 
 @login_required
-def kar_zarar_raporu(request):
-    """Kar zarar raporu"""
-    from django.db.models import Sum, F
-    from satis.models import SatisDetay
-    import datetime
-
-    # Tarih filtreleri
-    bugun = datetime.date.today()
-    son_30_gun = bugun - datetime.timedelta(days=30)
-
-    # Kar zarar hesaplaması
-    satislar = SatisDetay.objects.filter(
-        satis__siparis_tarihi__gte=son_30_gun
-    ).aggregate(
-        toplam_satis=Sum('toplam_fiyat'),
-        toplam_miktar=Sum('miktar')
-    )
-
-    # Ürün bazında kar zarar
-    urun_kar_zarar = SatisDetay.objects.filter(
-        satis__siparis_tarihi__gte=son_30_gun
-    ).values(
-        'urun__ad', 'urun__alis_fiyati', 'urun__satis_fiyati'
-    ).annotate(
-        toplam_miktar=Sum('miktar'),
-        toplam_satis=Sum('toplam_fiyat'),
-        toplam_maliyet=Sum(F('miktar') * F('urun__alis_fiyati')),
-        kar=Sum(F('toplam_fiyat') - (F('miktar') * F('urun__alis_fiyati')))
-    ).order_by('-kar')
-
-    context = {
-        'satislar': satislar,
-        'urun_kar_zarar': urun_kar_zarar,
-        'title': 'Kar Zarar Raporu'
-    }
-    return render(request, 'urun/kar_zarar.html', context)
-
-
-@login_required
 def urun_detay(request, urun_id):
     """Ürün detay sayfası"""
     urun = get_object_or_404(Urun, id=urun_id)
@@ -637,20 +668,39 @@ def urun_duzenle(request, urun_id):
             # Fiyat bilgileri - boş değerler için 0 kullan
             alis_fiyati_str = request.POST.get('alis_fiyati', '0').strip()
             kar_orani_str = request.POST.get('kar_orani', '50').strip()
-            satis_fiyati_str = request.POST.get('satis_fiyati', '0').strip()
+            pesin_fiyat_str = request.POST.get('pesin_fiyat', '0').strip()
+            taksit_orani_str = request.POST.get('taksit_orani', '5').strip()
 
-            # Eski satış fiyatını kaydet
-            eski_satis_fiyati = urun.satis_fiyati
+            # Eski peşin fiyatını kaydet
+            eski_pesin_fiyat = urun.pesin_fiyat
 
             urun.alis_fiyati = Decimal(
                 alis_fiyati_str) if alis_fiyati_str else Decimal('0')
             urun.kar_orani = Decimal(
                 kar_orani_str) if kar_orani_str else Decimal('50')
-            urun.satis_fiyati = Decimal(
-                satis_fiyati_str) if satis_fiyati_str else Decimal('0')
+            urun.pesin_fiyat = (
+                Decimal(pesin_fiyat_str) if pesin_fiyat_str else Decimal('0')
+            )
+            urun.taksit_orani = Decimal(
+                taksit_orani_str) if taksit_orani_str else Decimal('5')
 
-            # Satış fiyatı değişti mi kontrol et
-            fiyat_degisti = eski_satis_fiyati != urun.satis_fiyati
+            # Taksitli fiyat - Manuel veya otomatik
+            taksitli_fiyat_str = request.POST.get(
+                'taksitli_fiyat', '0').strip()
+            manuel_taksitli = Decimal(
+                taksitli_fiyat_str) if taksitli_fiyat_str else Decimal('0')
+
+            # Eğer manuel girilmişse (peşin fiyattan farklıysa), onu kullan
+            otomatik_taksitli = urun.pesin_fiyat * \
+                (Decimal('1') + (urun.taksit_orani / Decimal('100')))
+            if manuel_taksitli > 0 and abs(manuel_taksitli - otomatik_taksitli) > Decimal('0.01'):
+                # Manuel fiyat girilmiş, onu kullan
+                urun.taksitli_fiyat = manuel_taksitli
+                urun._manuel_taksitli_fiyat = True
+            # Yoksa otomatik hesaplanacak (save metodunda)
+
+            # Peşin fiyat değişti mi kontrol et
+            fiyat_degisti = eski_pesin_fiyat != urun.pesin_fiyat
 
             # Resim güncelleme
             if request.POST.get('remove_image') == 'true':
@@ -779,10 +829,6 @@ def varyasyon_yonet(request, urun_id):
     mevcut_varyantlar = UrunVaryanti.objects.filter(
         urun=urun).select_related('renk', 'beden')
 
-    # Düzenlenebilir varyant var mı kontrol et (stok_kaydedildi=False olanlar)
-    has_editable_variants = mevcut_varyantlar.filter(
-        stok_kaydedildi=False).exists()
-
     # Tüm renk ve bedenler
     renkler = Renk.objects.filter(aktif=True).order_by('sira', 'ad')
     bedenler = Beden.objects.filter(aktif=True).order_by('tip', 'sira', 'ad')
@@ -790,7 +836,6 @@ def varyasyon_yonet(request, urun_id):
     context = {
         'urun': urun,
         'mevcut_varyantlar': mevcut_varyantlar,
-        'has_editable_variants': has_editable_variants,
         'renkler': renkler,
         'bedenler': bedenler,
         'title': f'{urun.ad} - Varyasyon Yönetimi'
@@ -826,6 +871,18 @@ def varyasyon_olustur(request, urun_id):
             created_count = 0
             skipped_count = 0
 
+            try:
+                baslangic_raw = (request.POST.get('baslangic_stok') or '0').strip()
+                baslangic_stok = int(baslangic_raw)
+            except ValueError:
+                return JsonResponse(
+                    {'success': False, 'error': 'Başlangıç stok miktarı geçerli bir sayı olmalıdır.'})
+
+            if baslangic_stok < 0 or baslangic_stok > 1_000_000:
+                return JsonResponse(
+                    {'success': False,
+                     'error': 'Başlangıç stok miktarı 0 ile 1.000.000 arasında olmalıdır.'})
+
             with transaction.atomic():
                 # Tüm kombinasyonları oluştur
                 for renk_id in renk_ids:
@@ -849,7 +906,7 @@ def varyasyon_olustur(request, urun_id):
                                 urun=urun,
                                 renk=renk,
                                 beden=beden,
-                                stok_miktari=1,  # Başlangıç stoku 1
+                                stok_miktari=baslangic_stok,
                                 stok_kaydedildi=False,  # Henüz kaydedilmemiş
                                 aktif=True
                             )
@@ -948,58 +1005,102 @@ def varyant_sil(request, varyant_id):
 
 @login_required
 def varyant_toplu_stok_guncelle(request, urun_id):
-    """Tüm varyantlar için toplu stok güncelleme - sadece henüz kaydedilmemiş varyantlar"""
+    """Varyasyon yönetimi: ilk stok onayı veya kayıtlı varyantlarda hedef stok (fark → stok hareketi)."""
+    from uuid import uuid4
     from .models import StokHareket
     urun = get_object_or_404(Urun, id=urun_id)
 
     if request.method == 'POST':
         try:
             updated_count = 0
-            skipped_count = 0
+            unchanged_count = 0
 
             with transaction.atomic():
                 for key, value in request.POST.items():
-                    if key.startswith('stok_'):
-                        varyant_id = key.replace('stok_', '')
-                        try:
-                            varyant = UrunVaryanti.objects.get(
-                                id=varyant_id, urun=urun)
+                    if not key.startswith('stok_'):
+                        continue
+                    vid = _parse_varyant_pk(key.replace('stok_', '', 1))
+                    if vid is None:
+                        return JsonResponse({
+                            'success': False,
+                            'error': f'Geçersiz varyant alanı: {key}',
+                        })
+                    try:
+                        varyant = UrunVaryanti.objects.select_for_update().get(
+                            id=vid, urun=urun)
+                    except UrunVaryanti.DoesNotExist:
+                        continue
 
-                            # Sadece henüz kaydedilmemiş varyantları güncelle
-                            if not varyant.stok_kaydedildi:
-                                yeni_stok_miktari = int(value) if value else 0
-                                eski_stok = varyant.stok_miktari
+                    try:
+                        yeni_stok_miktari = _parse_stok_miktari_post(value)
+                    except ValueError as e:
+                        return JsonResponse(
+                            {'success': False, 'error': str(e)}
+                        )
 
-                                # İlk stok girişi ise stok hareketi oluştur
-                                if yeni_stok_miktari > 0:
-                                    # İlk stok girişi için varyantın stok miktarını sıfırla
-                                    varyant.stok_miktari = 0
+                    if yeni_stok_miktari < 0:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Stok miktarı negatif olamaz.'
+                        })
 
-                                    StokHareket.stok_hareketi_olustur(
-                                        varyant=varyant,
-                                        hareket_tipi='giris',
-                                        miktar=yeni_stok_miktari,
-                                        kullanici=request.user,
-                                        aciklama=f'İlk stok girişi - {varyant.varyasyon_adi}',
-                                        referans_id=f'ilk_stok_{varyant.id}'
-                                    )
-                                else:
-                                    # Stok miktarı 0 ise sadece kaydedildi işaretle
-                                    varyant.stok_miktari = 0
-                                    varyant.save(stok_hareket_guncelleme=True)
+                    eski_stok = varyant.stok_miktari
 
-                                varyant.stok_kaydedildi = True  # Artık kaydedildi olarak işaretle
-                                varyant.save(stok_hareket_guncelleme=True)
-                                updated_count += 1
-                            else:
-                                skipped_count += 1
+                    if not varyant.stok_kaydedildi:
+                        if yeni_stok_miktari > 0:
+                            varyant.stok_miktari = 0
 
-                        except (UrunVaryanti.DoesNotExist, ValueError):
+                            StokHareket.stok_hareketi_olustur(
+                                varyant=varyant,
+                                hareket_tipi='giris',
+                                miktar=yeni_stok_miktari,
+                                kullanici=request.user,
+                                aciklama=f'İlk stok girişi - {varyant.varyasyon_adi}',
+                                referans_id=f'ilk_stok_{varyant.id}_{uuid4().hex[:10]}',
+                            )
+                        else:
+                            varyant.stok_miktari = 0
+                            varyant.save(stok_hareket_guncelleme=True)
+
+                        varyant.stok_kaydedildi = True
+                        varyant.save(stok_hareket_guncelleme=True)
+                        updated_count += 1
+                    else:
+                        if eski_stok == yeni_stok_miktari:
+                            unchanged_count += 1
                             continue
 
-            message = f'{updated_count} varyant stoku güncellendi!'
-            if skipped_count > 0:
-                message += f' ({skipped_count} varyant zaten kaydedilmiş olduğu için atlandı)'
+                        fark = yeni_stok_miktari - eski_stok
+                        ref = f'vy_yonet_{varyant.id}_{uuid4().hex[:12]}'
+                        if fark > 0:
+                            StokHareket.stok_hareketi_olustur(
+                                varyant=varyant,
+                                hareket_tipi='giris',
+                                miktar=fark,
+                                kullanici=request.user,
+                                aciklama=(
+                                    f'Varyasyon yönetimi — {varyant.varyasyon_adi} '
+                                    f'({eski_stok} → {yeni_stok_miktari}, +{fark})'
+                                ),
+                                referans_id=ref,
+                            )
+                        else:
+                            StokHareket.stok_hareketi_olustur(
+                                varyant=varyant,
+                                hareket_tipi='cikis',
+                                miktar=abs(fark),
+                                kullanici=request.user,
+                                aciklama=(
+                                    f'Varyasyon yönetimi — {varyant.varyasyon_adi} '
+                                    f'({eski_stok} → {yeni_stok_miktari}, {fark})'
+                                ),
+                                referans_id=ref,
+                            )
+                        updated_count += 1
+
+            message = f'{updated_count} varyant stoku güncellendi.'
+            if unchanged_count > 0:
+                message += f' ({unchanged_count} kayıt değişmedi.)'
 
             return JsonResponse({
                 'success': True,
@@ -1191,9 +1292,18 @@ def sayim_eksigi_view(request):
         if 'arama' in request.POST:
             # Arama işlemi
             arama_terimi = request.POST.get('arama_terimi', '').strip()
+            varyant_id_raw = request.POST.get('varyant_id', '').strip()
             arama_yapildi = True
+            vid = _parse_varyant_pk(varyant_id_raw)
 
-            if arama_terimi:
+            if vid is not None:
+                # Direkt varyant ID ile arama
+                try:
+                    varyant = UrunVaryanti.objects.select_related(
+                        'urun', 'renk', 'beden').get(id=vid)
+                except UrunVaryanti.DoesNotExist:
+                    messages.error(request, '❌ Seçilen ürün bulunamadı!')
+            elif arama_terimi:
                 try:
                     # Önce barkod ile ara
                     varyant = UrunVaryanti.objects.select_related(
@@ -1212,34 +1322,36 @@ def sayim_eksigi_view(request):
         elif 'islem' in request.POST and request.POST.get('varyant_id'):
             # Stok azaltma işlemi
             try:
-                with transaction.atomic():
-                    varyant = UrunVaryanti.objects.get(
-                        id=request.POST.get('varyant_id'))
-                    azaltilacak_miktar = int(request.POST.get('miktar', 0))
-                    aciklama = request.POST.get('aciklama', '').strip()
+                vid = _parse_varyant_pk(request.POST.get('varyant_id'))
+                if vid is None:
+                    messages.error(request, '❌ Geçersiz ürün numarası.')
+                else:
+                    with transaction.atomic():
+                        varyant = UrunVaryanti.objects.get(id=vid)
+                        azaltilacak_miktar = int(request.POST.get('miktar', 0))
+                        aciklama = request.POST.get('aciklama', '').strip()
 
-                    if azaltilacak_miktar <= 0:
-                        messages.error(
-                            request, '❌ Azaltılacak miktar 0\'dan büyük olmalıdır!')
-                        return redirect('urun:sayim_eksigi')
+                        if azaltilacak_miktar <= 0:
+                            messages.error(
+                                request, '❌ Azaltılacak miktar 0\'dan büyük olmalıdır!')
+                            return redirect('urun:sayim_eksigi')
 
-                    if azaltilacak_miktar > varyant.stok_miktari:
-                        messages.error(
-                            request, f'❌ Mevcut stoktan ({varyant.stok_miktari} adet) fazla azaltılamaz!')
-                        return redirect('urun:sayim_eksigi')
+                        if azaltilacak_miktar > varyant.stok_miktari:
+                            messages.error(
+                                request, f'❌ Mevcut stoktan ({varyant.stok_miktari} adet) fazla azaltılamaz!')
+                            return redirect('urun:sayim_eksigi')
 
-                    if not aciklama:
-                        messages.error(request, '❌ Açıklama zorunludur!')
-                        return redirect('urun:sayim_eksigi')
+                        if not aciklama:
+                            messages.error(request, '❌ Açıklama zorunludur!')
+                            return redirect('urun:sayim_eksigi')
 
-                    # Stok hareketi oluştur
-                    StokHareket.stok_hareketi_olustur(
-                        varyant=varyant,
-                        hareket_tipi='sayim_eksik',
-                        miktar=azaltilacak_miktar,
-                        aciklama=f"Sayım Eksiği: {aciklama}",
-                        kullanici=request.user
-                    )
+                        StokHareket.stok_hareketi_olustur(
+                            varyant=varyant,
+                            hareket_tipi='sayim_eksik',
+                            miktar=azaltilacak_miktar,
+                            aciklama=f"Sayım Eksiği: {aciklama}",
+                            kullanici=request.user
+                        )
 
                     messages.success(
                         request, f'✅ {varyant.varyasyon_adi} için {azaltilacak_miktar} adet stok azaltıldı!')
@@ -1268,9 +1380,18 @@ def sayim_fazlasi_view(request):
         if 'arama' in request.POST:
             # Arama işlemi
             arama_terimi = request.POST.get('arama_terimi', '').strip()
+            varyant_id_raw = request.POST.get('varyant_id', '').strip()
             arama_yapildi = True
+            vid = _parse_varyant_pk(varyant_id_raw)
 
-            if arama_terimi:
+            if vid is not None:
+                # Direkt varyant ID ile arama
+                try:
+                    varyant = UrunVaryanti.objects.select_related(
+                        'urun', 'renk', 'beden').get(id=vid)
+                except UrunVaryanti.DoesNotExist:
+                    messages.error(request, '❌ Seçilen ürün bulunamadı!')
+            elif arama_terimi:
                 try:
                     # Önce barkod ile ara
                     varyant = UrunVaryanti.objects.select_related(
@@ -1289,29 +1410,31 @@ def sayim_fazlasi_view(request):
         elif 'islem' in request.POST and request.POST.get('varyant_id'):
             # Stok artırma işlemi
             try:
-                with transaction.atomic():
-                    varyant = UrunVaryanti.objects.get(
-                        id=request.POST.get('varyant_id'))
-                    arttirilacak_miktar = int(request.POST.get('miktar', 0))
-                    aciklama = request.POST.get('aciklama', '').strip()
+                vid = _parse_varyant_pk(request.POST.get('varyant_id'))
+                if vid is None:
+                    messages.error(request, '❌ Geçersiz ürün numarası.')
+                else:
+                    with transaction.atomic():
+                        varyant = UrunVaryanti.objects.get(id=vid)
+                        arttirilacak_miktar = int(request.POST.get('miktar', 0))
+                        aciklama = request.POST.get('aciklama', '').strip()
 
-                    if arttirilacak_miktar <= 0:
-                        messages.error(
-                            request, '❌ Arttırılacak miktar 0\'dan büyük olmalıdır!')
-                        return redirect('urun:sayim_fazlasi')
+                        if arttirilacak_miktar <= 0:
+                            messages.error(
+                                request, '❌ Arttırılacak miktar 0\'dan büyük olmalıdır!')
+                            return redirect('urun:sayim_fazlasi')
 
-                    if not aciklama:
-                        messages.error(request, '❌ Açıklama zorunludur!')
-                        return redirect('urun:sayim_fazlasi')
+                        if not aciklama:
+                            messages.error(request, '❌ Açıklama zorunludur!')
+                            return redirect('urun:sayim_fazlasi')
 
-                    # Stok hareketi oluştur
-                    StokHareket.stok_hareketi_olustur(
-                        varyant=varyant,
-                        hareket_tipi='sayim_fazla',
-                        miktar=arttirilacak_miktar,
-                        aciklama=f"Sayım Fazlası: {aciklama}",
-                        kullanici=request.user
-                    )
+                        StokHareket.stok_hareketi_olustur(
+                            varyant=varyant,
+                            hareket_tipi='sayim_fazla',
+                            miktar=arttirilacak_miktar,
+                            aciklama=f"Sayım Fazlası: {aciklama}",
+                            kullanici=request.user
+                        )
 
                     messages.success(
                         request, f'✅ {varyant.varyasyon_adi} için {arttirilacak_miktar} adet stok eklendi!')
@@ -1474,3 +1597,54 @@ def fiyat_guncelleme(request):
     }
 
     return render(request, 'urun/fiyat_guncelleme.html', context)
+
+
+@login_required
+def ajax_urun_ara(request):
+    """AJAX ürün arama endpoint'i"""
+    from django.http import JsonResponse
+    from django.db.models import Q
+
+    query = request.GET.get('q', '').strip()
+
+    if len(query) < 2:
+        return JsonResponse({
+            'success': False,
+            'message': 'En az 2 karakter giriniz'
+        })
+
+    try:
+        # Ürün varyantlarını ara
+        varyantlar = UrunVaryanti.objects.select_related(
+            'urun', 'renk', 'beden', 'urun__kategori', 'urun__marka'
+        ).filter(
+            Q(urun__ad__icontains=query) |
+            Q(barkod__icontains=query) |
+            Q(urun__urun_kodu__icontains=query)
+        ).order_by('urun__ad', 'renk__ad', 'beden__ad')[:10]
+
+        urunler = []
+        for varyant in varyantlar:
+            urunler.append({
+                'id': varyant.id,
+                'ad': varyant.urun.ad,
+                'barkod': varyant.barkod,
+                'urun_kodu': varyant.urun.urun_kodu,
+                'kategori': varyant.urun.kategori.ad if varyant.urun.kategori else 'N/A',
+                'marka': varyant.urun.marka.ad if varyant.urun.marka else 'N/A',
+                'renk': varyant.renk.ad if varyant.renk else 'N/A',
+                'beden': varyant.beden.ad if varyant.beden else 'N/A',
+                'satis_fiyati': f"{varyant.urun.satis_fiyati:,.2f}".replace(',', '.'),
+                'stok_miktari': varyant.stok_miktari
+            })
+
+        return JsonResponse({
+            'success': True,
+            'urunler': urunler
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Arama sırasında hata: {str(e)}'
+        })

@@ -3,7 +3,7 @@
 
 {% block title %}Gider Raporları{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
@@ -23,7 +23,7 @@
                                         <i class="fas fa-calendar-day fa-2x"></i>
                                     </div>
                                     <div>
-                                        <h4 class="mb-0">₺{{ bugün_giderleri|floatformat:2 }}</h4>
+                                        <h4 class="mb-0">{{ bugün_giderleri|turkish_currency }}</h4>
                                         <p class="mb-0">Bugünkü Giderler</p>
                                         <small class="opacity-75">{{ bugün }}</small>
                                     </div>
@@ -39,7 +39,7 @@
                                         <i class="fas fa-calendar-alt fa-2x"></i>
                                     </div>
                                     <div>
-                                        <h4 class="mb-0">₺{{ bu_ay_giderleri|floatformat:2 }}</h4>
+                                        <h4 class="mb-0">{{ bu_ay_giderleri|turkish_currency }}</h4>
                                         <p class="mb-0">Bu Ay Toplam</p>
                                         <small class="opacity-75">{{ bu_ay_başı|date:"F Y" }}</small>
                                     </div>
@@ -74,7 +74,7 @@
                                             <div class="progress-bar" style="width: 75%; background-color: {{ kategori.renk }};"></div>
                                             {% endif %}
                                         </div>
-                                        <small class="text-muted">₺{{ kategori.bu_ay_toplam|default:0|floatformat:2 }}</small>
+                                        <small class="text-muted">{{ kategori.bu_ay_toplam|default:0|turkish_currency }}</small>
                                     </div>
                                 </div>
                                 {% empty %}
@@ -109,7 +109,7 @@
                                         {% endif %}
                                     </span>
                                     <div class="text-end">
-                                        <div class="fw-bold">₺{{ odeme.toplam|floatformat:2 }}</div>
+                                        <div class="fw-bold">{{ odeme.toplam|turkish_currency }}</div>
                                         <small class="text-muted">{{ odeme.adet }} işlem</small>
                                     </div>
                                 </div>
@@ -146,7 +146,7 @@
                                             {% for gun in günlük_trend %}
                                             <tr>
                                                 <td>{{ gun.tarih|date:"d F Y" }}</td>
-                                                <td class="text-end">₺{{ gun.toplam|default:0|floatformat:2 }}</td>
+                                                <td class="text-end">{{ gun.toplam|default:0|turkish_currency }}</td>
                                             </tr>
                                             {% empty %}
                                             <tr>

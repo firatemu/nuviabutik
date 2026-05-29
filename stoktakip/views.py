@@ -1,98 +1,220 @@
 ﻿from django.shortcuts import render
 from django.http import HttpResponse
-from django.db.models import Sum, Count, Q, F
-from datetime import date, datetime
+from decimal import Decimal
+
+from django.db.models import Sum, Count, Q, F, Value, ExpressionWrapper, DecimalField
+from django.db.models.functions import Coalesce
+from datetime import date, datetime, timedelta
 from satis.models import Satis, SatisDetay, Odeme
 from urun.models import UrunVaryanti
-from musteri.models import Musteri
 from gider.models import Gider
 from kasa.models import Kasa, KasaHareket
 
-def dashboard_view(request):
+
+def _dashboard_tarih_araligi(request):
+    """GET baslangic, bitis; varsayılan: bugün–bugün."""
     bugun = date.today()
-    
-    # Günlük satışlar
-    gunluk_satislar = Satis.objects.filter(
-        satis_tarihi__date=bugun,
-        durum='tamamlandi'
+    b = request.GET.get('baslangic')
+    t = request.GET.get('bitis')
+    try:
+        if b and t:
+            bas = datetime.strptime(b, '%Y-%m-%d').date()
+            bit = datetime.strptime(t, '%Y-%m-%d').date()
+        else:
+            bas = bit = bugun
+    except (ValueError, TypeError):
+        bas = bit = bugun
+    if bas > bit:
+        bas, bit = bit, bas
+    return bas, bit
+
+
+def dashboard_view(request):
+    baslangic, bitis = _dashboard_tarih_araligi(request)
+    bugun = date.today()
+    tek_gun = baslangic == bitis
+
+    satis_donem = Satis.objects.filter(
+        satis_tarihi__date__range=[baslangic, bitis],
+        durum='tamamlandi',
     )
-    
-    # Satış istatistikleri
-    satis_stats = gunluk_satislar.aggregate(
-        toplam_tutar=Sum('toplam_tutar'),
-        satis_adedi=Count('id')
+
+    satis_stats = satis_donem.aggregate(
+        toplam_tutar=Sum('genel_toplam'),
+        satis_adedi=Count('id'),
     )
-    
-    bugunki_satis = satis_stats['toplam_tutar'] or 0
-    satis_sayisi = satis_stats['satis_adedi'] or 0
-    
-    # Ürün ve müşteri sayıları
+    donem_satis = satis_stats['toplam_tutar'] or Decimal('0')
+    if not isinstance(donem_satis, Decimal):
+        donem_satis = Decimal(str(donem_satis))
+    donem_satis_sayisi = satis_stats['satis_adedi'] or 0
+
+    detay_donem = SatisDetay.objects.filter(
+        satis__satis_tarihi__date__range=[baslangic, bitis],
+        satis__durum='tamamlandi',
+    )
+    money = DecimalField(max_digits=14, decimal_places=2)
+    donem_maliyet_satis = detay_donem.aggregate(
+        s=Sum(
+            ExpressionWrapper(
+                F('urun__alis_fiyati') * F('miktar'),
+                output_field=money,
+            )
+        )
+    )['s'] or Decimal('0')
+    if not isinstance(donem_maliyet_satis, Decimal):
+        donem_maliyet_satis = Decimal(str(donem_maliyet_satis))
+    satis_kari = donem_satis - donem_maliyet_satis
+    satis_kar_yuzde = (
+        (satis_kari / donem_maliyet_satis * Decimal('100'))
+        if donem_maliyet_satis > 0
+        else Decimal('0')
+    )
+    net_satis_kadin = detay_donem.filter(urun__cinsiyet='kadin').aggregate(
+        s=Sum('toplam_fiyat')
+    )['s'] or 0
+    net_satis_erkek = detay_donem.filter(urun__cinsiyet='erkek').aggregate(
+        s=Sum('toplam_fiyat')
+    )['s'] or 0
+
     toplam_urun = UrunVaryanti.objects.filter(aktif=True, urun__aktif=True).count()
-    toplam_musteri = Musteri.objects.filter(aktif=True).count()
-    
-    # Günlük gider
-    gunluk_gider = Gider.objects.filter(tarih=bugun).aggregate(
+
+    donem_gider = Gider.objects.filter(tarih__range=[baslangic, bitis]).aggregate(
         toplam=Sum('tutar')
-    )['toplam'] or 0
-    
-    # Stok uyarıları (kritik stok seviyesinin altında)
+    )['toplam'] or Decimal('0')
+    if not isinstance(donem_gider, Decimal):
+        donem_gider = Decimal(str(donem_gider))
+
     kritik_stoklar = UrunVaryanti.objects.filter(
         aktif=True,
         urun__aktif=True,
-        stok_miktari__lte=F('urun__kritik_stok_seviyesi')
-    ).select_related('urun', 'renk', 'beden').count()
-    
-    # En çok satan ürünler (bugün)
+        stok_miktari__lte=F('urun__kritik_stok_seviyesi'),
+    ).count()
+
     cok_satan_urunler = SatisDetay.objects.filter(
-        satis__satis_tarihi__date=bugun,
-        satis__durum='tamamlandi'
-    ).values(
-        'urun__ad'
-    ).annotate(
+        satis__satis_tarihi__date__range=[baslangic, bitis],
+        satis__durum='tamamlandi',
+    ).values('urun__ad').annotate(
         toplam_miktar=Sum('miktar'),
-        toplam_ciro=Sum('toplam_fiyat')
+        toplam_ciro=Sum('toplam_fiyat'),
     ).order_by('-toplam_miktar')[:5]
-    
-    # Son satışlar
+
     son_satislar = Satis.objects.filter(
-        satis_tarihi__date=bugun,
-        durum='tamamlandi'
+        satis_tarihi__date__range=[baslangic, bitis],
+        durum='tamamlandi',
     ).select_related('musteri', 'satici').order_by('-satis_tarihi')[:5]
-    
-    # Net kar hesaplama
-    net_kar = bugunki_satis - gunluk_gider
-    
-    # Aylık satış trendi (son 7 gün)
-    from datetime import timedelta
+
+    net_kar = donem_satis - donem_gider
+    if not isinstance(net_kar, Decimal):
+        net_kar = Decimal(str(net_kar))
+
     haftalik_satis = []
     for i in range(7):
-        tarih = bugun - timedelta(days=i)
+        gun = bitis - timedelta(days=(6 - i))
         gunluk_tutar = Satis.objects.filter(
-            satis_tarihi__date=tarih,
-            durum='tamamlandi'
-        ).aggregate(toplam=Sum('toplam_tutar'))['toplam'] or 0
-        
-        haftalik_satis.append({
-            'tarih': tarih,
-            'tutar': gunluk_tutar
+            satis_tarihi__date=gun,
+            durum='tamamlandi',
+        ).aggregate(toplam=Sum('genel_toplam'))['toplam'] or 0
+        haftalik_satis.append({'tarih': gun, 'tutar': gunluk_tutar})
+
+    odeme_donem = Odeme.objects.filter(
+        odeme_tarihi__date__range=[baslangic, bitis]
+    )
+    donem_odeme_toplam = odeme_donem.aggregate(toplam=Sum('tutar'))['toplam'] or 0
+    donem_odeme_adet = odeme_donem.count()
+    odeme_tipi_donem = []
+    tip_labels = dict(Odeme.ODEME_TIPLERI)
+    for row in odeme_donem.values('odeme_tipi').annotate(
+        toplam=Sum('tutar'), adet=Count('id')
+    ).order_by('-toplam'):
+        kod = row['odeme_tipi']
+        odeme_tipi_donem.append({
+            'kod': kod,
+            'ad': tip_labels.get(kod, kod),
+            'toplam': row['toplam'] or 0,
+            'adet': row['adet'],
         })
-    
-    haftalik_satis.reverse()  # Tarih sırasına göre
-    
+
+    # Aynı dönemde kredi kartı — taksit sayısına göre dağılım (ödeme tipi kartı ile birlikte)
+    odeme_kart_taksit_ozet = []
+    for row in (
+        odeme_donem.filter(odeme_tipi='kart')
+        .annotate(_ts=Coalesce('taksit_sayisi', Value(1)))
+        .values('_ts')
+        .annotate(toplam=Sum('tutar'), adet=Count('id'))
+        .order_by('_ts')
+    ):
+        ts = int(row['_ts'] or 1)
+        if ts <= 1:
+            etiket = 'Peşin (tek çekim)'
+        else:
+            etiket = f'{ts} taksit'
+        odeme_kart_taksit_ozet.append({
+            'taksit_sayisi': ts,
+            'etiket': etiket,
+            'toplam': row['toplam'] or 0,
+            'adet': row['adet'],
+        })
+
+    son_odemeler = odeme_donem.select_related(
+        'satis', 'satis__musteri'
+    ).order_by('-odeme_tarihi')[:5]
+
+    # Banka dağılımı: satış POS (kredi kartı) — Odeme.banka
+    banka_labels = dict(Odeme.BANKA_SECENEKLERI)
+    kart_odemeler_donem = odeme_donem.filter(odeme_tipi='kart')
+    odeme_kart_banka_ozet = []
+    for row in (
+        kart_odemeler_donem.exclude(banka__in=[None, ''])
+        .values('banka')
+        .annotate(toplam=Sum('tutar'), adet=Count('id'))
+        .order_by('-toplam')
+    ):
+        kod = row['banka']
+        odeme_kart_banka_ozet.append({
+            'kod': kod,
+            'ad': banka_labels.get(kod, kod or '—'),
+            'toplam': row['toplam'] or 0,
+            'adet': row['adet'],
+        })
+    kartsiz_ozet = kart_odemeler_donem.filter(
+        Q(banka__isnull=True) | Q(banka='')
+    ).aggregate(toplam=Sum('tutar'), adet=Count('id'))
+    odeme_kart_banksiz_toplam = kartsiz_ozet['toplam'] or 0
+    odeme_kart_banksiz_adet = kartsiz_ozet['adet'] or 0
+
     context = {
         'bugun': bugun,
+        'baslangic': baslangic,
+        'bitis': bitis,
+        'baslangic_str': baslangic.strftime('%Y-%m-%d'),
+        'bitis_str': bitis.strftime('%Y-%m-%d'),
+        'tek_gun': tek_gun,
         'toplam_urun': toplam_urun,
-        'toplam_musteri': toplam_musteri,
-        'bugunki_satis': bugunki_satis,
-        'satis_sayisi': satis_sayisi,
-        'bugunki_gider_toplam': gunluk_gider,
+        'donem_maliyet_satis': donem_maliyet_satis,
+        'satis_kari': satis_kari,
+        'satis_kar_yuzde': satis_kar_yuzde,
+        'donem_satis': donem_satis,
+        'donem_satis_sayisi': donem_satis_sayisi,
+        'bugunki_satis': donem_satis,
+        'satis_sayisi': donem_satis_sayisi,
+        'net_satis_kadin': net_satis_kadin,
+        'net_satis_erkek': net_satis_erkek,
+        'bugunki_gider_toplam': donem_gider,
         'net_kar': net_kar,
         'kritik_stoklar': kritik_stoklar,
         'cok_satan_urunler': cok_satan_urunler,
         'son_satislar': son_satislar,
         'haftalik_satis': haftalik_satis,
+        'bugunki_odeme_toplam': donem_odeme_toplam,
+        'bugunki_odeme_adet': donem_odeme_adet,
+        'odeme_tipi_bugun': odeme_tipi_donem,
+        'odeme_kart_taksit_ozet': odeme_kart_taksit_ozet,
+        'son_odemeler': son_odemeler,
+        'odeme_kart_banka_ozet': odeme_kart_banka_ozet,
+        'odeme_kart_banksiz_toplam': odeme_kart_banksiz_toplam,
+        'odeme_kart_banksiz_adet': odeme_kart_banksiz_adet,
     }
-    
+
     return render(request, 'dashboard.html', context)
 
 def gunluk_rapor_view(request):
@@ -112,7 +234,7 @@ def gunluk_rapor_view(request):
     
     # Satış istatistikleri
     toplam_satis = gunluk_satislar.aggregate(
-        toplam_tutar=Sum('toplam_tutar'),
+        toplam_tutar=Sum('genel_toplam'),
         satis_adedi=Count('id')
     )
     

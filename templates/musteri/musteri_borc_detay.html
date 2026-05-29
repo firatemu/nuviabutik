@@ -3,7 +3,7 @@
 
 {% block title %}{{ musteri.tam_ad }} - Borç Detay{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-8">
@@ -32,15 +32,15 @@
                             <h5>Finansal Durum</h5>
                             <p><strong>Mevcut Bakiye:</strong> 
                                 {% if musteri.acik_hesap_bakiye > 0 %}
-                                    <span class="badge bg-danger fs-6">{{ musteri.acik_hesap_bakiye|floatformat:2 }}₺ Borç</span>
+                                    <span class="badge bg-danger fs-6">{{ musteri.acik_hesap_bakiye|turkish_currency }} Borç</span>
                                 {% elif musteri.acik_hesap_bakiye < 0 %}
                                     <span class="badge bg-success fs-6">{{ musteri.acik_hesap_bakiye|floatformat:2|slice:"1:" }}₺ Alacak</span>
                                 {% else %}
                                     <span class="badge bg-secondary fs-6">0₺</span>
                                 {% endif %}
                             </p>
-                            <p><strong>Açık Hesap Limiti:</strong> {{ musteri.acik_hesap_limit|floatformat:2 }}₺</p>
-                            <p><strong>Toplam Satış:</strong> {{ musteri.toplam_satis_tutari|floatformat:2 }}₺</p>
+                            <p><strong>Açık Hesap Limiti:</strong> {{ musteri.acik_hesap_limit|turkish_currency }}</p>
+                            <p><strong>Toplam Satış:</strong> {{ musteri.toplam_satis_tutari|turkish_currency }}</p>
                             <p><strong>Satış Sayısı:</strong> {{ musteri.satis_sayisi }}</p>
                         </div>
                     </div>
@@ -65,7 +65,7 @@
                                     <tr>
                                         <td>{{ satis.satis_no }}</td>
                                         <td>{{ satis.satis_tarihi|date:"d.m.Y" }}</td>
-                                        <td>{{ satis.toplam_tutar|floatformat:2 }}₺</td>
+                                        <td>{{ satis.toplam_tutar|turkish_currency }}</td>
                                         <td>
                                             <span class="badge bg-warning">Veresiye</span>
                                         </td>
@@ -112,13 +112,13 @@
                                         </td>
                                         <td>
                                             {% if hareket.hareket_tipi == 'borc' %}
-                                                +{{ hareket.tutar|floatformat:2 }}₺
+                                                +{{ hareket.tutar|turkish_currency }}
                                             {% else %}
-                                                -{{ hareket.tutar|floatformat:2 }}₺
+                                                -{{ hareket.tutar|turkish_currency }}
                                             {% endif %}
                                         </td>
-                                        <td>{{ hareket.onceki_bakiye|floatformat:2 }}₺</td>
-                                        <td>{{ hareket.yeni_bakiye|floatformat:2 }}₺</td>
+                                        <td>{{ hareket.onceki_bakiye|turkish_currency }}</td>
+                                        <td>{{ hareket.yeni_bakiye|turkish_currency }}</td>
                                         <td>{{ hareket.aciklama }}</td>
                                     </tr>
                                     {% empty %}
@@ -152,7 +152,7 @@
                                     <tr>
                                         <td>{{ tahsilat.tahsilat_no }}</td>
                                         <td>{{ tahsilat.tahsilat_tarihi|date:"d.m.Y" }}</td>
-                                        <td>{{ tahsilat.tutar|floatformat:2 }}₺</td>
+                                        <td>{{ tahsilat.tutar|turkish_currency }}</td>
                                         <td>{{ tahsilat.get_tahsilat_tipi_display }}</td>
                                         <td>
                                             {% if tahsilat.durum == 'tahsil_edildi' %}

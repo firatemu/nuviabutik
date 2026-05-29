@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-_l8=*rmi(*guvey5ndw6rqux34#=r9s4^=qaa-xh7s=-y6@x01')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -81,6 +81,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Static files serving for production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'stoktakip.middleware.NuviaTabEmbedMiddleware',
     # # 'django.middleware.csrf.CsrfViewMiddleware',  # GEÇİCİ KAPALI  # GEÇİCİ OLARAK KAPALI
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',  # Messages middleware önce olmalı
@@ -103,6 +104,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            # Türkçe 1.500,00 formatı — {% load %} olmadan şablonlarda kullanılabilir
+            'builtins': ['urun.templatetags.currency_filters'],
         },
     },
 ]
@@ -170,6 +173,9 @@ USE_I18N = True
 
 USE_TZ = True
 
+# tr: binlik . ondalık , (django.conf.locale.tr)
+USE_THOUSAND_SEPARATOR = True
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -179,7 +185,14 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Whitenoise configuration for production static files
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Media files
 MEDIA_URL = '/media/'
@@ -198,28 +211,19 @@ LOGOUT_REDIRECT_URL = '/kullanici/login/'
 # Custom User Model
 AUTH_USER_MODEL = 'kullanici.CustomUser'
 
-# Session settings
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 86400  # 24 hours
-SESSION_SAVE_EVERY_REQUEST = True
+# Session settings (Redis ile oturum; her istekte DB yazımı yok)
+SESSION_COOKIE_AGE = 172800  # 48 hours (POS ekranı için daha uzun)
+SESSION_SAVE_EVERY_REQUEST = False
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
-# Development optimizations for auto-reload
-if DEBUG:
-    # Auto-reload optimizations
-    USE_TZ = True
-    
-    # File system polling interval (saniye)
-    # Dosya değişikliklerini daha hızlı algılar
-    import os
-    os.environ.setdefault('DJANGO_AUTORELOAD_EXTRA_FILES', '')
-    
-    # Cache ayarları - performans için geliştirme
-    # Redis Cache Configuration (Yüksek Performans)
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1')
+USE_REDIS_CACHE = os.environ.get('USE_REDIS_CACHE', 'True').lower() == 'true'
+
+if USE_REDIS_CACHE:
     CACHES = {
         'default': {
             'BACKEND': 'django_redis.cache.RedisCache',
-            'LOCATION': 'redis://127.0.0.1:6379/1',
+            'LOCATION': REDIS_URL,
             'OPTIONS': {
                 'CLIENT_CLASS': 'django_redis.client.DefaultClient',
                 'CONNECTION_POOL_KWARGS': {
@@ -232,15 +236,29 @@ if DEBUG:
                 'IGNORE_EXCEPTIONS': True,
             },
             'KEY_PREFIX': 'nuviabutik',
-            'TIMEOUT': 300,  # 5 dakika default timeout
+            'TIMEOUT': 300,
         }
     }
-    
-    # Session cache (Redis)
     SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
     SESSION_CACHE_ALIAS = 'default'
-    
-    # Template cache'i etkinleştir - production performansı için
+else:
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
+# Production: şablon derlemesini bellekte tut
+if not DEBUG:
+    TEMPLATES[0]['APP_DIRS'] = False
+    TEMPLATES[0]['OPTIONS']['loaders'] = [
+        (
+            'django.template.loaders.cached.Loader',
+            [
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader',
+            ],
+        ),
+    ]
+
+if DEBUG:
+    os.environ.setdefault('DJANGO_AUTORELOAD_EXTRA_FILES', '')
     for template_settings in TEMPLATES:
         if 'OPTIONS' in template_settings:
             template_settings['OPTIONS']['debug'] = False
@@ -257,13 +275,15 @@ CSRF_COOKIE_NAME = 'csrftoken'
 SESSION_COOKIE_SECURE = not DEBUG  # Production'da HTTPS üzerinden gönder
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_AGE = 3600  # 1 saat
+SESSION_COOKIE_AGE = 172800  # 48 saat (POS ekranı için daha uzun)
+
+# Allow same-origin iframes for in-app tabbed layout
+X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Security Headers (Production için)
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
     SECURE_HSTS_SECONDS = 31536000  # 1 yıl
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True

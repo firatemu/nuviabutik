@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load l10n %}
 
 {% block title %}{{ urun.ad }} - Varyasyon Yönetimi{% endblock %}
 
@@ -150,7 +151,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <!-- Sayfa Başlığı -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -205,7 +206,7 @@
                         </div>
                         <div class="col-md-3">
                             <small class="text-muted">Satış Fiyatı</small>
-                            <div class="fw-bold text-success">{{ urun.satis_fiyati }} ₺</div>
+                            <div class="fw-bold text-success">{{ urun.pesin_fiyat }} ₺</div>
                         </div>
                         <div class="col-md-3">
                             <small class="text-muted">Toplam Stok</small>
@@ -279,6 +280,14 @@
                             <p class="text-muted text-center">Henüz beden tanımlanmamış.</p>
                             {% endif %}
                         </div>
+
+                        <div class="selection-section">
+                            <h6 class="mb-2">
+                                <i class="fas fa-boxes me-2"></i>Başlangıç stok (yeni varyantlar)
+                            </h6>
+                            <label for="baslangic_stok" class="form-label small text-muted mb-1">Oluşturulan her kombinasyon için ilk stok miktarı. İsterseniz 0 bırakıp sağdan tek tek düzenleyip &quot;Stokları Kaydet&quot; kullanın.</label>
+                            <input type="number" class="form-control" id="baslangic_stok" name="baslangic_stok" value="0" min="0" max="1000000" step="1">
+                        </div>
                         
                         <div class="d-grid">
                             <button type="submit" class="btn create-button">
@@ -305,7 +314,7 @@
                             <i class="fas fa-print me-1"></i>Tüm Etiketleri Yazdır
                         </a>
                         -->
-                        {% if has_editable_variants %}
+                        {% if mevcut_varyantlar %}
                             <button type="button" class="btn btn-outline-primary btn-sm" onclick="topluStokGuncelle()">
                                 <i class="fas fa-save me-1"></i>Stokları Kaydet
                             </button>
@@ -317,8 +326,8 @@
                     <!-- Bilgilendirme Mesajı -->
                     <div class="alert alert-info m-3 mb-0" role="alert">
                         <i class="fas fa-info-circle me-2"></i>
-                        <strong>Not:</strong> Sadece yeni oluşturulmuş varyantların stok miktarları değiştirilebilir. 
-                        Daha önce kaydedilmiş varyantlar güvenlik nedeniyle korunmaktadır.
+                        <strong>Not:</strong> İstediğiniz stok miktarını yazıp <strong>Stokları Kaydet</strong> deyin.
+                        Kayıtlı varyantlarda değişiklik, stok hareketleri aracılığıyla (giriş/çıkış) uygulanır; örneğin 1 → 2 ise stoğa 1 adet giriş kaydı oluşur.
                     </div>
                     <form id="bulkStockForm">
                         {% csrf_token %}
@@ -335,30 +344,18 @@
                                     </div>
                                 </div>
                                 <div class="variant-stock">
-                                    {% if not varyant.stok_kaydedildi %}
-                                        <!-- Henüz kaydedilmemiş varyant - düzenlenebilir -->
-                                        <input type="number" 
-                                               name="stok_{{ varyant.id }}" 
-                                               value="{{ varyant.stok_miktari }}" 
-                                               class="form-control stock-input" 
+                                        <input type="number"
+                                               name="stok_{{ varyant.id|unlocalize }}"
+                                               value="{{ varyant.stok_miktari|unlocalize }}"
+                                               class="form-control stock-input"
                                                min="0"
-                                               title="Stok miktarını düzenleyebilirsiniz">
-                                    {% else %}
-                                        <!-- Kaydedilmiş varyant - salt okunur -->
-                                        <input type="number" 
-                                               name="stok_{{ varyant.id }}" 
-                                               value="{{ varyant.stok_miktari }}" 
-                                               class="form-control stock-input" 
-                                               min="0"
-                                               readonly
-                                               style="background-color: #f8f9fa; cursor: not-allowed;"
-                                               title="Bu varyantın stoku daha önce kaydedilmiş - değiştirilemez">
-                                    {% endif %}
+                                               inputmode="numeric"
+                                               title="Hedef stok miktarı — Kaydet ile uygulanır">
                                 </div>
                                 <div class="variant-actions">
                                     <button type="button" 
                                             class="btn btn-outline-success btn-sm me-1" 
-                                            data-print-variant="{{ varyant.id }}"
+                                            data-print-variant="{{ varyant.id|unlocalize }}"
                                             title="Etiket Yazdır (Local Bridge)">
                                         <i class="fas fa-print"></i>
                                     </button>
@@ -370,7 +367,7 @@
                                     </a>
                                     -->{% endcomment %}
                                     <button type="button" class="btn btn-outline-danger btn-sm" 
-                                            onclick="varyantSil({{ varyant.id }})" 
+                                            onclick="varyantSil({{ varyant.id|unlocalize }})" 
                                             title="Sil">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -395,6 +392,22 @@
 
 {% block extra_js %}
 <script>
+(function () {
+    window.NUVIA_VARYANT_SIL_URL = "{% url 'urun:varyant_sil' 989898989 %}";
+})();
+function nuviaGetCsrfToken() {
+    var inp = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (inp && inp.value) return inp.value;
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? (meta.getAttribute('content') || '') : '';
+}
+function nuviaVaryantSilPostUrl(varyantId) {
+    var n = parseInt(varyantId, 10);
+    if (Number.isNaN(n) || n < 1) {
+        return null;
+    }
+    return window.NUVIA_VARYANT_SIL_URL.replace('989898989', String(n));
+}
 // Checkbox seçim efektleri
 document.addEventListener('DOMContentLoaded', function() {
     const checkboxItems = document.querySelectorAll('.checkbox-item');
@@ -454,11 +467,11 @@ document.getElementById('variationForm').addEventListener('submit', function(e) 
     });
     
     // AJAX ile gönder
-    fetch(`{% url 'urun:varyasyon_olustur' urun.id %}`, {
+    fetch(`{% url 'urun:varyasyon_olustur' urun.id|unlocalize %}`, {
         method: 'POST',
         body: formData,
         headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            'X-CSRFToken': nuviaGetCsrfToken()
         }
     })
     .then(response => response.json())
@@ -506,14 +519,29 @@ function topluStokGuncelle() {
         }
     });
     
-    fetch(`{% url 'urun:varyant_toplu_stok' urun.id %}`, {
+    fetch(`{% url 'urun:varyant_toplu_stok' urun.id|unlocalize %}`, {
         method: 'POST',
         body: formData,
+        credentials: 'same-origin',
         headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            'X-CSRFToken': nuviaGetCsrfToken(),
+            'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(response => response.json())
+    .then(function (response) {
+        var ct = (response.headers.get('content-type') || '');
+        if (!response.ok) {
+            return response.text().then(function (t) {
+                throw new Error('Sunucu hatası (' + response.status + '). ' + (t ? t.slice(0, 200) : ''));
+            });
+        }
+        if (ct.indexOf('application/json') === -1) {
+            return response.text().then(function () {
+                throw new Error('Beklenmeyen yanıt (JSON değil). Oturum süresi dolmuş olabilir.');
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         Swal.close();
         
@@ -537,11 +565,12 @@ function topluStokGuncelle() {
             });
         }
     })
-    .catch(error => {
+    .catch(function (error) {
+        Swal.close();
         Swal.fire({
             icon: 'error',
             title: 'Hata!',
-            text: 'Beklenmeyen bir hata oluştu!'
+            text: (error && error.message) ? error.message : 'Beklenmeyen bir hata oluştu!'
         });
     });
 }
@@ -558,36 +587,69 @@ function varyantSil(varyantId) {
         confirmButtonText: 'Evet, sil!',
         cancelButtonText: 'İptal'
     }).then((result) => {
-        if (result.isConfirmed) {
-            const formData = new FormData();
-            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-            
-            fetch(`/urun/varyant/${varyantId}/sil/`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Silindi!',
-                        text: data.message,
-                        timer: 1500,
-                        showConfirmButton: false
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Hata!',
-                        text: data.error
-                    });
-                }
-            });
+        if (!result.isConfirmed) return;
+        var url = nuviaVaryantSilPostUrl(varyantId);
+        if (!url) {
+            Swal.fire({ icon: 'error', title: 'Hata', text: 'Geçersiz varyant numarası.' });
+            return;
         }
+        var token = nuviaGetCsrfToken();
+        if (!token) {
+            Swal.fire({ icon: 'error', title: 'Hata', text: 'Oturum güvenlik anahtarı bulunamadı. Sayfayı yenileyin.' });
+            return;
+        }
+        var formData = new FormData();
+        formData.append('csrfmiddlewaretoken', token);
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRFToken': token,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(function (response) {
+            var ct = (response.headers.get('content-type') || '');
+            if (!response.ok) {
+                return response.text().then(function (t) {
+                    throw new Error('HTTP ' + response.status + (t ? ': ' + t.slice(0, 200) : ''));
+                });
+            }
+            if (ct.indexOf('application/json') === -1) {
+                return response.text().then(function (t) {
+                    throw new Error('Beklenmeyen yanıt (JSON değil). Oturum süresi dolmuş olabilir.');
+                });
+            }
+            return response.json();
+        })
+        .then(function (data) {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Silindi!',
+                    text: data.message,
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(function () {
+                    location.reload();
+                });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Hata!', text: data.error || 'Silinemedi.' });
+            }
+        })
+        .catch(function (err) {
+            Swal.fire({
+                icon: 'error',
+                title: 'İstek başarısız',
+                text: (err && err.message) ? err.message : 'Silme işlemi tamamlanamadı.'
+            });
+        });
     });
 }
 </script>
 {% endblock %}
+
+
+
+

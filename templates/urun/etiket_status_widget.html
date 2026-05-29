@@ -1,0 +1,66 @@
+<div id="qz-tray-status-badge" style="display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 16px; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #ffeeba; border: 1px solid #ffdf7e; color: #856404;">
+    <div id="qz-status-icon" style="width: 10px; height: 10px; border-radius: 50%; background-color: #ffc107;"></div>
+    <span id="qz-status-text">Bağlanıyor...</span>
+</div>
+<div id="qz-status-action" style="display: none; font-size: 11px; margin-top: 4px; color: #dc3545; font-family: sans-serif;">
+    QZ Tray uygulamasını başlatın
+</div>
+
+<script>
+    document.addEventListener('nuvia:printer-status', function(e) {
+        const badge = document.getElementById('qz-tray-status-badge');
+        const icon = document.getElementById('qz-status-icon');
+        const text = document.getElementById('qz-status-text');
+        const action = document.getElementById('qz-status-action');
+        
+        switch (e.detail.status) {
+            case 'connected':
+                badge.style.backgroundColor = '#d4edda';
+                badge.style.borderColor = '#c3e6cb';
+                badge.style.color = '#155724';
+                icon.style.backgroundColor = '#28a745';
+                text.textContent = 'Yazıcı Bağlı';
+                action.style.display = 'none';
+                break;
+            case 'disconnected':
+                badge.style.backgroundColor = '#f8d7da';
+                badge.style.borderColor = '#f5c6cb';
+                badge.style.color = '#721c24';
+                icon.style.backgroundColor = '#dc3545';
+                text.textContent = 'QZ Tray Bağlı Değil';
+                action.style.display = 'block';
+                break;
+            case 'connecting':
+            default:
+                badge.style.backgroundColor = '#ffeeba';
+                badge.style.borderColor = '#ffdf7e';
+                badge.style.color = '#856404';
+                icon.style.backgroundColor = '#ffc107';
+                text.textContent = 'Bağlanıyor...';
+                action.style.display = 'none';
+                break;
+        }
+    });
+
+    // Handle case where custom event is fired before script binds listener
+    document.addEventListener("DOMContentLoaded", function() {
+        if(window.NuviaBridge && typeof window.NuviaBridge.getStatus === 'function') {
+            setTimeout(() => {
+                const event = new CustomEvent('nuvia:printer-status', {
+                    detail: { status: window.NuviaBridge.getStatus(), message: '' }
+                });
+                document.dispatchEvent(event);
+            }, 100);
+        } else if(window.NuviaBridge) {
+            // getStatus not available yet, wait for bridge to initialize
+            setTimeout(() => {
+                if(window.NuviaBridge && typeof window.NuviaBridge.getStatus === 'function') {
+                    const event = new CustomEvent('nuvia:printer-status', {
+                        detail: { status: window.NuviaBridge.getStatus(), message: '' }
+                    });
+                    document.dispatchEvent(event);
+                }
+            }, 500);
+        }
+    });
+</script>

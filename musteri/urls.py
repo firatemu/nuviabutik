@@ -19,6 +19,7 @@ urlpatterns = [
     
     # Borç-Alacak Takip
     path('borc-alacak/', tahsilat_views.borc_alacak_listesi, name='borc_alacak_listesi'),
+    path('borc-alacak/ekle/', tahsilat_views.borc_alacak_dekont_ekle, name='borc_alacak_dekont_ekle'),
     path('borc-detay/<int:musteri_id>/', tahsilat_views.musteri_borc_detay, name='musteri_borc_detay'),
     
     # Tahsilat İşlemleri
@@ -32,4 +33,6 @@ urlpatterns = [
     path('ajax/telefon-kontrol/', views.telefon_kontrol, name='telefon_kontrol'),
     path('ajax/musteri-ara/', views.musteri_ara, name='musteri_ara'),
     path('ajax/detay/<int:musteri_id>/', views.musteri_ajax_detay, name='ajax_detay'),
+    path('ajax/son-hareketler/', tahsilat_views.ajax_son_hareketler, name='ajax_son_hareketler'),
+    path('ajax/toggle-aktif/', views.musteri_toggle_aktif, name='toggle_aktif'),
 ]

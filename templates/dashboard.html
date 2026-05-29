@@ -5,153 +5,758 @@
 
 {% block extra_css %}
 <style>
-    /* Dashboard Mobile Responsive CSS */
+    .dashboard-page {
+        --dash-accent: #0d47a1;
+        --dash-surface: #f8fafc;
+    }
+    .dashboard-hero {
+        background: linear-gradient(135deg, #0d47a1 0%, #1565c0 45%, #1976d2 100%);
+        border-radius: 12px;
+        color: #fff;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 14px rgba(13, 71, 161, 0.25);
+    }
+    .dashboard-hero h1 {
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin: 0 0 0.25rem 0;
+    }
+    .dashboard-hero .sub {
+        opacity: 0.92;
+        font-size: 0.875rem;
+        margin: 0;
+    }
     .stat-card {
-        transition: transform 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        height: 100%;
     }
     .stat-card:hover {
-        transform: translateY(-2px);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
     }
-    @media (max-width: 768px) {
-        .col-md-3 {
-            margin-bottom: 1rem;
-        }
-        .card-body h3 {
-            font-size: 1.5rem;
-        }
-        .quick-actions .btn {
-            width: 100%;
-            margin-bottom: 0.5rem;
-        }
-        .d-flex.gap-2 {
-            flex-direction: column;
-            gap: 0.5rem !important;
-        }
-        .fa-2x {
-            font-size: 1.5em !important;
-        }
+    .stat-card .card-body {
+        padding: 0.85rem 1rem;
+    }
+    .stat-card .card-title {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        opacity: 0.9;
+        margin-bottom: 0.35rem;
+        font-weight: 600;
+    }
+    .stat-card h3 {
+        font-size: 1.15rem;
+        margin: 0;
+        font-weight: 700;
+    }
+    .stat-card .stat-icon {
+        font-size: 1.35rem;
+        opacity: 0.95;
+    }
+    .stat-card .stat-meta {
+        font-size: 0.75rem;
+        opacity: 0.85;
+        margin-top: 0.25rem;
+    }
+    .chart-card {
+        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        height: 100%;
+    }
+    .chart-card .card-header {
+        background: var(--dash-surface);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        font-weight: 600;
+        font-size: 0.95rem;
+        padding: 0.75rem 1rem;
+    }
+    .chart-wrap {
+        position: relative;
+        min-height: 240px;
+        padding: 0.5rem;
+    }
+    .chart-wrap-sm {
+        min-height: 220px;
+    }
+    .net-kar-strip {
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+    .net-kar-strip.positive {
+        background: linear-gradient(90deg, #e8f5e9 0%, #c8e6c9 100%);
+        border: 1px solid #a5d6a7;
+    }
+    .net-kar-strip.negative {
+        background: linear-gradient(90deg, #ffebee 0%, #ffcdd2 100%);
+        border: 1px solid #ef9a9a;
+    }
+    .net-kar-strip.neutral {
+        background: var(--dash-surface);
+        border: 1px solid #e0e0e0;
+    }
+    .table-dashboard thead th {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: #546e7a;
+        border-bottom-width: 2px;
+    }
+    .table-dashboard td {
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+    .welcome-card {
+        border-radius: 10px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    .welcome-card .card-body {
+        padding: 1rem;
+    }
+    .quick-actions .btn {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    @media (max-width: 991px) {
+        .chart-wrap { min-height: 200px; }
     }
     @media (max-width: 576px) {
-        .container-fluid {
-            padding-left: 0.5rem;
-            padding-right: 0.5rem;
-        }
-        .card-body {
-            padding: 1rem;
-        }
-        .h3 {
-            font-size: 1.5rem;
-        }
+        .dashboard-hero { padding: 1rem; }
+        .stat-card h3 { font-size: 1rem; }
     }
 </style>
-{% endblock %}\
-{% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <h1 class="h3 mb-4">Dashboard</h1>
-            
-            {% if error %}
-                <div class="alert alert-danger">
-                    <strong>Hata:</strong> {{ error }}
-                </div>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid px-2 py-2 dashboard-page">
+    {% if error %}
+    <div class="alert alert-danger py-2 mb-3">
+        <strong>Hata:</strong> {{ error }}
+    </div>
+    {% endif %}
+
+    <div class="dashboard-hero">
+        <h1><i class="fas fa-chart-pie me-2"></i>Yönetim Özeti</h1>
+        <p class="sub mb-0">
+            {% if tek_gun %}
+                {{ baslangic|date:"d F Y, l" }} — Seçili dönem ve stok görünümü
+            {% else %}
+                {{ baslangic|date:"d.m.Y" }} — {{ bitis|date:"d.m.Y" }} arası rapor
             {% endif %}
-            
-            <div class="row">
-                <div class="col-md-3 mb-3">
-                    <div class="card bg-primary text-white stat-card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h6 class="card-title">Toplam Ürün</h6>
-                                    <h3 class="mb-0">{{ toplam_urun }}</h3>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-boxes fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        </p>
+    </div>
+
+    <div class="card welcome-card mb-3">
+        <div class="card-body py-2">
+            <form method="get" action="{% url 'dashboard' %}" class="row g-2 align-items-end flex-wrap">
+                <div class="col-auto">
+                    <label class="form-label small mb-0" for="dash_baslangic">Başlangıç</label>
+                    <input type="date" name="baslangic" id="dash_baslangic" class="form-control form-control-sm" value="{{ baslangic_str }}">
                 </div>
-                
-                <div class="col-md-3 mb-3">
-                    <div class="card bg-success text-white stat-card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h6 class="card-title">Toplam Müşteri</h6>
-                                    <h3 class="mb-0">{{ toplam_musteri }}</h3>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-users fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="col-auto">
+                    <label class="form-label small mb-0" for="dash_bitis">Bitiş</label>
+                    <input type="date" name="bitis" id="dash_bitis" class="form-control form-control-sm" value="{{ bitis_str }}">
                 </div>
-                
-                <div class="col-md-3 mb-3">
-                    <div class="card bg-warning text-white stat-card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h6 class="card-title">Bugünkü Satış</h6>
-                                    <h3 class="mb-0">{{ bugunki_satis|floatformat:2 }} ₺</h3>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-chart-line fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-calendar-check me-1"></i>Uygula
+                    </button>
                 </div>
-                
-                <div class="col-md-3 mb-3">
-                    <div class="card bg-danger text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h6 class="card-title">Bugünkü Gider</h6>
-                                    <h3 class="mb-0">{{ bugunki_gider_toplam|floatformat:2 }} ₺</h3>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-money-bill-wave fa-2x"></i>
-                                </div>
-                            </div>
+                <div class="col text-muted small align-self-center">
+                    Tüm özetler, grafikler ve tablolar bu tarih aralığına göre filtrelenir.
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row row-cols-2 row-cols-md-3 row-cols-xl-6 g-2 mb-2">
+        <div class="col">
+            <div class="card bg-primary text-white stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title">Toplam Ürün</h6>
+                            <h3 class="mb-0">{{ toplam_urun|turkish_int }}</h3>
+                            <div class="stat-meta">Aktif varyant</div>
                         </div>
+                        <i class="fas fa-boxes stat-icon"></i>
                     </div>
                 </div>
             </div>
-            
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Hoş Geldiniz!</h5>
+        </div>
+        <div class="col">
+            <div class="card bg-warning text-dark stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title text-dark">{% if tek_gun %}Bugünkü{% else %}Dönem{% endif %} satış</h6>
+                            <h3 class="mb-0">{{ bugunki_satis|turkish_currency }}</h3>
+                            <div class="stat-meta text-dark">{{ satis_sayisi|turkish_int }} işlem · genel toplam</div>
                         </div>
-                        <div class="card-body">
-                            <p>Sistem başarıyla çalışıyor. Tarih: {{ bugun|date:"d F Y" }}</p>
-                            <p>Kullanıcı yönetim sistemi aktif ve tüm modüller hazır.</p>
-                            
-                            <div class="d-flex gap-2 quick-actions">
-                                <a href="{% url 'kullanici:user_list' %}" class="btn btn-primary">
-                                    <i class="fas fa-users me-1"></i> Kullanıcılar
-                                </a>
-                                <a href="{% url 'urun:liste' %}" class="btn btn-info">
-                                    <i class="fas fa-boxes me-1"></i> Ürünler
-                                </a>
-                                <a href="{% url 'satis:liste' %}" class="btn btn-success">
-                                    <i class="fas fa-shopping-cart me-1"></i> Satışlar
-                                </a>
-                                <a href="{% url 'musteri:liste' %}" class="btn btn-warning">
-                                    <i class="fas fa-address-book me-1"></i> Müşteriler
-                                </a>
-                            </div>
+                        <i class="fas fa-chart-line stat-icon text-dark"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card bg-dark text-white stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title">{% if tek_gun %}Bugünkü{% else %}Dönem{% endif %} satış maliyeti</h6>
+                            <h3 class="mb-0">{{ donem_maliyet_satis|turkish_currency }}</h3>
+                            <div class="stat-meta">Alış × satılan adet</div>
                         </div>
+                        <i class="fas fa-coins stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card border-success border-2 stat-card" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title text-success">{% if tek_gun %}Bugünkü{% else %}Dönem{% endif %} satış karı</h6>
+                            <h3 class="mb-0 text-success">{{ satis_kari|turkish_currency }}</h3>
+                            <div class="stat-meta text-dark">Yüzdelik kar: <strong>{{ satis_kar_yuzde|floatformat:2 }}%</strong></div>
+                        </div>
+                        <i class="fas fa-percentage stat-icon text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card bg-danger text-white stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title">{% if tek_gun %}Bugünkü{% else %}Dönem{% endif %} gider</h6>
+                            <h3 class="mb-0">{{ bugunki_gider_toplam|turkish_currency }}</h3>
+                            <div class="stat-meta">{% if tek_gun %}Günlük{% else %}Toplam{% endif %} gider</div>
+                        </div>
+                        <i class="fas fa-money-bill-wave stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card {% if kritik_stoklar > 0 %}bg-dark border-warning{% else %}bg-secondary{% endif %} text-white stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title">Kritik Stok</h6>
+                            <h3 class="mb-0">{{ kritik_stoklar|turkish_int }}</h3>
+                            <div class="stat-meta">Uyarı altı varyant</div>
+                        </div>
+                        <i class="fas fa-exclamation-triangle stat-icon {% if kritik_stoklar > 0 %}text-warning{% endif %}"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="net-kar-strip {% if satis_kari > 0 %}positive{% elif satis_kari < 0 %}negative{% else %}neutral{% endif %} mb-2">
+        <div>
+            <strong><i class="fas fa-chart-line me-1"></i> {% if tek_gun %}Bugünkü{% else %}Dönem{% endif %} satıştan brüt kar</strong>
+            <div class="small opacity-90 mt-1 mb-0">Genel toplam − güncel alış maliyeti (fatura bazlı karlılık ile aynı mantık).</div>
+        </div>
+        <div class="text-end">
+            <div class="fs-5 fw-bold">{{ satis_kari|turkish_currency }}</div>
+            <div class="small">Maliyet: {{ donem_maliyet_satis|turkish_currency }} · Kar %: {{ satis_kar_yuzde|floatformat:2 }}%</div>
+            <a href="{% url 'rapor:fatura_bazli_karlilik' %}?baslangic={{ baslangic_str }}&bitis={{ bitis_str }}" class="btn btn-sm btn-outline-success mt-1">
+                <i class="fas fa-receipt me-1"></i>Fatura bazlı karlılık
+            </a>
+        </div>
+    </div>
+
+    <div class="net-kar-strip {% if net_kar > 0 %}positive{% elif net_kar < 0 %}negative{% else %}neutral{% endif %}">
+        <div>
+            <strong><i class="fas fa-balance-scale me-1"></i> {% if tek_gun %}Bugünkü{% else %}Dönem{% endif %} net kâr (Satış − Gider)</strong>
+        </div>
+        <div class="fs-5 fw-bold">{{ net_kar|turkish_currency }}</div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 g-2 mb-3">
+        <div class="col">
+            <div class="card stat-card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #ec407a 0%, #c2185b 100%); color: #fff;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title text-white-50">{% if tek_gun %}Günlük{% else %}Dönem{% endif %} kadın net satış</h6>
+                            <h3 class="mb-0">{{ net_satis_kadin|turkish_currency }}</h3>
+                            <div class="stat-meta text-white-50 small mt-1">Satır neti (indirim düşülmüş)</div>
+                        </div>
+                        <i class="fas fa-venus stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card stat-card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #1e88e5 0%, #0d47a1 100%); color: #fff;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title text-white-50">{% if tek_gun %}Günlük{% else %}Dönem{% endif %} erkek net satış</h6>
+                            <h3 class="mb-0">{{ net_satis_erkek|turkish_currency }}</h3>
+                            <div class="stat-meta text-white-50 small mt-1">Satır neti (indirim düşülmüş)</div>
+                        </div>
+                        <i class="fas fa-mars stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-8">
+            <div class="card chart-card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span><i class="fas fa-chart-area me-2 text-primary"></i>Son 7 gün satış trendi</span>
+                    <small class="text-muted ms-1">(son gün: {{ bitis|date:"d.m.Y" }})</small>
+                </div>
+                <div class="card-body chart-wrap">
+                    <canvas id="haftalikSatisChart" aria-label="Haftalık satış grafiği"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card chart-card">
+                <div class="card-header">
+                    <span><i class="fas fa-chart-pie me-2 text-success"></i>{% if tek_gun %}Bugün{% else %}Dönem{% endif %}: Satış / Gider</span>
+                </div>
+                <div class="card-body chart-wrap chart-wrap-sm d-flex align-items-center justify-content-center">
+                    {% if bugunki_satis or bugunki_gider_toplam %}
+                    <canvas id="satisOranChart" aria-label="Satış gider oranı"></canvas>
+                    {% else %}
+                    <p class="text-muted text-center mb-0 px-2">{% if tek_gun %}Bugün{% else %}Bu aralıkta{% endif %} henüz satış veya gider kaydı yok.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h5 mt-4 mb-3 fw-semibold text-secondary border-bottom pb-2">
+        <i class="fas fa-hand-holding-usd me-2 text-primary"></i>Satış tahsilatları (POS / kasa ödemeleri)
+    </h2>
+    <div class="row g-2 mb-3">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm stat-card" style="background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%); color: #fff;">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <h6 class="card-title text-white mb-1">{% if tek_gun %}Bugünkü{% else %}Dönem{% endif %} tahsilat (tamamlanan satış ödemeleri)</h6>
+                            <h3 class="mb-0">{{ bugunki_odeme_toplam|turkish_currency }}</h3>
+                            <div class="stat-meta text-white">{{ bugunki_odeme_adet|turkish_int }} işlem · {% if tek_gun %}{{ bugun|date:"d F Y" }}{% else %}{{ baslangic|date:"d.m.Y" }} – {{ bitis|date:"d.m.Y" }}{% endif %}</div>
+                        </div>
+                        <i class="fas fa-coins stat-icon d-none d-md-block"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="card chart-card">
+                <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <span><i class="fas fa-university me-2 text-info"></i>{% if tek_gun %}Bugün{% else %}Dönem{% endif %} — satış kredi kartı (POS) banka dağılımı</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="p-3">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover table-dashboard mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Banka</th>
+                                        <th class="text-end">İşlem</th>
+                                        <th class="text-end">Tutar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for b in odeme_kart_banka_ozet %}
+                                    <tr>
+                                        <td><span class="badge bg-primary text-wrap text-start">{{ b.ad }}</span></td>
+                                        <td class="text-end">{{ b.adet|turkish_int }}</td>
+                                        <td class="text-end fw-semibold">{{ b.toplam|turkish_currency }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-3">Bu aralıkta bankası seçili kart ödemesi yok.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if odeme_kart_banksiz_adet %}
+                        <p class="small text-warning mb-0 mt-2">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Banka seçilmeden alınan kart: {{ odeme_kart_banksiz_adet|turkish_int }} işlem, {{ odeme_kart_banksiz_toplam|turkish_currency }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="card chart-card">
+                <div class="card-header">
+                    <span><i class="fas fa-layer-group me-2 text-secondary"></i>{% if tek_gun %}Bugün{% else %}Dönem{% endif %} ödeme tipi dağılımı (satış)</span>
+                    <span class="d-block small text-muted mt-1 mb-0">Kredi kartı satırlarında taksit kırılımı aynı kartın altında listelenir.</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-dashboard mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ödeme tipi</th>
+                                    <th class="text-end">İşlem</th>
+                                    <th class="text-end">Tutar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for o in odeme_tipi_bugun %}
+                                <tr>
+                                    <td>
+                                        {% if o.kod == 'nakit' %}<span class="badge bg-success">{{ o.ad }}</span>
+                                        {% elif o.kod == 'kart' %}<span class="badge bg-primary">{{ o.ad }}</span>
+                                        {% elif o.kod == 'havale' %}<span class="badge bg-info text-dark">{{ o.ad }}</span>
+                                        {% elif o.kod == 'hediye_ceki' %}<span class="badge bg-warning text-dark">{{ o.ad }}</span>
+                                        {% elif o.kod == 'acik_hesap' %}<span class="badge bg-danger">{{ o.ad }}</span>
+                                        {% else %}<span class="badge bg-secondary">{{ o.ad }}</span>{% endif %}
+                                    </td>
+                                    <td class="text-end">{{ o.adet|turkish_int }}</td>
+                                    <td class="text-end fw-semibold">{{ o.toplam|turkish_currency }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">{% if tek_gun %}Bugün{% else %}Bu aralıkta{% endif %} ödeme kaydı yok.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if odeme_kart_taksit_ozet %}
+                    <div class="border-top bg-light">
+                        <div class="px-3 pt-2 pb-1">
+                            <h3 class="h6 text-secondary mb-0">
+                                <i class="fas fa-calendar-check me-1 text-primary"></i> Kredi kartı — taksit dağılımı
+                            </h3>
+                            <p class="small text-muted mb-0">Aynı dönem; peşin (tek çekim) ve taksitli işlemler ayrı satırda.</p>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover table-dashboard mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Taksit</th>
+                                        <th class="text-end">İşlem</th>
+                                        <th class="text-end">Tutar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for t in odeme_kart_taksit_ozet %}
+                                    <tr>
+                                        <td>
+                                            {% if t.taksit_sayisi > 1 %}
+                                            <span class="badge bg-primary">{{ t.etiket }}</span>
+                                            {% else %}
+                                            <span class="badge text-bg-light border">{{ t.etiket }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">{{ t.adet|turkish_int }}</td>
+                                        <td class="text-end fw-semibold">{{ t.toplam|turkish_currency }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="card chart-card">
+                <div class="card-header">
+                    <span><i class="fas fa-money-check-alt me-2 text-primary"></i>{% if tek_gun %}Bugünkü{% else %}Dönem —{% endif %} son satış ödemeleri</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-dashboard mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>{% if tek_gun %}Saat{% else %}Tarih{% endif %}</th>
+                                    <th>Belge</th>
+                                    <th class="text-end">Tutar</th>
+                                    <th>Tip</th>
+                                    <th>Banka</th>
+                                    <th>Taksit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for o in son_odemeler %}
+                                <tr>
+                                    <td><code>{% if tek_gun %}{{ o.odeme_tarihi|date:"H:i" }}{% else %}{{ o.odeme_tarihi|date:"d.m.Y H:i" }}{% endif %}</code></td>
+                                    <td><small class="text-nowrap">{% if o.satis.satis_no %}{{ o.satis.satis_no }}{% else %}{{ o.satis.siparis_no|default:"—" }}{% endif %}</small></td>
+                                    <td class="text-end fw-semibold">{{ o.tutar|turkish_currency }}</td>
+                                    <td><small>{{ o.get_odeme_tipi_display }}</small></td>
+                                    <td><small>{% if o.banka %}{{ o.get_banka_display }}{% else %}<span class="text-muted">—</span>{% endif %}</small></td>
+                                    <td>
+                                        <small>
+                                        {% if o.odeme_tipi == 'kart' %}
+                                            {% if o.taksit_sayisi and o.taksit_sayisi > 1 %}
+                                                <span class="badge text-bg-primary">{{ o.taksit_sayisi }} taksit</span>
+                                                {% if o.taksit_tutari %}
+                                                    <span class="d-block text-muted mt-1">{{ o.taksit_tutari|turkish_currency }} / taksit</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Peşin (tek)</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                        </small>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">{% if tek_gun %}Bugün{% else %}Bu aralıkta{% endif %} ödeme kaydı yok.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+            <div class="card chart-card">
+                <div class="card-header">
+                    <span><i class="fas fa-trophy me-2 text-warning"></i>{% if tek_gun %}Bugün{% else %}Dönem{% endif %} en çok satan ürünler</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-dashboard mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ürün</th>
+                                    <th class="text-end">Adet</th>
+                                    <th class="text-end">Ciro</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in cok_satan_urunler %}
+                                <tr>
+                                    <td>{{ u.urun__ad }}</td>
+                                    <td class="text-end">{{ u.toplam_miktar|turkish_int }}</td>
+                                    <td class="text-end fw-semibold">{{ u.toplam_ciro|turkish_currency }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">{% if tek_gun %}Bugün{% else %}Bu aralıkta{% endif %} satış kaydı yok.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card chart-card">
+                <div class="card-header">
+                    <span><i class="fas fa-receipt me-2 text-info"></i>{% if tek_gun %}Bugünkü{% else %}Dönem —{% endif %} son satışlar</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-dashboard mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>{% if tek_gun %}Saat{% else %}Tarih{% endif %}</th>
+                                    <th>Belge</th>
+                                    <th class="text-end">Tutar</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in son_satislar %}
+                                <tr>
+                                    <td><code>{% if tek_gun %}{{ s.satis_tarihi|date:"H:i" }}{% else %}{{ s.satis_tarihi|date:"d.m.Y H:i" }}{% endif %}</code></td>
+                                    <td>
+                                        <small class="d-block text-nowrap">{{ s.satis_no|default:"—" }}</small>
+                                        {% if s.siparis_no %}<small class="text-muted">{{ s.siparis_no }}</small>{% endif %}
+                                    </td>
+                                    <td class="text-end fw-semibold">{{ s.genel_toplam|turkish_currency }}</td>
+                                    <td><span class="badge bg-success">{{ s.get_durum_display }}</span></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">{% if tek_gun %}Bugün{% else %}Bu aralıkta{% endif %} tamamlanan satış yok.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card welcome-card">
+                <div class="card-header py-2 bg-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-bolt me-2 text-primary"></i>Hızlı erişim</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex gap-2 flex-wrap quick-actions">
+                        <a href="{% url 'kullanici:user_list' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-users me-1"></i> Kullanıcılar
+                        </a>
+                        <a href="{% url 'urun:liste' %}" class="btn btn-info btn-sm text-white">
+                            <i class="fas fa-boxes me-1"></i> Ürünler
+                        </a>
+                        <a href="{% url 'satis:liste' %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-shopping-cart me-1"></i> Satışlar
+                        </a>
+                        <a href="{% url 'musteri:liste' %}" class="btn btn-warning btn-sm">
+                            <i class="fas fa-address-book me-1"></i> Müşteriler
+                        </a>
+                        <a href="{% url 'satis:tahsilat_rapor' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-chart-line me-1"></i> Tahsilat raporu
+                        </a>
+                        <a href="{% url 'rapor:fatura_bazli_karlilik' %}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-percentage me-1"></i> Fatura karlılık
+                        </a>
+                        <a href="{% url 'rapor:urun_bazli_karlilik' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-box me-1"></i> Ürün karlılık
+                        </a>
+                        {% if kritik_stoklar > 0 %}
+                        <a href="{% url 'rapor:stok_raporu' %}?durum=kritik" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-exclamation-triangle me-1"></i> Kritik stok raporu
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function () {
+    const lineEl = document.getElementById('haftalikSatisChart');
+    if (lineEl) {
+        const satisCtx = lineEl.getContext('2d');
+        const gradient = satisCtx.createLinearGradient(0, 0, 0, 220);
+        gradient.addColorStop(0, 'rgba(13, 110, 253, 0.22)');
+        gradient.addColorStop(1, 'rgba(13, 110, 253, 0)');
+        const labels = [{% for gun in haftalik_satis %}'{{ gun.tarih|date:"d.m" }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const values = [{% for gun in haftalik_satis %}{{ gun.tutar|stringformat:"f" }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        new Chart(satisCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Satış (₺)',
+                    data: values,
+                    borderColor: '#0d6efd',
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#0d6efd',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                const v = ctx.parsed.y;
+                                return 'Satış: ' + Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function (v) {
+                                return Number(v).toLocaleString('tr-TR') + ' ₺';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    const doughEl = document.getElementById('satisOranChart');
+    if (doughEl) {
+        const oranCtx = doughEl.getContext('2d');
+        const satisVal = {{ bugunki_satis|stringformat:"f" }};
+        const giderVal = {{ bugunki_gider_toplam|stringformat:"f" }};
+        new Chart(oranCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Satış', 'Gider'],
+                datasets: [{
+                    data: [satisVal, giderVal],
+                    backgroundColor: ['#28a745', '#dc3545'],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                const v = ctx.parsed;
+                                return ctx.label + ': ' + Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+})();
+</script>
 {% endblock %}

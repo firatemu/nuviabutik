@@ -160,7 +160,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <!-- Header -->
     <div class="row mb-4">
@@ -221,7 +221,7 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-8">
-                            <h4 class="fw-bold">{{ toplam_stok|floatformat:0 }}</h4>
+                            <h4 class="fw-bold">{{ toplam_stok|turkish_int }}</h4>
                             <p class="mb-0">Toplam Stok</p>
                         </div>
                         <div class="col-4 text-end">

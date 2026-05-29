@@ -71,7 +71,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid py-4">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -105,7 +105,7 @@
                     <div>
                         <h6 class="mb-1">Aktif Çekler</h6>
                         <h3 class="mb-0">{{ aktif_cekler }}</h3>
-                        <small>{{ kalan_tutar|floatformat:0 }} ₺ bakiye</small>
+                        <small>{{ kalan_tutar|turkish_currency }} bakiye</small>
                     </div>
                     <div class="icon">
                         <i class="fas fa-check-circle"></i>
@@ -218,9 +218,9 @@
                 
                 <div class="mb-3">
                     <div class="tutar-bilgi text-success">
-                        {{ hediye_ceki.kalan_tutar|floatformat:2 }} ₺
+                        {{ hediye_ceki.kalan_tutar|turkish_currency }}
                         {% if hediye_ceki.kalan_tutar != hediye_ceki.tutar %}
-                            <small class="text-muted">({{ hediye_ceki.tutar|floatformat:2 }} ₺)</small>
+                            <small class="text-muted">({{ hediye_ceki.tutar|turkish_currency }})</small>
                         {% endif %}
                     </div>
                     <div class="gecerlilik">

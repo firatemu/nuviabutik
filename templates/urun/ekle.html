@@ -197,7 +197,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <!-- Sayfa Başlığı -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -433,7 +433,7 @@
                             </span>
                             <div class="form-floating">
                                 <input type="number" class="form-control" id="satis_fiyati" name="satis_fiyati" step="0.01" min="0" placeholder="Satış Fiyatı" 
-                                       value="{% if urun %}{{ urun.satis_fiyati }}{% endif %}" readonly>
+                                       value="{% if urun %}{{ urun.pesin_fiyat }}{% endif %}" readonly>
                                 <label for="satis_fiyati">Satış Fiyatı (₺)</label>
                             </div>
                         </div>

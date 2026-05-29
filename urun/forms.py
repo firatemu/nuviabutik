@@ -4,16 +4,17 @@ from .models import Urun, UrunKategoriUst, Marka, UrunVaryanti, StokHareket
 
 class UrunForm(forms.ModelForm):
     """Ana ürün formu"""
-    
+
     class Meta:
         model = Urun
         fields = [
             'urun_kodu', 'ad', 'aciklama', 'kategori', 'marka', 'cinsiyet', 'birim',
             'varyasyonlu', 'alis_fiyati', 'kar_orani',
-            'satis_fiyati', 'kritik_stok_seviyesi',
+            'pesin_fiyat', 'taksit_orani', 'taksitli_fiyat',
+            'kritik_stok_seviyesi',
             'resim', 'aktif', 'stok_takibi'
         ]
-        
+
         widgets = {
             'urun_kodu': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -59,7 +60,20 @@ class UrunForm(forms.ModelForm):
                 'max': '1000',
                 'placeholder': '50.00'
             }),
-            'satis_fiyati': forms.NumberInput(attrs={
+            'pesin_fiyat': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00'
+            }),
+            'taksit_orani': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'placeholder': '5.00'
+            }),
+            'taksitli_fiyat': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
                 'min': '0',
@@ -88,22 +102,27 @@ class UrunForm(forms.ModelForm):
         # Marka alanını opsiyonel yap
         self.fields['marka'].required = False
         self.fields['marka'].empty_label = "Marka Seçin"
-        
+
         # Fiyat alanlarını opsiyonel yap
         self.fields['alis_fiyati'].required = False
-        self.fields['satis_fiyati'].required = False
+        self.fields['pesin_fiyat'].required = False
+        self.fields['taksitli_fiyat'].required = False
+
+        # Taksitli fiyat readonly (otomatik hesaplanacak)
+        self.fields['taksitli_fiyat'].widget.attrs['readonly'] = True
+        self.fields['taksitli_fiyat'].help_text = 'Otomatik hesaplanır (Peşin + Taksit Oranı)'
 
 
 class UrunVaryantiForm(forms.ModelForm):
     """Ürün varyantı formu"""
-    
+
     class Meta:
         model = UrunVaryanti
         fields = [
             'barkod', 'renk', 'beden',
             'stok_miktari', 'ek_aciklama', 'resim', 'aktif'
         ]
-        
+
         widgets = {
             'barkod': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -138,7 +157,7 @@ class UrunVaryantiForm(forms.ModelForm):
         # Tüm varyasyon alanlarını opsiyonel yap
         self.fields['renk'].required = False
         self.fields['beden'].required = False
-        
+
         # Empty label'lar
         self.fields['renk'].empty_label = "Renk Seçin"
         self.fields['beden'].empty_label = "Beden Seçin"
@@ -146,11 +165,11 @@ class UrunVaryantiForm(forms.ModelForm):
 
 class MarkaForm(forms.ModelForm):
     """Marka formu"""
-    
+
     class Meta:
         model = Marka
         fields = ['ad', 'aciklama', 'logo', 'aktif']
-        
+
         widgets = {
             'ad': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -187,7 +206,7 @@ class StokGirisForm(forms.Form):
         label="Ürün Varyantı",
         help_text="Stok girişi yapılacak ürün varyantını seçin"
     )
-    
+
     miktar = forms.IntegerField(
         min_value=1,
         widget=forms.NumberInput(attrs={
@@ -198,7 +217,7 @@ class StokGirisForm(forms.Form):
         label="Giriş Miktarı",
         help_text="Stoka eklenecek miktar"
     )
-    
+
     aciklama = forms.CharField(
         widget=forms.Textarea(attrs={
             'class': 'form-control',
@@ -214,7 +233,7 @@ class StokGirisForm(forms.Form):
         super().__init__(*args, **kwargs)
         # Varyantları daha anlaşılır şekilde göster
         self.fields['varyant'].queryset = UrunVaryanti.objects.filter(
-            aktif=True, 
+            aktif=True,
             stok_kaydedildi=True
         ).select_related('urun', 'renk', 'beden')
 
@@ -222,7 +241,8 @@ class StokGirisForm(forms.Form):
 class StokCikisForm(forms.Form):
     """Stok çıkış formu"""
     varyant = forms.ModelChoiceField(
-        queryset=UrunVaryanti.objects.filter(aktif=True, stok_kaydedildi=True, stok_miktari__gt=0),
+        queryset=UrunVaryanti.objects.filter(
+            aktif=True, stok_kaydedildi=True, stok_miktari__gt=0),
         widget=forms.Select(attrs={
             'class': 'form-select',
             'required': True
@@ -230,7 +250,7 @@ class StokCikisForm(forms.Form):
         label="Ürün Varyantı",
         help_text="Stok çıkışı yapılacak ürün varyantını seçin"
     )
-    
+
     miktar = forms.IntegerField(
         min_value=1,
         widget=forms.NumberInput(attrs={
@@ -241,7 +261,7 @@ class StokCikisForm(forms.Form):
         label="Çıkış Miktarı",
         help_text="Stoktan çıkarılacak miktar"
     )
-    
+
     aciklama = forms.CharField(
         widget=forms.Textarea(attrs={
             'class': 'form-control',
@@ -256,7 +276,7 @@ class StokCikisForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['varyant'].queryset = UrunVaryanti.objects.filter(
-            aktif=True, 
+            aktif=True,
             stok_kaydedildi=True,
             stok_miktari__gt=0
         ).select_related('urun', 'renk', 'beden')
@@ -265,13 +285,13 @@ class StokCikisForm(forms.Form):
         cleaned_data = super().clean()
         varyant = cleaned_data.get('varyant')
         miktar = cleaned_data.get('miktar')
-        
+
         if varyant and miktar:
             if miktar > varyant.stok_miktari:
                 raise forms.ValidationError(
                     f"Çıkış miktarı ({miktar}) mevcut stok miktarından ({varyant.stok_miktari}) fazla olamaz!"
                 )
-        
+
         return cleaned_data
 
 
@@ -286,7 +306,7 @@ class StokDuzeltmeForm(forms.Form):
         label="Ürün Varyantı",
         help_text="Stok düzeltmesi yapılacak ürün varyantını seçin"
     )
-    
+
     yeni_miktar = forms.IntegerField(
         min_value=0,
         widget=forms.NumberInput(attrs={
@@ -297,7 +317,7 @@ class StokDuzeltmeForm(forms.Form):
         label="Yeni Stok Miktarı",
         help_text="Doğru stok miktarını girin"
     )
-    
+
     aciklama = forms.CharField(
         widget=forms.Textarea(attrs={
             'class': 'form-control',
@@ -312,7 +332,7 @@ class StokDuzeltmeForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['varyant'].queryset = UrunVaryanti.objects.filter(
-            aktif=True, 
+            aktif=True,
             stok_kaydedildi=True
         ).select_related('urun', 'renk', 'beden')
 
@@ -328,7 +348,7 @@ class StokSayimForm(forms.Form):
         label="Ürün Varyantı",
         help_text="Stok sayımı yapılacak ürün varyantını seçin"
     )
-    
+
     sayim_miktari = forms.IntegerField(
         min_value=0,
         widget=forms.NumberInput(attrs={
@@ -339,7 +359,7 @@ class StokSayimForm(forms.Form):
         label="Sayım Miktarı",
         help_text="Fiziksel sayım sonucunda bulunan miktar"
     )
-    
+
     aciklama = forms.CharField(
         widget=forms.Textarea(attrs={
             'class': 'form-control',
@@ -354,6 +374,6 @@ class StokSayimForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['varyant'].queryset = UrunVaryanti.objects.filter(
-            aktif=True, 
+            aktif=True,
             stok_kaydedildi=True
         ).select_related('urun', 'renk', 'beden')

@@ -118,7 +118,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid py-4">
     <!-- Geri Dön Butonu -->
     <div class="mb-3">
@@ -141,10 +141,10 @@
                 </h4>
                 <div class="row">
                     <div class="col-sm-6">
-                        <h3 class="mb-1">{{ hediye_ceki.kalan_tutar|floatformat:2 }} ₺</h3>
+                        <h3 class="mb-1">{{ hediye_ceki.kalan_tutar|turkish_currency }}</h3>
                         <p class="mb-0 opacity-75">
                             {% if hediye_ceki.kalan_tutar != hediye_ceki.tutar %}
-                                Başlangıç: {{ hediye_ceki.tutar|floatformat:2 }} ₺
+                                Başlangıç: {{ hediye_ceki.tutar|turkish_currency }}
                             {% else %}
                                 Mevcut Bakiye
                             {% endif %}
@@ -257,7 +257,7 @@
                     <div class="timeline-item">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <h6 class="mb-1">{{ kullanim.kullanilan_tutar|floatformat:2 }} ₺ kullanıldı</h6>
+                                <h6 class="mb-1">{{ kullanim.kullanilan_tutar|turkish_currency }} kullanıldı</h6>
                                 <p class="text-muted mb-1">
                                     {{ kullanim.kullanim_tarihi|date:"d.m.Y H:i" }}
                                 </p>
@@ -266,7 +266,7 @@
                                 {% endif %}
                             </div>
                             <div class="text-end">
-                                <small class="text-muted">Kalan: {{ kullanim.kalan_tutar|floatformat:2 }} ₺</small>
+                                <small class="text-muted">Kalan: {{ kullanim.kalan_tutar|turkish_currency }}</small>
                             </div>
                         </div>
                     </div>
@@ -282,7 +282,7 @@
             <div class="row mb-4">
                 <div class="col-6">
                     <div class="stat-box">
-                        <div class="value text-success">{{ hediye_ceki.kalan_tutar|floatformat:2 }}</div>
+                        <div class="value text-success">{{ hediye_ceki.kalan_tutar|turkish_currency }}</div>
                         <div class="label">Kalan Tutar (₺)</div>
                     </div>
                 </div>
@@ -294,13 +294,13 @@
                 </div>
                 <div class="col-6">
                     <div class="stat-box">
-                        <div class="value text-info">{{ hediye_ceki.tutar|floatformat:2 }}</div>
+                        <div class="value text-info">{{ hediye_ceki.tutar|turkish_currency }}</div>
                         <div class="label">Toplam Tutar (₺)</div>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="stat-box">
-                        <div class="value text-warning">{{ kullanilan_tutar|floatformat:2 }}</div>
+                        <div class="value text-warning">{{ kullanilan_tutar|turkish_currency }}</div>
                         <div class="label">Kullanılan (₺)</div>
                     </div>
                 </div>

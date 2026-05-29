@@ -11,7 +11,7 @@ Type=exec
 User=www-data
 Group=www-data
 WorkingDirectory=/var/www/nuviabutik
-Environment=DJANGO_SETTINGS_MODULE=production_settings
+Environment=DJANGO_SETTINGS_MODULE=stoktakip.settings
 EnvironmentFile=/var/www/nuviabutik/.env
 ExecStart=/var/www/nuviabutik/venv/bin/gunicorn --config /var/www/nuviabutik/gunicorn.conf.py stoktakip.wsgi:application
 ExecReload=/bin/kill -s HUP $MAINPID

@@ -2,7 +2,7 @@
 
 {% block title %}{{ title }}{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -64,7 +64,7 @@
                                             <span class="badge bg-success fs-6">{{ urun.toplam_miktar }} adet</span>
                                         </td>
                                         <td class="text-end">
-                                            <strong class="text-success">{{ urun.toplam_tutar|floatformat:2 }} ₺</strong>
+                                            <strong class="text-success">{{ urun.toplam_tutar|turkish_currency }}</strong>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -86,7 +86,7 @@
                                 <div class="card bg-success text-white">
                                     <div class="card-body text-center">
                                         <h5><i class="fas fa-boxes"></i> Toplam Satılan Adet</h5>
-                                        <h3>{{ toplam_satis_adedi|floatformat:0 }}</h3>
+                                        <h3>{{ toplam_satis_adedi|turkish_int }}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -94,7 +94,7 @@
                                 <div class="card bg-warning text-dark">
                                     <div class="card-body text-center">
                                         <h5><i class="fas fa-money-bill-wave"></i> Toplam Satış Tutarı</h5>
-                                        <h3>{{ toplam_satis_tutari|floatformat:2 }} ₺</h3>
+                                        <h3>{{ toplam_satis_tutari|turkish_currency }}</h3>
                                     </div>
                                 </div>
                             </div>

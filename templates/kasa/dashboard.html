@@ -75,7 +75,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <!-- Başlık ve Hızlı Aksiyonlar -->
     <div class="row mb-4">
@@ -104,23 +104,23 @@
                 <div class="row text-center">
                     <div class="col-md-2">
                         <h5>Genel Toplam</h5>
-                        <h3>{{ genel_toplam|floatformat:2 }}₺</h3>
+                        <h3>{{ genel_toplam|turkish_currency }}</h3>
                     </div>
                     <div class="col-md-2">
                         <h6>Nakit</h6>
-                        <h4>{{ toplam_nakit|floatformat:2 }}₺</h4>
+                        <h4>{{ toplam_nakit|turkish_currency }}</h4>
                     </div>
                     <div class="col-md-2">
                         <h6>POS Kartı</h6>
-                        <h4>{{ toplam_pos|floatformat:2 }}₺</h4>
+                        <h4>{{ toplam_pos|turkish_currency }}</h4>
                     </div>
                     <div class="col-md-2">
                         <h6>Harcama Kartı</h6>
-                        <h4>{{ toplam_kart|floatformat:2 }}₺</h4>
+                        <h4>{{ toplam_kart|turkish_currency }}</h4>
                     </div>
                     <div class="col-md-2">
                         <h6>Banka</h6>
-                        <h4>{{ toplam_banka|floatformat:2 }}₺</h4>
+                        <h4>{{ toplam_banka|turkish_currency }}</h4>
                     </div>
                     <div class="col-md-2">
                         <h6>Aktif Kasa</h6>
@@ -153,7 +153,7 @@
                     </h5>
                     
                     <div class="bakiye-display">
-                        {{ item.bakiye|floatformat:2 }}₺
+                        {{ item.bakiye|turkish_currency }}
                     </div>
                     
                     <hr style="border-color: rgba(255,255,255,0.3);">
@@ -161,18 +161,18 @@
                     <div class="row text-center">
                         <div class="col-6">
                             <small>Bugün Giriş</small>
-                            <div class="hareket-pozitif">+{{ item.bugunki_giris|floatformat:2 }}₺</div>
+                            <div class="hareket-pozitif">+{{ item.bugunki_giris|turkish_currency }}</div>
                         </div>
                         <div class="col-6">
                             <small>Bugün Çıkış</small>
-                            <div class="hareket-negatif">-{{ item.bugunki_cikis|floatformat:2 }}₺</div>
+                            <div class="hareket-negatif">-{{ item.bugunki_cikis|turkish_currency }}</div>
                         </div>
                     </div>
                     
                     <div class="mt-3">
                         <small>Net Hareket: </small>
                         <span class="{% if item.bugunki_net >= 0 %}hareket-pozitif{% else %}hareket-negatif{% endif %}">
-                            {{ item.bugunki_net|floatformat:2 }}₺
+                            {{ item.bugunki_net|turkish_currency }}
                         </span>
                     </div>
                     
@@ -240,7 +240,7 @@
                                     </td>
                                     <td class="text-end">
                                         <strong class="{% if hareket.tip == 'giris' %}text-success{% else %}text-danger{% endif %}">
-                                            {% if hareket.tip == 'giris' %}+{% else %}-{% endif %}{{ hareket.tutar|floatformat:2 }}₺
+                                            {% if hareket.tip == 'giris' %}+{% else %}-{% endif %}{{ hareket.tutar|turkish_currency }}
                                         </strong>
                                     </td>
                                     <td>

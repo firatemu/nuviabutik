@@ -3,7 +3,7 @@
 
 {% block title %}Tahsilat Detay - {{ tahsilat.tahsilat_no }}{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <!-- Print Optimized Format (80mm Thermal Printer) -->
     <div class="print-format">
@@ -86,7 +86,7 @@
             <div class="grand-total">
                 <div style="display: flex; justify-content: space-between;">
                     <span>TAHSİL EDİLEN:</span>
-                    <span>{{ tahsilat.tutar|floatformat:2 }}₺</span>
+                    <span>{{ tahsilat.tutar|turkish_currency }}</span>
                 </div>
             </div>
         </div>
@@ -173,7 +173,7 @@
                         <div class="col-md-6">
                             <h5>Tahsilat Detayları</h5>
                             <p class="mb-1"><strong>Tahsilat Tipi:</strong> {{ tahsilat.get_tahsilat_tipi_display }}</p>
-                            <p class="mb-1"><strong>Tutar:</strong> <span class="fs-4 text-success">{{ tahsilat.tutar|floatformat:2 }}₺</span></p>
+                            <p class="mb-1"><strong>Tutar:</strong> <span class="fs-4 text-success">{{ tahsilat.tutar|turkish_currency }}</span></p>
                             
                             {% if tahsilat.tahsilat_tipi == 'cek' or tahsilat.tahsilat_tipi == 'senet' %}
                                 {% if tahsilat.cek_senet_no %}
@@ -207,7 +207,7 @@
                     
                     <div class="row">
                         <div class="col-md-12 text-center">
-                            <h3 class="text-success">Tahsil Edilen Tutar: {{ tahsilat.tutar|floatformat:2 }}₺</h3>
+                            <h3 class="text-success">Tahsil Edilen Tutar: {{ tahsilat.tutar|turkish_currency }}</h3>
                             <p class="text-muted">Bu fiş tahsilat yapıldığını gösterir.</p>
                         </div>
                     </div>
@@ -248,7 +248,7 @@
                     {% if tahsilat.musteri.acik_hesap_bakiye > 0 %}
                         <div class="alert alert-danger">
                             <strong>Kalan Borç:</strong><br>
-                            <span class="fs-4">{{ tahsilat.musteri.acik_hesap_bakiye|floatformat:2 }}₺</span>
+                            <span class="fs-4">{{ tahsilat.musteri.acik_hesap_bakiye|turkish_currency }}</span>
                         </div>
                     {% elif tahsilat.musteri.acik_hesap_bakiye < 0 %}
                         <div class="alert alert-success">

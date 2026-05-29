@@ -2,7 +2,7 @@
 
 {% block title %}{{ title }}{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid mt-4">
     <div class="row">
         <div class="col-12">
@@ -65,8 +65,9 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
-                                            <h6 class="card-title">Toplam Ciro</h6>
-                                            <h4 class="mb-0">₺{{ toplam_satis_tutari|floatformat:2 }}</h4>
+                                            <h6 class="card-title">Toplam ciro</h6>
+                                            <p class="small mb-1 opacity-75">İndirim sonrası (genel toplam)</p>
+                                            <h4 class="mb-0">{{ toplam_satis_tutari|turkish_currency }}</h4>
                                         </div>
                                         <div class="align-self-center">
                                             <i class="fas fa-money-bill-wave fa-2x"></i>
@@ -130,7 +131,7 @@
                                 <h5><i class="fas fa-trophy"></i> Dönem Lideri</h5>
                                 <p class="mb-0">
                                     <strong>{{ en_basarili_satici.satici.get_full_name }}</strong> -
-                                    ₺{{ en_basarili_satici.toplam_tutar|floatformat:2 }} ciro ile dönemin en başarılı
+                                    {{ en_basarili_satici.toplam_tutar|turkish_currency }} ciro ile dönemin en başarılı
                                     satıcısı!
                                 </p>
                             </div>
@@ -203,7 +204,7 @@
                                                         {% endif %}
                                                     </td>
                                                     <td>
-                                                        <span class="text-success fw-bold">₺{{ stat.toplam_tutar|floatformat:2 }}</span>
+                                                        <span class="text-success fw-bold">{{ stat.toplam_tutar|turkish_currency }}</span>
                                                     </td>
                                                     <td>
                                                         <span class="badge bg-primary">{{ stat.satis_sayisi }}</span>
@@ -212,7 +213,7 @@
                                                         <span class="badge bg-info">{{ stat.urun_sayisi }}</span>
                                                     </td>
                                                     <td>
-                                                        <span class="text-primary">₺{{ stat.ortalama_satis|floatformat:2 }}</span>
+                                                        <span class="text-primary">{{ stat.ortalama_satis|turkish_currency }}</span>
                                                     </td>
                                                     <td>
                                                         <div class="progress" style="height: 20px;">
@@ -296,7 +297,7 @@
                                                         <strong>{{ stat.en_cok_satan.urun__ad }}</strong><br>
                                                         <small class="text-muted">
                                                             {{ stat.en_cok_satan.toplam_adet }} adet -
-                                                            ₺{{ stat.en_cok_satan.toplam_tutar|floatformat:2 }}
+                                                            {{ stat.en_cok_satan.toplam_tutar|turkish_currency }}
                                                         </small>
                                                     </p>
                                                     {% else %}

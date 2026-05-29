@@ -47,7 +47,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid py-4">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -73,7 +73,7 @@
             <div class="card stats-card">
                 <div class="card-body text-center">
                     <i class="fas fa-calculator fa-2x mb-2"></i>
-                    <h4>{{ toplam_tutar|floatformat:2 }} ₺</h4>
+                    <h4>{{ toplam_tutar|turkish_currency }}</h4>
                     <small>Toplam Tutar</small>
                 </div>
             </div>
@@ -91,7 +91,7 @@
             <div class="card bg-warning text-white">
                 <div class="card-body text-center">
                     <i class="fas fa-calendar-day fa-2x mb-2"></i>
-                    <h4>{{ bugun_toplam|floatformat:2 }} ₺</h4>
+                    <h4>{{ bugun_toplam|turkish_currency }}</h4>
                     <small>Bugün</small>
                 </div>
             </div>
@@ -183,7 +183,7 @@
                             </div>
                             
                             <div class="mb-2">
-                                <span class="badge bg-success tutar-badge">{{ gider.tutar|floatformat:2 }} ₺</span>
+                                <span class="badge bg-success tutar-badge">{{ gider.tutar|turkish_currency }}</span>
                                 <span class="badge bg-secondary odeme-badge ms-1">{{ gider.get_odeme_yontemi_display }}</span>
                             </div>
                             

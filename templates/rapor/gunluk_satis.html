@@ -3,27 +3,36 @@
 
 {% block title %}Günlük Satış Raporu{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h2>Günlük Satış Raporu</h2>
         <div class="d-flex gap-2">
-            <a href="{% url 'rapor:gunluk_satis_excel' %}?tarih={{ tarih }}" class="btn btn-success">
+            <a href="{% url 'rapor:gunluk_satis_excel' %}?baslangic={{ baslangic_str }}&bitis={{ bitis_str }}" class="btn btn-success">
                 <i class="fas fa-file-excel"></i> Excel İndir
             </a>
-            <a href="{% url 'rapor:gunluk_satis_pdf' %}?tarih={{ tarih }}" class="btn btn-danger">
+            <a href="{% url 'rapor:gunluk_satis_pdf' %}?baslangic={{ baslangic_str }}&bitis={{ bitis_str }}" class="btn btn-danger">
                 <i class="fas fa-file-pdf"></i> PDF İndir
             </a>
         </div>
     </div>
 
-    <!-- Tarih Seçici -->
+    <!-- Tarih aralığı -->
     <div class="card mb-4">
         <div class="card-body">
-            <form method="get" class="row g-3">
+            <form method="get" class="row g-3 align-items-end flex-wrap">
                 <div class="col-auto">
-                    <label class="form-label">Rapor Tarihi:</label>
-                    <input type="date" name="tarih" class="form-control" value="{{ tarih }}" onchange="this.form.submit()">
+                    <label class="form-label mb-0" for="id_baslangic">Başlangıç</label>
+                    <input type="date" name="baslangic" id="id_baslangic" class="form-control" value="{{ baslangic_str }}">
+                </div>
+                <div class="col-auto">
+                    <label class="form-label mb-0" for="id_bitis">Bitiş</label>
+                    <input type="date" name="bitis" id="id_bitis" class="form-control" value="{{ bitis_str }}">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-1"></i>Uygula
+                    </button>
                 </div>
             </form>
         </div>
@@ -35,7 +44,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body text-center">
                     <h5>Toplam Satış</h5>
-                    <h3>{{ toplam_satis|floatformat:2 }} ₺</h3>
+                    <h3>{{ toplam_satis|turkish_currency }}</h3>
                 </div>
             </div>
         </div>
@@ -51,7 +60,7 @@
             <div class="card bg-info text-white">
                 <div class="card-body text-center">
                     <h5>Ortalama Satış</h5>
-                    <h3>{{ ortalama_satis|floatformat:2 }} ₺</h3>
+                    <h3>{{ ortalama_satis|turkish_currency }}</h3>
                 </div>
             </div>
         </div>
@@ -65,51 +74,13 @@
         </div>
     </div>
 
-    <!-- Satış Listesi -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">{{ tarih|date:'d.m.Y' }} Tarihli Satışlar</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Saat</th>
-                            <th>Satış No</th>
-                            <th>Müşteri</th>
-                            <th>Ürün Sayısı</th>
-                            <th>Toplam</th>
-                            <th>Satıcı</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for satis in satislar %}
-                        <tr>
-                            <td>{{ satis.satis_tarihi|time:'H:i' }}</td>
-                            <td>{{ satis.satis_no }}</td>
-                            <td>{{ satis.musteri.ad_soyad|default:"Perakende" }}</td>
-                            <td>{{ satis.satisdetay_set.count }}</td>
-                            <td>{{ satis.toplam_tutar|floatformat:2 }} ₺</td>
-                            <td>{{ satis.satici.get_full_name }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center">Bu tarihte satış bulunamadı.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
     <!-- Satılan Ürünler Detayı -->
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
                 <i class="fas fa-shopping-cart text-success"></i>
                 Satılan Ürünler Detayı
+                <small class="text-muted fw-normal">(satır bazında brüt, indirim ve net)</small>
             </h5>
         </div>
         <div class="card-body">
@@ -117,7 +88,7 @@
                 <table class="table table-striped table-hover">
                     <thead class="table-dark">
                         <tr>
-                            <th>Saat</th>
+                            <th>{% if tek_gun %}Saat{% else %}Tarih / Saat{% endif %}</th>
                             <th>Satış No</th>
                             <th>Ürün Adı</th>
                             <th>Barkod</th>
@@ -127,14 +98,22 @@
                             <th>Cinsiyet</th>
                             <th>Adet</th>
                             <th>Birim Fiyat</th>
-                            <th>Toplam</th>
+                            <th class="text-end">Brüt</th>
+                            <th class="text-end">İndirim</th>
+                            <th class="text-end">Net Tutar</th>
                             <th>Müşteri</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for detay in satis_detaylari %}
                         <tr>
-                            <td>{{ detay.satis.satis_tarihi|time:'H:i' }}</td>
+                            <td>
+                                {% if tek_gun %}
+                                    {{ detay.satis.satis_tarihi|time:'H:i' }}
+                                {% else %}
+                                    {{ detay.satis.satis_tarihi|date:'d.m.Y H:i' }}
+                                {% endif %}
+                            </td>
                             <td>
                                 <span class="badge bg-primary">{{ detay.satis.satis_no }}</span>
                             </td>
@@ -177,10 +156,23 @@
                                 <span class="badge bg-warning text-dark">{{ detay.miktar }}</span>
                             </td>
                             <td>
-                                <span class="text-primary fw-bold">{{ detay.birim_fiyat|floatformat:2 }} ₺</span>
+                                <span class="text-primary fw-bold">{{ detay.birim_fiyat|turkish_currency }}</span>
                             </td>
-                            <td>
-                                <span class="text-success fw-bold">{{ detay.toplam_fiyat|floatformat:2 }} ₺</span>
+                            <td class="text-end text-muted">
+                                {{ detay.indirimsiz_toplam|turkish_currency }}
+                            </td>
+                            <td class="text-end">
+                                {% if detay.indirim_tutari and detay.indirim_tutari > 0 %}
+                                    <span class="text-danger">{{ detay.indirim_tutari|turkish_currency }}</span>
+                                    {% if detay.indirim_orani and detay.indirim_orani > 0 %}
+                                        <br><small class="text-muted">(%{{ detay.indirim_orani|floatformat:0 }})</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">0,00 ₺</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <span class="text-success fw-bold">{{ detay.toplam_fiyat|turkish_currency }}</span>
                             </td>
                             <td>
                                 <small>{{ detay.satis.musteri.ad_soyad|default:"Perakende" }}</small>
@@ -188,10 +180,21 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="12" class="text-center">Bu tarihte satılan ürün bulunamadı.</td>
+                            <td colspan="14" class="text-center">Bu aralıkta satılan ürün bulunamadı.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
+                    {% if satis_detaylari %}
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="10" class="text-end"><strong>Toplam</strong></td>
+                            <td class="text-end"><strong>{{ detay_toplam_brut|turkish_currency }}</strong></td>
+                            <td class="text-end"><strong class="text-danger">{{ detay_toplam_indirim|turkish_currency }}</strong></td>
+                            <td class="text-end"><strong class="text-success">{{ detay_toplam_net|turkish_currency }}</strong></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
                 </table>
             </div>
         </div>
@@ -226,7 +229,6 @@ code {
 .table-responsive {
     overflow-x: auto;
 }
-/* Mobil cihazlar için */
 @media (max-width: 768px) {
     .table th, .table td {
         font-size: 0.8em;

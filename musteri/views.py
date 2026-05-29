@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.views.decorators.http import require_http_methods
 from .models import Musteri, MusteriGruplar
 
@@ -11,35 +11,92 @@ from .models import Musteri, MusteriGruplar
 @login_required
 def musteri_listesi(request):
     """Müşteri listesi view'ı"""
-    musteriler = Musteri.objects.filter(aktif=True).order_by('ad', 'soyad')
-    
-    # Arama
-    query = request.GET.get('q')
+    from django.utils import timezone
+    from datetime import timedelta
+    from django.db.models import Sum, Count
+    from satis.models import Satis
+    from .models import Tahsilat, BorcAlacakHareket
+
+    # Base queryset - show all customers (active and inactive)
+    musteriler = Musteri.objects.all().order_by('ad', 'soyad')
+
+    # Get filter parameters
+    query = request.GET.get('q', '')
+    tip_filter = request.GET.get('tip', 'all')
+    durum_filter = request.GET.get('durum', 'all')
+    aktif_filter = request.GET.get('aktif', 'all')
+
+    # Apply search filter
     if query:
         musteriler = musteriler.filter(
-            Q(ad__icontains=query) | 
+            Q(ad__icontains=query) |
             Q(soyad__icontains=query) |
             Q(telefon__icontains=query) |
             Q(email__icontains=query) |
             Q(firma_adi__icontains=query)
         )
-    
-    # İstatistikler
-    toplam_musteri = Musteri.objects.filter(aktif=True)
-    bireysel_count = toplam_musteri.filter(tip='bireysel').count()
-    kurumsal_count = toplam_musteri.filter(tip='kurumsal').count()
-    aktif_count = toplam_musteri.count()
-    
-    # Sayfalama
+
+    # Apply customer type filter
+    if tip_filter != 'all':
+        musteriler = musteriler.filter(tip=tip_filter)
+
+    # Apply active status filter
+    if aktif_filter == 'True':
+        musteriler = musteriler.filter(aktif=True)
+    elif aktif_filter == 'False':
+        musteriler = musteriler.filter(aktif=False)
+
+    # Apply balance status filter
+    if durum_filter == 'borclu':
+        musteriler = musteriler.filter(acik_hesap_bakiye__gt=0)
+    elif durum_filter == 'alacakli':
+        musteriler = musteriler.filter(acik_hesap_bakiye__lt=0)
+    elif durum_filter == 'sifir':
+        musteriler = musteriler.filter(acik_hesap_bakiye=0)
+
+    # Calculate 30 days ago
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+
+    # Annotate with 30-day stats
+    musteriler = musteriler.annotate(
+        son_30gun_satis=Sum(
+            'satis__toplam_tutar',
+            filter=Q(satis__satis_tarihi__gte=thirty_days_ago) & Q(satis__durum='tamamlandi')
+        )
+    ).annotate(
+        son_30gun_tahsilat=Sum(
+            'tahsilat__tutar',
+            filter=Q(tahsilat__tahsilat_tarihi__gte=thirty_days_ago) & Q(tahsilat__durum='tahsil_edildi')
+        )
+    )
+
+    # Replace None with 0 for the annotated fields
+    for musteri in musteriler:
+        if musteri.son_30gun_satis is None:
+            musteri.son_30gun_satis = 0
+        if musteri.son_30gun_tahsilat is None:
+            musteri.son_30gun_tahsilat = 0
+
+    # Calculate statistics
+    toplam_musteri = Musteri.objects.count()
+    aktif_count = Musteri.objects.filter(aktif=True).count()
+    borclu_count = Musteri.objects.filter(acik_hesap_bakiye__gt=0).count()
+    alacakli_count = Musteri.objects.filter(acik_hesap_bakiye__lt=0).count()
+
+    # Paginate
     paginator = Paginator(musteriler, 25)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     context = {
         'page_obj': page_obj,
         'query': query,
-        'bireysel_count': bireysel_count,
-        'kurumsal_count': kurumsal_count,
+        'tip_filter': tip_filter,
+        'durum_filter': durum_filter,
+        'aktif_filter': aktif_filter,
+        'toplam_musteri': toplam_musteri,
+        'borclu_count': borclu_count,
+        'alacakli_count': alacakli_count,
         'aktif_count': aktif_count,
     }
     return render(request, 'musteri/musteri_listesi.html', context)
@@ -203,23 +260,31 @@ def musteri_duzenle(request, pk):
 def musteri_detay(request, pk):
     """Müşteri detay view'ı"""
     musteri = get_object_or_404(Musteri, pk=pk)
-    
-    # Son satışları getir
+
     from satis.models import Satis
-    son_satislar = Satis.objects.filter(
-        musteri=musteri
-    ).order_by('-satis_tarihi')[:5]
-    
-    # Son tahsilatları getir
     from .models import Tahsilat
-    son_tahsilatlar = Tahsilat.objects.filter(
-        musteri=musteri
-    ).order_by('-tahsilat_tarihi')[:5]
-    
+
+    tum_satislar = Satis.objects.filter(musteri=musteri).order_by('-satis_tarihi')
+    tum_tahsilatlar = Tahsilat.objects.filter(musteri=musteri).order_by('-tahsilat_tarihi')
+
+    toplam_satis = Satis.objects.filter(
+        musteri=musteri,
+        durum='tamamlandi'
+    ).aggregate(toplam=Sum('genel_toplam'))['toplam'] or 0
+
+    toplam_tahsilat = Tahsilat.objects.filter(
+        musteri=musteri,
+        durum='tahsil_edildi'
+    ).aggregate(toplam=Sum('tutar'))['toplam'] or 0
+
     context = {
         'musteri': musteri,
-        'son_satislar': son_satislar,
-        'son_tahsilatlar': son_tahsilatlar,
+        'son_satislar': tum_satislar,
+        'son_tahsilatlar': tum_tahsilatlar,
+        'satis_sayisi': tum_satislar.count(),
+        'tahsilat_sayisi': tum_tahsilatlar.count(),
+        'toplam_satis': toplam_satis,
+        'toplam_tahsilat': toplam_tahsilat,
     }
     return render(request, 'musteri/musteri_detay.html', context)
 
@@ -341,7 +406,7 @@ def musteri_ajax_detay(request, musteri_id):
     """AJAX ile müşteri detayını getir"""
     try:
         musteri = get_object_or_404(Musteri, id=musteri_id, aktif=True)
-        
+
         musteri_data = {
             'id': musteri.id,
             'ad': musteri.ad,
@@ -355,12 +420,12 @@ def musteri_ajax_detay(request, musteri_id):
             'acik_hesap_bakiye': float(musteri.acik_hesap_bakiye or 0),
             'acik_hesap_limit': float(musteri.acik_hesap_limit or 0),
         }
-        
+
         return JsonResponse({
             'success': True,
             'musteri': musteri_data
         })
-        
+
     except Musteri.DoesNotExist:
         return JsonResponse({
             'success': False,
@@ -371,3 +436,49 @@ def musteri_ajax_detay(request, musteri_id):
             'success': False,
             'error': str(e)
         })
+
+
+@login_required
+@require_http_methods(["POST"])
+def musteri_toggle_aktif(request):
+    """AJAX ile müşteri aktif/pasif durumunu değiştir"""
+    musteri_id = request.POST.get('musteri_id')
+
+    if not musteri_id:
+        return JsonResponse({'success': False, 'error': 'Müşteri ID gerekli'})
+
+    try:
+        musteri = get_object_or_404(Musteri, id=musteri_id)
+
+        # Pasif yapilmak isteniyorsa bakiye kontrolü yap
+        if not musteri.aktif:
+            # Aktif yapiliyor - izin ver
+            musteri.aktif = True
+            musteri.save()
+            return JsonResponse({
+                'success': True,
+                'message': f'{musteri.tam_ad} başarıyla aktif edildi.',
+                'yeni_durum': 'aktif'
+            })
+        else:
+            # Pasif yapilmak isteniyor - bakiye kontrolü
+            bakiye = float(musteri.acik_hesap_bakiye or 0)
+            if bakiye != 0:
+                bakiye_tipi = 'borçlu' if bakiye > 0 else 'alacaklı'
+                return JsonResponse({
+                    'success': False,
+                    'error': f'{musteri.tam_ad} pasif yapılamaz. Müşterinin {bakiye_tipi} bakiyesi ({abs(bakiye):.2f} ₺) bulunmaktadır. Önce bakiyeyi sıfıra indirin.'
+                })
+
+            musteri.aktif = False
+            musteri.save()
+            return JsonResponse({
+                'success': True,
+                'message': f'{musteri.tam_ad} başarıyla pasif edildi.',
+                'yeni_durum': 'pasif'
+            })
+
+    except Musteri.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Müşteri bulunamadı'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

@@ -3,7 +3,7 @@
 
 {% block title %}Tahsilat İptal - {{ tahsilat.tahsilat_no }}{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-md-6">
@@ -30,7 +30,7 @@
                             <h5>Tahsilat Bilgileri</h5>
                             <p><strong>Tahsilat No:</strong> {{ tahsilat.tahsilat_no }}</p>
                             <p><strong>Tarih:</strong> {{ tahsilat.tahsilat_tarihi|date:"d.m.Y H:i" }}</p>
-                            <p><strong>Tutar:</strong> <span class="text-danger fw-bold">{{ tahsilat.tutar|floatformat:2 }}₺</span></p>
+                            <p><strong>Tutar:</strong> <span class="text-danger fw-bold">{{ tahsilat.tutar|turkish_currency }}</span></p>
                             <p><strong>Tip:</strong> {{ tahsilat.get_tahsilat_tipi_display }}</p>
                             <p><strong>Durum:</strong> 
                                 {% if tahsilat.durum == 'tahsil_edildi' %}
@@ -46,7 +46,7 @@
                             <p><strong>Telefon:</strong> {{ tahsilat.musteri.telefon }}</p>
                             <p><strong>Mevcut Borç:</strong> 
                                 {% if tahsilat.musteri.acik_hesap_bakiye > 0 %}
-                                    <span class="badge bg-danger">{{ tahsilat.musteri.acik_hesap_bakiye|floatformat:2 }}₺</span>
+                                    <span class="badge bg-danger">{{ tahsilat.musteri.acik_hesap_bakiye|turkish_currency }}</span>
                                 {% elif tahsilat.musteri.acik_hesap_bakiye < 0 %}
                                     <span class="badge bg-success">{{ tahsilat.musteri.acik_hesap_bakiye|floatformat:2|slice:"1:" }}₺ Alacak</span>
                                 {% else %}
@@ -54,7 +54,7 @@
                                 {% endif %}
                             </p>
                             <p><strong>İptal Sonrası Borç:</strong> 
-                                <span class="badge bg-warning">{{ tahsilat.musteri.acik_hesap_bakiye|add:tahsilat.tutar|floatformat:2 }}₺</span>
+                                <span class="badge bg-warning">{{ tahsilat.musteri.acik_hesap_bakiye|add:tahsilat.tutar|turkish_currency }}</span>
                             </p>
                         </div>
                     </div>

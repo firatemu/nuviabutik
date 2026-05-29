@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Stok Değeri{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Stok Değeri Raporu</h2>
+    </div>
+
+    <!-- Özet Kartları -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <i class="fas fa-boxes text-primary fs-4 me-2"></i>
+                        <div>
+                            <h5 class="mb-0">{{ toplam_urun_sayisi }}</h5>
+                            <small class="text-muted">Stoğu Olan Ürün Sayısı</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <i class="fas fa-calculator text-success fs-4 me-2"></i>
+                        <div>
+                            <h5 class="mb-0">{{ toplam_stok_degeri|stringformat:".2f" }} ₺</h5>
+                            <small class="text-muted">Toplam Stok Değeri</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <i class="fas fa-tags text-warning fs-4 me-2"></i>
+                        <div>
+                            <h5 class="mb-0">{{ toplam_stok_degeri|stringformat:".0f" }} ₺</h5>
+                            <small class="text-muted">Yuvarlanmış Değer</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stok Değeri Tablosu -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-money-bill-wave me-2"></i>
+                Ürün Bazında Stok Maliyeti
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Ürün Adı</th>
+                            <th>Kategori</th>
+                            <th>Marka</th>
+                            <th class="text-end">Alış Fiyatı</th>
+                            <th class="text-end">Toplam Stok</th>
+                            <th class="text-end">Stok Değeri (Maliyet)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in urun_stok_degerleri %}
+                        <tr>
+                            <td>{{ item.urun.ad }}</td>
+                            <td>{{ item.urun.kategori.ad }}</td>
+                            <td>{{ item.urun.marka.ad|default:"-" }}</td>
+                            <td class="text-end">{{ item.alis_fiyati|stringformat:".2f" }} ₺</td>
+                            <td class="text-end">{{ item.toplam_stok }}</td>
+                            <td class="text-end fw-bold text-primary">{{ item.stok_degeri|stringformat:".2f" }} ₺</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">Stoğu olan ürün bulunamadı.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-dark">
+                            <td colspan="5" class="text-end"><strong>TOPLAM:</strong></td>
+                            <td class="text-end fw-bold fs-5">{{ toplam_stok_degeri|stringformat:".2f" }} ₺</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -38,6 +38,8 @@ Thumbs.db
 *.bak
 *.backup
 *.old
+*.broken
+backups/
 
 # Static files
 /staticfiles/

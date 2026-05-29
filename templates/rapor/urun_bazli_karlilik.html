@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load currency_filters %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .krl-page {
+        --krl-primary: #0d3b66;
+        --krl-accent: #00a896;
+        --krl-muted: #6c757d;
+    }
+    .krl-hero {
+        background: linear-gradient(135deg, var(--krl-primary) 0%, #1a5f7a 100%);
+        color: #fff;
+        border-radius: 12px;
+        padding: 1.5rem 1.75rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 8px 24px rgba(13, 59, 102, 0.2);
+    }
+    .krl-hero h1 {
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin: 0 0 0.35rem 0;
+    }
+    .krl-hero p {
+        margin: 0;
+        opacity: 0.92;
+        font-size: 0.95rem;
+    }
+    .krl-kpi {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        height: 100%;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .krl-kpi:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    }
+    .krl-kpi .card-body {
+        padding: 1.1rem 1.15rem;
+    }
+    .krl-kpi-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--krl-muted);
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+    }
+    .krl-kpi-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .krl-kpi-sub {
+        font-size: 0.8rem;
+        color: var(--krl-muted);
+        margin-top: 0.35rem;
+    }
+    .krl-filter-card {
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    .krl-table-card {
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    .krl-table-card .table thead th {
+        background: #f8f9fa;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+        white-space: nowrap;
+    }
+    .krl-table-card .table tbody td {
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+    .krl-num {
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+    }
+    .krl-product-name {
+        font-weight: 600;
+        color: #212529;
+    }
+    .krl-code {
+        font-size: 0.8rem;
+        color: var(--krl-muted);
+    }
+    .krl-kar-pos { color: #198754; font-weight: 600; }
+    .krl-kar-neg { color: #dc3545; font-weight: 600; }
+    .krl-footnote {
+        font-size: 0.8rem;
+        color: var(--krl-muted);
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid krl-page py-3">
+    <div class="krl-hero">
+        <h1><i class="fas fa-chart-line me-2" aria-hidden="true"></i>{{ title }}</h1>
+        <p>Tamamlanan satışlar üzerinden ürün bazında brüt tutar, indirim, net ciro, maliyet ve kar analizi.</p>
+    </div>
+
+    <div class="card krl-filter-card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3 col-lg-2">
+                    <label class="form-label fw-semibold" for="id_baslangic">Başlangıç</label>
+                    <input type="date" name="baslangic" id="id_baslangic" class="form-control"
+                        value="{{ baslangic|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <label class="form-label fw-semibold" for="id_bitis">Bitiş</label>
+                    <input type="date" name="bitis" id="id_bitis" class="form-control"
+                        value="{{ bitis|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-md-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="fas fa-filter me-1"></i> Uygula
+                    </button>
+                </div>
+                <div class="col-md text-md-end krl-footnote align-self-center">
+                    Dönem: <strong>{{ baslangic|date:"d.m.Y" }}</strong> — <strong>{{ bitis|date:"d.m.Y" }}</strong>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg">
+            <div class="card krl-kpi">
+                <div class="card-body">
+                    <div class="krl-kpi-label">Net satış</div>
+                    <div class="krl-kpi-value text-primary">{{ ozet.toplam_net|turkish_currency }}</div>
+                    <div class="krl-kpi-sub">İndirim sonrası toplam</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="card krl-kpi">
+                <div class="card-body">
+                    <div class="krl-kpi-label">Toplam maliyet</div>
+                    <div class="krl-kpi-value text-secondary">{{ ozet.toplam_maliyet|turkish_currency }}</div>
+                    <div class="krl-kpi-sub">Alış × satılan miktar</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="card krl-kpi">
+                <div class="card-body">
+                    <div class="krl-kpi-label">Brüt tutar</div>
+                    <div class="krl-kpi-value">{{ ozet.toplam_brut|turkish_currency }}</div>
+                    <div class="krl-kpi-sub">İndirim öncesi</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="card krl-kpi">
+                <div class="card-body">
+                    <div class="krl-kpi-label">İndirim</div>
+                    <div class="krl-kpi-value text-warning">{{ ozet.toplam_indirim|turkish_currency }}</div>
+                    <div class="krl-kpi-sub">Satır indirimleri toplamı</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="card krl-kpi border-success border-opacity-25">
+                <div class="card-body">
+                    <div class="krl-kpi-label">Toplam kar</div>
+                    <div class="krl-kpi-value {% if ozet.toplam_kar >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ ozet.toplam_kar|turkish_currency }}
+                    </div>
+                    <div class="krl-kpi-sub">Kar / Maliyet · Marj: <strong>{{ ozet.genel_kar_orani|floatformat:2 }}%</strong></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="card krl-kpi">
+                <div class="card-body">
+                    <div class="krl-kpi-label">Ürün / adet</div>
+                    <div class="krl-kpi-value">{{ ozet.urun_sayisi }} <span class="fs-6 fw-normal text-muted">ürün</span></div>
+                    <div class="krl-kpi-sub">Satılan toplam: <strong>{{ ozet.toplam_miktar }}</strong> adet</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card krl-table-card">
+        <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom">
+            <span class="fw-semibold mb-0"><i class="fas fa-table me-2 text-secondary"></i>Ürün detayı</span>
+            <span class="badge bg-light text-dark border">{{ satirlar|length }} kalem</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Ürün</th>
+                        <th scope="col" class="text-end">Miktar</th>
+                        <th scope="col" class="text-end">Birim alış</th>
+                        <th scope="col" class="text-end">Brüt</th>
+                        <th scope="col" class="text-end">İndirim</th>
+                        <th scope="col" class="text-end">Net satış</th>
+                        <th scope="col" class="text-end">Maliyet</th>
+                        <th scope="col" class="text-end">Kar</th>
+                        <th scope="col" class="text-end">Kar %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in satirlar %}
+                    <tr>
+                        <td class="text-muted">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="krl-product-name">{{ s.urun__ad }}</div>
+                            <div class="krl-code">
+                                {% if s.urun__urun_kodu %}Kod: {{ s.urun__urun_kodu }}{% else %}Kod: —{% endif %}
+                            </div>
+                        </td>
+                        <td class="krl-num">{{ s.toplam_miktar }}</td>
+                        <td class="krl-num">{{ s.birim_alis|turkish_currency }}</td>
+                        <td class="krl-num">{{ s.brut_tutar|turkish_currency }}</td>
+                        <td class="krl-num text-warning">{{ s.toplam_indirim|turkish_currency }}</td>
+                        <td class="krl-num fw-semibold">{{ s.net_satis|turkish_currency }}</td>
+                        <td class="krl-num">{{ s.toplam_maliyet|turkish_currency }}</td>
+                        <td class="krl-num {% if s.kar >= 0 %}krl-kar-pos{% else %}krl-kar-neg{% endif %}">
+                            {{ s.kar|turkish_currency }}
+                        </td>
+                        <td class="krl-num {% if s.kar_orani >= 0 %}krl-kar-pos{% else %}krl-kar-neg{% endif %}">
+                            {{ s.kar_orani|floatformat:2 }}%
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center py-5 text-muted">
+                            <i class="fas fa-inbox fa-2x mb-3 d-block opacity-50"></i>
+                            Seçilen tarih aralığında tamamlanmış satış kaydı bulunamadı.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if satirlar %}
+                <tfoot class="table-light">
+                    <tr class="fw-bold">
+                        <td colspan="2">Toplam</td>
+                        <td class="krl-num">{{ ozet.toplam_miktar }}</td>
+                        <td class="krl-num">—</td>
+                        <td class="krl-num">{{ ozet.toplam_brut|turkish_currency }}</td>
+                        <td class="krl-num text-warning">{{ ozet.toplam_indirim|turkish_currency }}</td>
+                        <td class="krl-num">{{ ozet.toplam_net|turkish_currency }}</td>
+                        <td class="krl-num">{{ ozet.toplam_maliyet|turkish_currency }}</td>
+                        <td class="krl-num {% if ozet.toplam_kar >= 0 %}krl-kar-pos{% else %}krl-kar-neg{% endif %}">
+                            {{ ozet.toplam_kar|turkish_currency }}
+                        </td>
+                        <td class="krl-num">{{ ozet.genel_kar_orani|floatformat:2 }}%</td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+
+    <p class="krl-footnote mt-3 mb-0">
+        <i class="fas fa-info-circle me-1"></i>
+        Maliyet, satış anındaki kayıt yerine <strong>ürün kartındaki güncel alış fiyatı</strong> ile hesaplanır.
+        Net satış ve indirim, tamamlanan satışlardaki satır toplamlarından gelir.
+    </p>
+</div>
+{% endblock %}

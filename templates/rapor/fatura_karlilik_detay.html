@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load currency_filters %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .krl-page { --krl-primary: #1a3a52; --krl-muted: #6c757d; }
+    .krl-hero {
+        background: linear-gradient(135deg, var(--krl-primary) 0%, #2c5282 100%);
+        color: #fff; border-radius: 12px; padding: 1.5rem 1.75rem; margin-bottom: 1.5rem;
+        box-shadow: 0 8px 24px rgba(26, 58, 82, 0.22);
+    }
+    .krl-hero h1 { font-size: 1.25rem; font-weight: 700; margin: 0 0 0.5rem 0; }
+    .krl-meta { font-size: 0.9rem; opacity: 0.95; }
+    .krl-kpi { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); height: 100%; }
+    .krl-kpi .card-body { padding: 1rem 1.1rem; }
+    .krl-kpi-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--krl-muted); font-weight: 600; margin-bottom: 0.3rem; }
+    .krl-kpi-value { font-size: 1.1rem; font-weight: 700; }
+    .krl-table-card { border-radius: 12px; border: 1px solid #e9ecef; overflow: hidden; }
+    .krl-table-card .table thead th { background: #f8f9fa; font-size: 0.72rem; text-transform: uppercase; color: #495057; white-space: nowrap; }
+    .krl-num { font-variant-numeric: tabular-nums; text-align: right; }
+    .krl-kar-pos { color: #198754; font-weight: 600; }
+    .krl-kar-neg { color: #dc3545; font-weight: 600; }
+    .krl-footnote { font-size: 0.8rem; color: var(--krl-muted); }
+    .krl-product-name { font-weight: 600; color: #212529; }
+    .krl-code { font-size: 0.78rem; color: var(--krl-muted); }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid krl-page py-3">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">
+                <a href="{% url 'rapor:fatura_bazli_karlilik' %}?baslangic={{ baslangic|date:'Y-m-d' }}&bitis={{ bitis|date:'Y-m-d' }}">Fatura bazlı karlılık</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">{{ satis.satis_no|default:satis.siparis_no }}</li>
+        </ol>
+    </nav>
+
+    <div class="krl-hero">
+        <h1><i class="fas fa-receipt me-2"></i>{{ satis.satis_no|default:"Satış" }}</h1>
+        <div class="krl-meta">
+            {% if satis.siparis_no %}Sipariş: <strong>{{ satis.siparis_no }}</strong> · {% endif %}
+            {% if satis.satis_tarihi %}Tarih: <strong>{{ satis.satis_tarihi|date:"d.m.Y H:i" }}</strong>{% endif %}
+            · Müşteri: {% if satis.musteri %}<strong>{{ satis.musteri.tam_ad }}</strong>{% else %}<strong>Perakende</strong>{% endif %}
+        </div>
+    </div>
+
+    {% if ozet.fatura_net != ozet.net_satir %}
+    <div class="alert alert-warning py-2 small mb-3">
+        Genel toplam ({{ ozet.fatura_net|turkish_currency }}) ile satır net toplamı ({{ ozet.net_satir|turkish_currency }}) farklı; üst kar genel toplama göredir.
+    </div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-lg">
+            <div class="card krl-kpi"><div class="card-body">
+                <div class="krl-kpi-label">Fatura neti</div>
+                <div class="krl-kpi-value text-primary">{{ ozet.fatura_net|turkish_currency }}</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <div class="card krl-kpi"><div class="card-body">
+                <div class="krl-kpi-label">Brüt (satır)</div>
+                <div class="krl-kpi-value">{{ ozet.brut|turkish_currency }}</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <div class="card krl-kpi"><div class="card-body">
+                <div class="krl-kpi-label">İndirim</div>
+                <div class="krl-kpi-value text-warning">{{ ozet.indirim|turkish_currency }}</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <div class="card krl-kpi"><div class="card-body">
+                <div class="krl-kpi-label">Maliyet</div>
+                <div class="krl-kpi-value text-secondary">{{ ozet.maliyet|turkish_currency }}</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <div class="card krl-kpi border-success border-opacity-25"><div class="card-body">
+                <div class="krl-kpi-label">Kar</div>
+                <div class="krl-kpi-value {% if ozet.kar >= 0 %}text-success{% else %}text-danger{% endif %}">{{ ozet.kar|turkish_currency }}</div>
+                <div class="small text-muted mt-1" title="Kar ÷ maliyet">Yüzdelik kar: {{ ozet.kar_orani|floatformat:2 }}%</div>
+                <div class="small text-muted" title="Kar ÷ fatura neti">Ciro marjı: {{ ozet.kar_orani_ciro_marji|floatformat:2 }}%</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card krl-table-card">
+        <div class="card-header bg-white py-3 border-bottom">
+            <span class="fw-semibold"><i class="fas fa-box-open me-2 text-secondary"></i>Kalem dökümü</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th><th>Ürün</th><th class="text-end">Miktar</th><th class="text-end">Birim alış</th>
+                        <th class="text-end">Brüt</th><th class="text-end">İndirim</th><th class="text-end">Net</th>
+                        <th class="text-end">Maliyet</th><th class="text-end">Kar</th>
+                        <th class="text-end" title="Maliyet üzeri">Kar %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in detay_satirlari %}
+                    {% with d=row.detay %}
+                    <tr>
+                        <td class="text-muted">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="krl-product-name">{{ d.urun.ad }}</div>
+                            <div class="krl-code">{% if d.urun.urun_kodu %}Kod: {{ d.urun.urun_kodu }}{% else %}Kod: —{% endif %}{% if row.varyant_etiket %} · {{ row.varyant_etiket }}{% endif %}</div>
+                        </td>
+                        <td class="krl-num">{{ d.miktar }}</td>
+                        <td class="krl-num">{{ row.birim_alis|turkish_currency }}</td>
+                        <td class="krl-num">{{ row.brut|turkish_currency }}</td>
+                        <td class="krl-num text-warning">{{ row.indirim|turkish_currency }}</td>
+                        <td class="krl-num fw-semibold">{{ row.net|turkish_currency }}</td>
+                        <td class="krl-num">{{ row.maliyet|turkish_currency }}</td>
+                        <td class="krl-num {% if row.kar >= 0 %}krl-kar-pos{% else %}krl-kar-neg{% endif %}">{{ row.kar|turkish_currency }}</td>
+                        <td class="krl-num {% if row.kar_orani >= 0 %}krl-kar-pos{% else %}krl-kar-neg{% endif %}">{{ row.kar_orani|floatformat:2 }}%</td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr><td colspan="10" class="text-center py-4 text-muted">Kalem yok.</td></tr>
+                    {% endfor %}
+                </tbody>
+                {% if detay_satirlari %}
+                <tfoot class="table-light">
+                    <tr class="fw-bold">
+                        <td colspan="2">Toplam (satırlar)</td>
+                        <td class="krl-num">—</td><td class="krl-num">—</td>
+                        <td class="krl-num">{{ ozet.brut|turkish_currency }}</td>
+                        <td class="krl-num text-warning">{{ ozet.indirim|turkish_currency }}</td>
+                        <td class="krl-num">{{ ozet.net_satir|turkish_currency }}</td>
+                        <td class="krl-num">{{ ozet.maliyet|turkish_currency }}</td>
+                        <td class="krl-num {% if ozet.kar_satir_toplam >= 0 %}krl-kar-pos{% else %}krl-kar-neg{% endif %}">{{ ozet.kar_satir_toplam|turkish_currency }}</td>
+                        <td class="krl-num {% if ozet.kar_orani_satir_maliyet >= 0 %}krl-kar-pos{% else %}krl-kar-neg{% endif %}">{{ ozet.kar_orani_satir_maliyet|floatformat:2 }}%</td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+
+    <p class="krl-footnote mt-3 mb-0">
+        Kar (TL) = genel toplam − maliyet. Yüzdelik kar = kar ÷ maliyet. Tablo altı Kar % = satır kar toplamı ÷ maliyet.
+    </p>
+</div>
+{% endblock %}

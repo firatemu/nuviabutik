@@ -151,7 +151,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="iade-fisi-container">
     <div class="container">
         <div class="row justify-content-center">
@@ -161,7 +161,7 @@
                     <div class="fis-header">
                         <h2><i class="fas fa-gift me-3"></i>İADE FİŞİ</h2>
                         <div class="fis-kod">{{ hediye_ceki.kod }}</div>
-                        <p class="mb-0">Bu fiş {{ hediye_ceki.tutar|floatformat:2 }} ₺ değerindedir</p>
+                        <p class="mb-0">Bu fiş {{ hediye_ceki.tutar|turkish_currency }} değerindedir</p>
                     </div>
                     
                     <!-- İçerik -->
@@ -177,12 +177,12 @@
                         
                         <div class="bilgi-satir">
                             <span class="bilgi-etiket">Toplam Tutar:</span>
-                            <span class="bilgi-deger tutar-highlight">{{ hediye_ceki.tutar|floatformat:2 }} ₺</span>
+                            <span class="bilgi-deger tutar-highlight">{{ hediye_ceki.tutar|turkish_currency }}</span>
                         </div>
                         
                         <div class="bilgi-satir">
                             <span class="bilgi-etiket">Kalan Tutar:</span>
-                            <span class="bilgi-deger">{{ hediye_ceki.kalan_tutar|floatformat:2 }} ₺</span>
+                            <span class="bilgi-deger">{{ hediye_ceki.kalan_tutar|turkish_currency }}</span>
                         </div>
                         
                         <div class="bilgi-satir">

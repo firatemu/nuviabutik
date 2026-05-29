@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}Yazıcı Ayarları | NUVIA PREMIUM WEAR{% endblock %}
+
+{% block page_content %}
+<div class="page-title">
+    <h2><i class="fas fa-print me-2"></i>Yazıcı Ayarları</h2>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Yazıcı Adı</label>
+                            <input type="text" name="yazici_ad" class="form-control" value="{{ ayarlar.yazici_ad }}" required>
+                            <small class="text-muted">Yazıcınızın adı (örn: Xprinter XP-470B)</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Yazıcı Tipi</label>
+                            <select name="yazici_tipi" class="form-select">
+                                <option value="Xprinter XP-470B" {% if ayarlar.yazici_tipi == 'Xprinter XP-470B' %}selected{% endif %}>Xprinter XP-470B</option>
+                                <option value="Xprinter XP-460B" {% if ayarlar.yazici_tipi == 'Xprinter XP-460B' %}selected{% endif %}>Xprinter XP-460B</option>
+                                <option value="Generic TSC" {% if ayarlar.yazici_tipi == 'Generic TSC' %}selected{% endif %}>Generic TSC</option>
+                                <option value="Generic ZPL" {% if ayarlar.yazici_tipi == 'Generic ZPL' %}selected{% endif %}>Generic ZPL</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Etiket Genişliği (mm)</label>
+                            <input type="number" name="etiket_genislik_mm" class="form-control" value="{{ ayarlar.etiket_genislik_mm }}" step="0.1" min="20" max="150">
+                            <small class="text-muted">Nuvia etiket: 54 mm</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Etiket Yüksekliği (mm)</label>
+                            <input type="number" name="etiket_yukseklik_mm" class="form-control" value="{{ ayarlar.etiket_yukseklik_mm }}" step="0.1" min="10" max="100">
+                            <small class="text-muted">Nuvia etiket: 40 mm</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Kopya Sayısı</label>
+                            <input type="number" name="kopya_sayisi" class="form-control" value="{{ ayarlar.kopya_sayisi }}" min="1" max="10">
+                            <small class="text-muted">Her yazdırmada kaç kopya çıksın?</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Print Agent Token</label>
+                            <input type="text" name="print_agent_token" class="form-control" value="{{ ayarlar.print_agent_token }}" placeholder="Token (opsiyonel)">
+                            <small class="text-muted">Local Agent için güvenlik token</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input type="checkbox" name="aktif" class="form-check-input" id="aktif" {% if ayarlar.aktif %}checked{% endif %}>
+                            <label class="form-check-label" for="aktif">Yazıcı Aktif</label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Kaydet
+                        </button>
+                        <button type="button" class="btn btn-success" id="btnTestYazdir">
+                            <i class="fas fa-print me-2"></i>Test Yazdır
+                        </button>
+                        <a href="{% url 'urun:etiket_tasarimci' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Etiket Tasarımcıya Dön
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Yazıcı Bilgileri</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>Önerilen Yazıcı:</strong></td>
+                        <td>Xprinter XP-470B</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Baskı Genişliği:</strong></td>
+                        <td>4" (101.6mm)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Çözünürlük:</strong></td>
+                        <td>203 DPI</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Bağlantı:</strong></td>
+                        <td>USB + Ethernet</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Komut Dili:</strong></td>
+                        <td>ZPL, ESC/POS</td>
+                    </tr>
+                </table>
+                
+                <hr>
+                
+                <h6><i class="fas fa-plug me-2"></i>Local Agent Kurulumu</h6>
+                <p class="small text-muted">
+                    Yazdırma işlemleri için Local Agent'ın bilgisayarınızda çalışıyor olması gerekir.
+                </p>
+                <a href="/static/downloads/NuviaButikPrintAgent.exe" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-download me-2"></i>Agent'ı İndir
+                </a>
+            </div>
+        </div>
+        
+        {% if ayarlar.son_test_tarihi %}
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6><i class="fas fa-check-circle text-success me-2"></i>Son Test</h6>
+                <p class="small text-muted mb-0">
+                    Son test: {{ ayarlar.son_test_tarihi|date:"d.m.Y H:i" }}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#btnTestYazdir').on('click', function() {
+        if (typeof window.nuviaBridge !== 'undefined') {
+            // Test ZPL
+            var testZpl = '^XA';
+            testZpl += '^PW400^LL300^LH0,0';
+            testZpl += '^FO10,10^ADN,18,10^FDNuviaButik^FS';
+            testZpl += '^FO10,40^ADN,12,8^FDTest Etiket^FS';
+            testZpl += '^FO10,70^BCN,30,Y,N,N^FD123456789012^FS';
+            testZpl += '^FO10,110^ADN,10,6^FD29.99 TL^FS';
+            testZpl += '^XZ';
+            
+            window.nuviaBridge.printLabel(testZpl);
+        } else {
+            Swal.fire('Uyarı', 'Yazdırma için Local Agent\'ı başlatın', 'warning');
+        }
+    });
+});
+</script>
+{% endblock %}

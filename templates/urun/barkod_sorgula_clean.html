@@ -2,7 +2,7 @@
 
 {% block title %}Barkod Sorgula{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -132,7 +132,7 @@
                                                 <tr>
                                                     <td><strong>Satış Fiyatı:</strong></td>
                                                     <td>
-                                                        <h5 class="text-success mb-0">{{ urun.satis_fiyati|floatformat:2 }} ₺</h5>
+                                                        <h5 class="text-success mb-0">{{ urun.pesin_fiyat|turkish_currency }}</h5>
                                                     </td>
                                                 </tr>
                                                 <tr>

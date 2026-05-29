@@ -72,7 +72,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid py-4">
     <!-- Header -->
     <div class="header-section">
@@ -97,7 +97,7 @@
     <!-- Arama Bölümü -->
     <div class="search-section">
         <form method="get" class="row g-3">
-            <div class="col-md-8">
+            <div class="col-md-6 col-lg-5">
                 <label class="form-label fw-bold">
                     <i class="fas fa-search me-2"></i>Satış Ara
                 </label>
@@ -105,8 +105,18 @@
                        name="search" value="{{ search_query }}" 
                        placeholder="Satış No, müşteri adı, soyadı veya telefon numarası ile arayın...">
             </div>
-            <div class="col-md-4 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary btn-lg me-2">
+            <div class="col-md-3 col-lg-2">
+                <label class="form-label fw-bold" for="id_per_page">Sayfa başına</label>
+                <select class="form-select form-select-lg" id="id_per_page" name="per_page" onchange="this.form.submit()">
+                    <option value="50" {% if per_page|default:100 == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page|default:100 == 100 %}selected{% endif %}>100</option>
+                    <option value="150" {% if per_page|default:100 == 150 %}selected{% endif %}>150</option>
+                    <option value="200" {% if per_page|default:100 == 200 %}selected{% endif %}>200</option>
+                    <option value="300" {% if per_page|default:100 == 300 %}selected{% endif %}>300</option>
+                </select>
+            </div>
+            <div class="col-md-3 col-lg-5 d-flex align-items-end gap-2 flex-wrap">
+                <button type="submit" class="btn btn-primary btn-lg">
                     <i class="fas fa-search"></i> Ara
                 </button>
                 <a href="{% url 'satis:iade_ana_sayfa' %}" class="btn btn-outline-secondary btn-lg">
@@ -130,7 +140,7 @@
                         </div>
                     </div>
                     <div class="text-end">
-                        <div class="tutar-bilgi">{{ satis.toplam_tutar|floatformat:2 }} ₺</div>
+                        <div class="tutar-bilgi">{{ satis.net_toplam_tutar|turkish_currency }}</div>
                         <small class="text-muted">{{ satis.satisdetay_set.count }} ürün</small>
                     </div>
                 </div>
@@ -168,7 +178,7 @@
                         "{{ search_query }}" araması için sonuç bulunamadı.
                         <br>Farklı bir arama terimi deneyin.
                     {% else %}
-                        Son 30 gün içinde tamamlanmış satış bulunmuyor.
+                        Tamamlanmış satış kaydı bulunmuyor.
                         <br>İade işlemi sadece tamamlanmış satışlar için yapılabilir.
                     {% endif %}
                 </p>
@@ -183,12 +193,12 @@
         <ul class="pagination justify-content-center">
             {% if page_obj.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">
+                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query|urlencode }}{% endif %}&per_page={{ per_page|default:100 }}">
                         <i class="fas fa-angle-double-left"></i>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}&per_page={{ per_page|default:100 }}">
                         <i class="fas fa-angle-left"></i>
                     </a>
                 </li>
@@ -201,19 +211,19 @@
                     </li>
                 {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                        <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}&per_page={{ per_page|default:100 }}">{{ num }}</a>
                     </li>
                 {% endif %}
             {% endfor %}
 
             {% if page_obj.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}&per_page={{ per_page|default:100 }}">
                         <i class="fas fa-angle-right"></i>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}&per_page={{ per_page|default:100 }}">
                         <i class="fas fa-angle-double-right"></i>
                     </a>
                 </li>
@@ -230,7 +240,7 @@
         <ul class="mb-0">
             <li>Sadece tamamlanmış satışlar iade edilebilir</li>
             <li>İade işlemi sonucunda hediye çeki oluşturulur</li>
-            <li>Son 30 gün içindeki satışlar görüntülenir</li>
+            <li>Tüm tamamlanmış satışlar listelenir; arama tüm geçmişe uygulanır</li>
             <li>Satış kartına tıklayarak iade işlemini başlatabilirsiniz</li>
         </ul>
     </div>

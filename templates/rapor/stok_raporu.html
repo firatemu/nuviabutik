@@ -17,7 +17,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Stok Raporu</h2>
@@ -276,11 +276,10 @@
                                 </span>
                             </td>
                             <td>
-                                <span class="text-primary fw-bold">{{ varyant.urun.alis_fiyati|floatformat:2 }} ₺</span>
+                                <span class="text-primary fw-bold">{{ varyant.urun.alis_fiyati|turkish_currency }}</span>
                             </td>
                             <td>
-                                <span class="text-success fw-bold">{{ varyant.urun.satis_fiyati|floatformat:2 }}
-                                    ₺</span>
+                                <span class="text-success fw-bold">{{ varyant.urun.satis_fiyati|turkish_currency }}</span>
                             </td>
                             <td>
                                 {% with kar_orani=varyant.urun.kar_orani %}

@@ -3,7 +3,7 @@
 
 {% block title %}Tahsilat Raporları{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
@@ -23,7 +23,7 @@
                                         <i class="fas fa-money-bill-wave fa-2x"></i>
                                     </div>
                                     <div>
-                                        <h4 class="mb-0">₺{{ bugün_tahsilat|floatformat:2 }}</h4>
+                                        <h4 class="mb-0">{{ bugün_tahsilat|turkish_currency }}</h4>
                                         <p class="mb-0">Bugünkü Tahsilat</p>
                                         <small class="opacity-75">{{ bugün }}</small>
                                     </div>
@@ -39,7 +39,7 @@
                                         <i class="fas fa-hand-holding-usd fa-2x"></i>
                                     </div>
                                     <div>
-                                        <h4 class="mb-0">₺{{ bu_ay_tahsilat|floatformat:2 }}</h4>
+                                        <h4 class="mb-0">{{ bu_ay_tahsilat|turkish_currency }}</h4>
                                         <p class="mb-0">Bu Ay Toplam</p>
                                         <small class="opacity-75">{{ bu_ay_başı|date:"F Y" }}</small>
                                     </div>
@@ -74,7 +74,7 @@
                                             <div class="progress-bar" style="width: 85%; background-color: {{ tip.renk }};"></div>
                                             {% endif %}
                                         </div>
-                                        <small class="text-muted">₺{{ tip.bu_ay_toplam|default:0|floatformat:2 }}</small>
+                                        <small class="text-muted">{{ tip.bu_ay_toplam|default:0|turkish_currency }}</small>
                                     </div>
                                 </div>
                                 {% empty %}
@@ -104,7 +104,7 @@
                                         {% endif %}
                                     </div>
                                     <div class="text-end">
-                                        <div class="fw-bold text-success">₺{{ tahsilat.tutar|floatformat:2 }}</div>
+                                        <div class="fw-bold text-success">{{ tahsilat.tutar|turkish_currency }}</div>
                                         <small class="text-muted">{{ tahsilat.get_odeme_tipi_display }}</small>
                                     </div>
                                 </div>
@@ -141,7 +141,7 @@
                                         </span>
                                     </div>
                                     <div class="text-end">
-                                        <div class="fw-bold text-primary">₺{{ satici.toplam_tahsilat|floatformat:2 }}</div>
+                                        <div class="fw-bold text-primary">{{ satici.toplam_tahsilat|turkish_currency }}</div>
                                         <small class="text-muted">{{ satici.tahsilat_adedi }} tahsilat</small>
                                     </div>
                                 </div>
@@ -179,7 +179,7 @@
                                                 <td class="text-center">
                                                     <span class="badge bg-info">{{ gun.adet }}</span>
                                                 </td>
-                                                <td class="text-end text-success fw-bold">₺{{ gun.toplam|default:0|floatformat:2 }}</td>
+                                                <td class="text-end text-success fw-bold">{{ gun.toplam|default:0|turkish_currency }}</td>
                                             </tr>
                                             {% empty %}
                                             <tr>

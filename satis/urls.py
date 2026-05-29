@@ -12,9 +12,11 @@ urlpatterns = [
     path('liste/', views.satis_listesi, name='liste'),
     path('<int:pk>/', views.satis_detay, name='detay'),
     path('<int:pk>/yazdır/', views.satis_yazdir, name='yazdir'),
+    path('<int:pk>/degisim-fisi/', views.satis_degisim_fisi, name='degisim_fisi'),
     
     # Satış işlemleri
     path('tamamla/', views.satis_tamamla, name='satis_tamamla'),
+    path('ping/', views.satis_ping, name='satis_ping'),
     path('<int:pk>/iptal/', views.satis_iptal, name='satis_iptal'),
     
     # İade işlemleri
@@ -52,6 +54,7 @@ urlpatterns = [
     path('ajax/sepetten-cikar/', views.sepetten_cikar, name='sepetten_cikar'),
     path('ajax/sepet-temizle/', views.sepet_temizle, name='sepet_temizle'),
     path('ajax/musteri-ara/', views.musteri_ara, name='musteri_ara'),
+    path('ajax/taksitli-fiyatlar/', views.taksitli_fiyatlar, name='taksitli_fiyatlar'),
     path('hediye-ceki-sorgula/', views.hediye_ceki_sorgula, name='hediye_ceki_sorgula'),
     path('ajax/yeni-siparis-no/', views.yeni_siparis_no, name='yeni_siparis_no'),
 ]

@@ -80,7 +80,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid py-4">
     <div class="report-header">
         <h2><i class="fas fa-calendar-day me-3"></i>{{ title }}</h2>
@@ -132,18 +132,18 @@
         
         <div class="stats-grid">
             <div class="stat-box">
-                <div class="stat-value positive">{{ gunluk_ozet.satis_tutari|floatformat:2 }} ₺</div>
+                <div class="stat-value positive">{{ gunluk_ozet.satis_tutari|turkish_currency }}</div>
                 <div class="stat-label">Toplam Satış</div>
                 <small class="text-muted">({{ gunluk_ozet.satis_adedi }} işlem)</small>
             </div>
             <div class="stat-box">
-                <div class="stat-value negative">{{ gunluk_ozet.iade_tutari|floatformat:2 }} ₺</div>
+                <div class="stat-value negative">{{ gunluk_ozet.iade_tutari|turkish_currency }}</div>
                 <div class="stat-label">Toplam İade</div>
                 <small class="text-muted">({{ gunluk_ozet.iade_adedi }} işlem)</small>
             </div>
             <div class="stat-box">
                 <div class="stat-value {% if gunluk_ozet.net_satis > 0 %}positive{% elif gunluk_ozet.net_satis < 0 %}negative{% else %}text-muted{% endif %}">
-                    {{ gunluk_ozet.net_satis|floatformat:2 }} ₺
+                    {{ gunluk_ozet.net_satis|turkish_currency }}
                 </div>
                 <div class="stat-label">Net Satış</div>
                 <small class="text-muted">
@@ -175,7 +175,7 @@
                         </small>
                     </div>
                     <div class="text-end">
-                        <strong class="positive">{{ satis.toplam_tutar|floatformat:2 }} ₺</strong>
+                        <strong class="positive">{{ satis.toplam_tutar|turkish_currency }}</strong>
                         <br>
                         <small class="text-muted">{{ satis.satisdetay_set.count }} kalem</small>
                     </div>
@@ -195,7 +195,7 @@
                         <small class="text-muted">{{ iade.olusturma_tarihi|date:"H:i" }}</small>
                     </div>
                     <div class="text-end">
-                        <strong class="negative">-{{ iade.tutar|floatformat:2 }} ₺</strong>
+                        <strong class="negative">-{{ iade.tutar|turkish_currency }}</strong>
                     </div>
                 </div>
             </div>

@@ -1,3 +1,4 @@
+{% load currency_filters %}
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -212,12 +213,12 @@
         </div>
         
         <div class="cek-tutar super-bold">
-            {{ hediye_ceki.tutar|floatformat:2 }} ₺
+            {{ hediye_ceki.tutar|turkish_currency }}
         </div>
         
         <div class="bilgi-satir">
             <span class="bilgi-label">KALAN TUTAR:</span>
-            <span class="bilgi-deger">{{ hediye_ceki.kalan_tutar|floatformat:2 }} ₺</span>
+            <span class="bilgi-deger">{{ hediye_ceki.kalan_tutar|turkish_currency }}</span>
         </div>
         
         <div class="bilgi-satir">

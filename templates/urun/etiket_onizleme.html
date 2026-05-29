@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Etiket Önizleme | NUVIA PREMIUM WEAR{% endblock %}
+
+{% block page_content %}
+<div class="page-title">
+    <h2><i class="fas fa-eye me-2"></i>Etiket Önizleme</h2>
+</div>
+
+<div class="card">
+    <div class="card-body text-center">
+        <div class="preview-wrapper" style="display: inline-block; background: white; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <div id="labelPreview" style="width: {{ sablon.genislik_mm }}px; height: {{ sablon.yukseklik_mm }}px; position: relative; background: white;">
+                <!-- Elementler buraya yüklenecek -->
+                {% for eleman in elemanlar %}
+                <div class="preview-element" style="position: absolute; left: {{ eleman.x }}px; top: {{ eleman.y }}px; width: {{ eleman.genislik }}px; height: {{ eleman.yukseklik }}px;">
+                    {% if eleman.eleman_tipi == 'metin' %}
+                    <div style="font-family: {{ eleman.font }}; font-size: {{ eleman.font_boyutu }}pt; color: {{ eleman.renk }}; display: flex; align-items: center; justify-content: center; text-align: center; width: 100%; height: 100%;">{{ eleman.icerik }}</div>
+                    {% elif eleman.eleman_tipi == 'barkod_1d' %}
+                    <svg class="barcode" style="width: 100%; height: 100%;"></svg>
+                    {% elif eleman.eleman_tipi == 'barkod_2d' %}
+                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f0f0f0;">
+                        <i class="fas fa-qrcode fa-2x"></i>
+                    </div>
+                    {% elif eleman.eleman_tipi == 'dikdortgen' %}
+                    <div style="width: 100%; height: 100%; border: 1px solid #000;"></div>
+                    {% elif eleman.eleman_tipi == 'cizgi' %}
+                    <div style="width: 100%; height: 2px; background: #000; margin-top: 50%;"></div>
+                    {% elif eleman.eleman_tipi == 'gorsel' %}
+                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f0f0f0; border: 1px dashed #ccc;">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center">
+    <a href="{% url 'urun:etiket_tasarimci' %}?sablon={{ sablon.id }}" class="btn btn-primary">
+        <i class="fas fa-edit me-2"></i>Düzenle
+    </a>
+    <a href="{% url 'urun:etiket_sablon_liste' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Geri Dön
+    </a>
+</div>
+{% endblock %}

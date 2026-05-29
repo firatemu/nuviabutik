@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Etiket Şablonları | NUVIA PREMIUM WEAR{% endblock %}
+
+{% block page_content %}
+<div class="page-title">
+    <h2><i class="fas fa-layer-group me-2"></i>Etiket Şablonları</h2>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Kayıtlı Şablonlar</h5>
+                <a href="{% url 'urun:etiket_tasarimci' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus me-2"></i>Yeni Şablon Oluştur
+                </a>
+            </div>
+            <div class="card-body">
+                {% if sablonlar %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Şablon Adı</th>
+                                <th>Boyut</th>
+                                <th>Kategori</th>
+                                <th>Varsayılan</th>
+                                <th>Oluşturan</th>
+                                <th>Güncelleme</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sablon in sablonlar %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'urun:etiket_tasarimci' %}?sablon={{ sablon.id }}">
+                                        <strong>{{ sablon.ad }}</strong>
+                                    </a>
+                                </td>
+                                <td>{{ sablon.genislik_mm }}x{{ sablon.yukseklik_mm }} mm</td>
+                                <td>{{ sablon.kategori.ad|default:"-" }}</td>
+                                <td>
+                                    {% if sablon.varsayilan %}
+                                    <span class="badge bg-success">Varsayılan</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ sablon.olusturan.get_full_name|default:sablon.olusturan.username }}</td>
+                                <td>{{ sablon.guncelleme_tarihi|date:"d.m.Y H:i" }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'urun:etiket_tasarimci' %}?sablon={{ sablon.id }}" class="btn btn-outline-primary" title="Düzenle">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'urun:etiket_onizleme' sablon.id %}" class="btn btn-outline-success" title="Önizle">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if not sablon.varsayilan %}
+                                        <button type="button" class="btn btn-outline-danger" title="Sil" onclick="silSablon({{ sablon.id }}, '{{ sablon.ad }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">Henüz şablon oluşturulmamış</h5>
+                    <p class="text-muted">Etiket tasarımcısından yeni şablonlar oluşturabilirsiniz.</p>
+                    <a href="{% url 'urun:etiket_tasarimci' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Yeni Şablon Oluştur
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-book me-2"></i>Şablon Kullanım Kılavuzu</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6><i class="fas fa-mouse-pointer me-2 text-primary"></i>Element Ekleme</h6>
+                        <p class="small text-muted">
+                            Sol panelden element tipini seçerek tasarım alanına ekleyebilirsiniz.
+                            Desteklenen elementler: Metin, 1D Barkod, QR Code, Logo, Dikdörtgen, Çizgi
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6><i class="fas fa-link me-2 text-success"></i>Veri Bağlama</h6>
+                        <p class="small text-muted">
+                            Elementlere dinamik veri bağlayabilirsiniz. {urun_ad}, {barkod}, {fiyat} gibi
+                            alanları kullanarak ürün bilgilerini otomatik doldurabilirsiniz.
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6><i class="fas fa-save me-2 text-warning"></i>Şablon Kaydetme</h6>
+                        <p class="small text-muted">
+                            Şablonunuzu kaydederek daha sonra kullanabilirsiniz. Varsayılan şablon
+                            ayarlayarak otomatik seçilmesini sağlayabilirsiniz.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function silSablon(id, ad) {
+    Swal.fire({
+        title: 'Şablonu Sil',
+        text: `"${ad}" şablonunu silmek istediğinize emin misiniz?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sil',
+        cancelButtonText: 'İptal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: `/urun/api/sablon/${id}/sil/`,
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                success: function(response) {
+                    Swal.fire('Silindi', 'Şablon başarıyla silindi.', 'success');
+                    location.reload();
+                },
+                error: function(xhr) {
+                    Swal.fire('Hata', 'Şablon silinemedi.', 'error');
+                }
+            });
+        }
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

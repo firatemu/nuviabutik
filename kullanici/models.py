@@ -10,6 +10,7 @@ class CustomUser(AbstractUser):
         ('admin', 'Sistem Yöneticisi'),
         ('manager', 'Mağaza Müdürü'),
         ('cashier', 'Kasiyer'),
+        ('satici', 'Satış Elemanı'),
         ('stock_clerk', 'Depo Sorumlusu'),
         ('viewer', 'Görüntüleme Yetkisi'),
     ]

@@ -3,7 +3,7 @@
 
 {% block title %}Barkod Sorgulama Sonucu{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-md-10">
@@ -47,7 +47,7 @@
                                         </tr>
                                         <tr>
                                             <td><strong>Satış Fiyatı:</strong></td>
-                                            <td><span class="text-success fw-bold">{{ sonuc.urun.satis_fiyati }} ₺</span></td>
+                                            <td><span class="text-success fw-bold">{{ sonuc.urun.pesin_fiyat }} ₺</span></td>
                                         </tr>
                                         <tr>
                                             <td><strong>Durum:</strong></td>

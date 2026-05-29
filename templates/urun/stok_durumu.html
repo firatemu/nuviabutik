@@ -3,7 +3,7 @@
 
 {% block title %}{{ title }}{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-warehouse"></i> {{ title }}</h2>
@@ -98,7 +98,7 @@
                                         <span class="badge bg-success">Normal</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ urun.satis_fiyati|turkish_currency }}</td>
+                                <td>{{ urun.pesin_fiyat|turkish_currency }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

@@ -47,6 +47,34 @@ def turkish_currency(value):
     except (ValueError, TypeError):
         return '0,00 ₺'
 
+@register.filter
+def turkish_int(value):
+    """
+    Tam sayı — binlik ayırıcı nokta (örn. 1500 -> 1.500)
+    """
+    if value is None or value == '':
+        return '0'
+    try:
+        if isinstance(value, Decimal):
+            n = int(value)
+        elif isinstance(value, (int, float)):
+            n = int(value)
+        else:
+            n = int(Decimal(str(value).replace(',', '.')))
+        is_negative = n < 0
+        n = abs(n)
+        s = str(n)
+        reversed_integer = s[::-1]
+        grouped = [reversed_integer[i:i + 3] for i in range(0, len(reversed_integer), 3)]
+        formatted_integer = '.'.join(grouped)[::-1]
+        result = formatted_integer
+        if is_negative:
+            result = f'-{result}'
+        return result
+    except (ValueError, TypeError, ArithmeticError):
+        return '0'
+
+
 @register.filter  
 def turkish_number(value):
     """

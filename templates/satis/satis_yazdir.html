@@ -1,3 +1,4 @@
+{% load currency_filters %}
 <!DOCTYPE html>
 <html lang="tr">
 
@@ -47,7 +48,7 @@
         .company-info {
             font-size: 11px;
             margin-bottom: 2px;
-            font-weight: normal;
+            font-weight: bold;
         }
 
         .separator {
@@ -223,22 +224,21 @@
 
         {% for item in satis.satisdetay_set.all %}
         <div class="item-row">
-            <div class="item-name">{{ item.urun.kategori.ad|default:"Kategori Yok" }}</div>
+            <div class="item-name">{{ item.urun.urun_kodu|default:"N/A" }} {{ item.urun.kategori.ad|default:"Kategori Yok" }}</div>
             <div class="item-details">
-                <span>{{ item.miktar|floatformat:0|default:"0" }} x {{ item.birim_fiyat|floatformat:2|default:"0.00" }}
-                    ₺</span>
+                <span>{{ item.miktar|default:0|turkish_int }} x {{ item.birim_fiyat|default:0|turkish_number }} ₺</span>
                 {% if item.indirim_tutari > 0 %}
-                <span>{{ item.indirimsiz_toplam|floatformat:2 }} ₺</span>
+                <span>{{ item.indirimsiz_toplam|turkish_currency }}</span>
                 {% else %}
-                <span>{{ item.toplam_fiyat|floatformat:2 }} ₺</span>
+                <span>{{ item.toplam_fiyat|turkish_currency }}</span>
                 {% endif %}
             </div>
             {% if item.indirim_tutari > 0 %}
             <div style="font-size: 14px; color: #000; margin-left: 10px; font-weight: bold;">
-                İndirim: -{{ item.indirim_tutari|floatformat:2 }} ₺
+                İndirim: -{{ item.indirim_tutari|turkish_currency }}
             </div>
             <div style="font-size: 14px; font-weight: bold; margin-left: 10px;">
-                Net: {{ item.toplam_fiyat|floatformat:2 }} ₺
+                Net: {{ item.toplam_fiyat|turkish_currency }}
             </div>
             {% endif %}
             {% if item.urun.barkod %}
@@ -252,33 +252,33 @@
     <div class="totals-section">
         <div class="total-row">
             <span>Ara Toplam:</span>
-            <span>{{ satis.ara_toplam|floatformat:2 }} ₺</span>
+            <span>{{ satis.ara_toplam|turkish_currency }}</span>
         </div>
 
         {% if toplam_urun_indirimi > 0 %}
         <div class="total-row">
             <span>Ürün İndirimleri:</span>
-            <span>-{{ toplam_urun_indirimi|floatformat:2 }} ₺</span>
+            <span>-{{ toplam_urun_indirimi|turkish_currency }}</span>
         </div>
         {% endif %}
 
         {% if genel_indirim > 0 %}
         <div class="total-row">
             <span>Genel İndirim:</span>
-            <span>-{{ genel_indirim|floatformat:2 }} ₺</span>
+            <span>-{{ genel_indirim|turkish_currency }}</span>
         </div>
         {% endif %}
 
         {% if satis.kdv_tutari > 0 %}
         <div class="total-row">
             <span>KDV (%{{ satis.kdv_orani|floatformat:0 }}):</span>
-            <span>{{ satis.kdv_tutari|floatformat:2 }} ₺</span>
+            <span>{{ satis.kdv_tutari|turkish_currency }}</span>
         </div>
         {% endif %}
 
         <div class="total-row grand-total">
             <span>GENEL TOPLAM:</span>
-            <span>{{ satis.genel_toplam|floatformat:2 }} ₺</span>
+            <span>{{ satis.genel_toplam|turkish_currency }}</span>
         </div>
     </div>
 
@@ -289,7 +289,7 @@
         {% for odeme in satis.odeme_set.all %}
         <div class="total-row">
             <span>{{ odeme.get_odeme_tipi_display }}:</span>
-            <span>{{ odeme.tutar|floatformat:2 }} ₺</span>
+            <span>{{ odeme.tutar|turkish_currency }}</span>
         </div>
         {% if odeme.odeme_tipi == 'kart' and odeme.taksit_sayisi and odeme.taksit_sayisi > 1 %}
         <div style="font-size: 14px; margin-left: 10px; color: #666;">
@@ -310,7 +310,7 @@
         {% if satis.para_ustu > 0 %}
         <div class="total-row" style="border-top: 1px dotted #000; padding-top: 2px;">
             <span>Para Üstü:</span>
-            <span>{{ satis.para_ustu|floatformat:2 }} ₺</span>
+            <span>{{ satis.para_ustu|turkish_currency }}</span>
         </div>
         {% endif %}
     </div>

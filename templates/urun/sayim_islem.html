@@ -1,9 +1,54 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load l10n %}
 
 {% block title %}{{ sayfa_baslik }} - Stok Yönetimi{% endblock %}
 
-{% block content %}
+{% block extra_css %}
+<style>
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-top: none;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        border-radius: 0 0 10px 10px;
+    }
+
+    .search-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .search-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .search-item:last-child {
+        border-bottom: none;
+    }
+
+    @media (max-width: 767.98px) {
+        .search-results {
+            max-height: 200px;
+            font-size: 0.9rem;
+        }
+
+        .search-item {
+            padding: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
 <div class="container-fluid">
     <!-- Başlık -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -30,27 +75,20 @@
                     <h5 class="card-title">
                         <i class="fas fa-search me-2"></i>Ürün Ara
                     </h5>
-                    
-                    <form method="post" class="mb-3">
-                        {% csrf_token %}
-                        <div class="input-group">
-                            <input type="text" 
-                                   class="form-control form-control-lg" 
-                                   name="arama_terimi" 
-                                   placeholder="Barkod numarası veya ürün adı girin..." 
-                                   value="{{ request.POST.arama_terimi }}"
-                                   autofocus>
-                            <button type="submit" name="arama" class="btn btn-primary">
-                                <i class="fas fa-search me-1"></i>Ara
-                            </button>
+
+                    <div class="mb-3">
+                        <div class="position-relative">
+                            <input type="text" id="urunAramaInput" class="form-control form-control-lg"
+                                placeholder="Barkod numarası veya ürün adı ile ara..." autofocus>
+                            <div id="aramaContainer" class="search-results" style="display: none;"></div>
                         </div>
-                    </form>
-                    
+                    </div>
+
                     {% if arama_yapildi and not varyant %}
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Aradığınız ürün bulunamadı. Lütfen barkod numarasını veya ürün adını kontrol edin.
-                        </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Aradığınız ürün bulunamadı. Lütfen barkod numarasını veya ürün adını kontrol edin.
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -100,7 +138,7 @@
 
                         <form method="post">
                             {% csrf_token %}
-                            <input type="hidden" name="varyant_id" value="{{ varyant.id }}">
+                            <input type="hidden" name="varyant_id" value="{{ varyant.id|unlocalize }}">
 
                             <div class="row">
                                 <div class="col-md-6">
@@ -112,10 +150,10 @@
                                         {% endif %}
                                     </label>
                                     <input type="number" class="form-control form-control-lg" id="miktar" name="miktar"
-                                        min="1" {% if islem_tipi=='eksik' %}max="{{ varyant.stok_miktari }}" {% endif %}
+                                        min="1" {% if islem_tipi == 'eksik' %}max="{{ varyant.stok_miktari|unlocalize }}" {% endif %}
                                         required>
                                     {% if islem_tipi == 'eksik' %}
-                                    <div class="form-text">Maksimum: {{ varyant.stok_miktari }} adet</div>
+                                    <div class="form-text">Maksimum: {{ varyant.stok_miktari|unlocalize }} adet</div>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6">
@@ -172,55 +210,113 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-<<<<<<< Updated upstream
-document.addEventListener('DOMContentLoaded', function() {
-    // Arama input'una otomatik odaklan
-    const aramInput = document.querySelector('input[name="arama_terimi"]');
-    if (aramInput) {
-        aramInput.focus();
-        
-        // Enter tuşu ile arama
-        aramInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.closest('form').submit();
+    $(document).ready(function () {
+        $('#urunAramaInput').on('input', function () {
+            var query = $(this).val().trim();
+            if (query.length >= 2) {
+                urunAra(query);
+            } else {
+                $('#aramaContainer').hide();
             }
         });
-    }
-    
-    // Miktar input'unda maksimum değer kontrolü
-    const miktarInput = document.querySelector('input[name="miktar"]');
-    if (miktarInput) {
-        miktarInput.addEventListener('input', function() {
-            const max = parseInt(this.getAttribute('max'));
-            const value = parseInt(this.value);
-            
-            if (max && value > max) {
-                this.value = max;
-            }
-        });
-    }
-});
-=======
-    document.addEventListener('DOMContentLoaded', function () {
-        // Arama input'una otomatik odaklan
-        // Arama input'u kaldırıldı
 
-        // Miktar input'unda maksimum değer kontrolü
-        const miktarInput = document.querySelector('input[name="miktar"]');
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest('#urunAramaInput, #aramaContainer').length) {
+                $('#aramaContainer').hide();
+            }
+        });
+
+        var miktarInput = document.querySelector('input[name="miktar"]');
         if (miktarInput) {
             miktarInput.addEventListener('input', function () {
-                const max = parseInt(this.getAttribute('max'));
-                const value = parseInt(this.value);
-
-                if (max && value > max) {
+                var maxAttr = this.getAttribute('max');
+                if (!maxAttr) return;
+                var max = parseInt(maxAttr, 10);
+                var value = parseInt(this.value, 10);
+                if (max && !isNaN(value) && value > max) {
                     this.value = max;
                 }
             });
         }
     });
->>>>>>> Stashed changes
+
+    function urunAra(query) {
+        $.get('{% url "urun:ajax_urun_ara" %}', { q: query })
+            .done(function (data) {
+                if (data.success && data.urunler.length > 0) {
+                    var html = '';
+                    data.urunler.forEach(function (urun) {
+                        html += '<div class="search-item" data-vid="' + urun.id + '" role="button">' +
+                            '<div class="d-flex justify-content-between align-items-start">' +
+                            '<div class="flex-grow-1">' +
+                            '<strong class="text-primary">' + $('<div>').text(urun.ad).html() + '</strong><br>' +
+                            '<div class="row g-0 mt-1"><div class="col-6"><small class="text-muted">' +
+                            '<i class="fas fa-barcode me-1"></i><strong>Barkod:</strong> ' + $('<div>').text(urun.barkod || '').html() + '<br>' +
+                            '<i class="fas fa-tag me-1"></i><strong>Kod:</strong> ' + $('<div>').text(urun.urun_kodu || 'N/A').html() +
+                            '</small></div><div class="col-6"><small class="text-muted">' +
+                            '<i class="fas fa-layer-group me-1"></i><strong>Kategori:</strong> ' + $('<div>').text(urun.kategori || '').html() + '<br>' +
+                            '<i class="fas fa-award me-1"></i><strong>Marka:</strong> ' + $('<div>').text(urun.marka || 'N/A').html() +
+                            '</small></div></div>' +
+                            '<div class="mt-1"><small class="text-info">' +
+                            '<i class="fas fa-palette me-1"></i><strong>Renk:</strong> ' + $('<div>').text(urun.renk || '').html() + ' | ' +
+                            '<i class="fas fa-ruler me-1"></i><strong>Beden:</strong> ' + $('<div>').text(urun.beden || '').html() +
+                            '</small></div></div>' +
+                            '<div class="text-end">' +
+                            '<div class="badge bg-success fs-6">₺' + $('<div>').text(String(urun.satis_fiyati)).html() + '</div>' +
+                            '<div class="mt-1"><small class="text-muted">' +
+                            '<i class="fas fa-boxes me-1"></i>Stok: ' + urun.stok_miktari +
+                            '</small></div></div></div></div>';
+                    });
+                    $('#aramaContainer').html(html).show();
+                    $('#aramaContainer .search-item').on('click', function () {
+                        urunSec($(this).data('vid'));
+                    });
+                } else {
+                    $('#aramaContainer').html('<div class="search-item">Ürün bulunamadı</div>').show();
+                }
+            })
+            .fail(function () {
+                $('#aramaContainer').html('<div class="search-item">Arama sırasında hata oluştu</div>').show();
+            });
+    }
+
+    function urunSec(varyantId) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = window.location.href;
+
+        var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            form.appendChild(csrfToken.cloneNode(true));
+        } else {
+            var metaCsrf = document.querySelector('meta[name="csrf-token"]');
+            if (metaCsrf && metaCsrf.content) {
+                var csrfInp = document.createElement('input');
+                csrfInp.type = 'hidden';
+                csrfInp.name = 'csrfmiddlewaretoken';
+                csrfInp.value = metaCsrf.content;
+                form.appendChild(csrfInp);
+            }
+        }
+
+        var aramaInput = document.createElement('input');
+        aramaInput.type = 'hidden';
+        aramaInput.name = 'arama';
+        aramaInput.value = '1';
+        form.appendChild(aramaInput);
+
+        var varyantInput = document.createElement('input');
+        varyantInput.type = 'hidden';
+        varyantInput.name = 'varyant_id';
+        varyantInput.value = String(parseInt(varyantId, 10));
+        form.appendChild(varyantInput);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
 </script>
 {% endblock %}

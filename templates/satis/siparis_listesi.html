@@ -3,7 +3,7 @@
 
 {% block title %}{{ title }}{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -34,7 +34,7 @@
                         </div>
                         <div class="col-md-3 col-sm-6 mb-3">
                             <div class="stat-card bg-success text-white">
-                                <div class="stat-number">₺{{ toplam_tutar|floatformat:2 }}</div>
+                                <div class="stat-number">{{ toplam_tutar|turkish_currency }}</div>
                                 <div class="stat-label">Toplam Tutar</div>
                             </div>
                         </div>
@@ -136,7 +136,7 @@
                                         {% endif %}
                                     </td>
                                     <td>{{ siparis.urun_sayisi }}</td>
-                                    <td class="text-success fw-bold">₺{{ siparis.genel_toplam|floatformat:2 }}</td>
+                                    <td class="text-success fw-bold">{{ siparis.genel_toplam|turkish_currency }}</td>
                                     <td>
                                         {% if siparis.durum == 'taslak' %}
                                         <span class="badge bg-secondary">{{ siparis.get_durum_display }}</span>

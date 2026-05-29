@@ -213,7 +213,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="page-container animate-fade-in">
     <div class="row justify-content-center">
         <div class="col-lg-8 col-xl-6">
@@ -236,7 +236,7 @@
                                         <option value="">Kasa Seçin</option>
                                         {% for kasa in kasalar %}
                                         <option value="{{ kasa.id }}" data-bakiye="{{ kasa.guncel_bakiye }}">
-                                            {{ kasa.ad }} - {{ kasa.guncel_bakiye|floatformat:2 }}₺
+                                            {{ kasa.ad }} - {{ kasa.guncel_bakiye|turkish_currency }}
                                         </option>
                                         {% endfor %}
                                     </select>

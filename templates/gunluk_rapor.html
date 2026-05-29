@@ -3,7 +3,7 @@
 
 {% block title %}Günlük Rapor{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-chart-line"></i> Günlük Rapor</h2>
@@ -32,7 +32,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body text-center">
                     <h5><i class="fas fa-lira-sign"></i> Toplam Satış</h5>
-                    <h3>{{ satis_ozeti.toplam_satis_tutari|floatformat:2 }} ₺</h3>
+                    <h3>{{ satis_ozeti.toplam_satis_tutari|turkish_currency }}</h3>
                     <small>{{ satis_ozeti.toplam_satis_sayisi }} adet satış</small>
                 </div>
             </div>
@@ -41,7 +41,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body text-center">
                     <h5><i class="fas fa-money-bill-wave"></i> Toplam Gider</h5>
-                    <h3>{{ gider_ozeti.toplam_gider_tutari|floatformat:2 }} ₺</h3>
+                    <h3>{{ gider_ozeti.toplam_gider_tutari|turkish_currency }}</h3>
                     <small>{{ gider_ozeti.toplam_gider_sayisi }} adet gider</small>
                 </div>
             </div>
@@ -50,7 +50,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body text-center">
                     <h5><i class="fas fa-chart-pie"></i> Net Kar</h5>
-                    <h3>{{ net_kar|floatformat:2 }} ₺</h3>
+                    <h3>{{ net_kar|turkish_currency }}</h3>
                     <small>Gider çıkarıldıktan sonra</small>
                 </div>
             </div>
@@ -59,7 +59,7 @@
             <div class="card bg-info text-white">
                 <div class="card-body text-center">
                     <h5><i class="fas fa-calculator"></i> Brüt Kar</h5>
-                    <h3>{{ brut_kar|floatformat:2 }} ₺</h3>
+                    <h3>{{ brut_kar|turkish_currency }}</h3>
                     <small>Gider hariç</small>
                 </div>
             </div>
@@ -74,7 +74,7 @@
                     <h6 class="mb-0"><i class="fas fa-money-bill"></i> Nakit Satışlar</h6>
                 </div>
                 <div class="card-body text-center">
-                    <h4>{{ nakit_satislar.toplam|floatformat:2 }} ₺</h4>
+                    <h4>{{ nakit_satislar.toplam|turkish_currency }}</h4>
                     <small class="text-muted">{{ nakit_satislar.adet }} adet</small>
                 </div>
             </div>
@@ -85,7 +85,7 @@
                     <h6 class="mb-0"><i class="fas fa-credit-card"></i> Kart Satışları</h6>
                 </div>
                 <div class="card-body text-center">
-                    <h4>{{ kart_satislar.toplam|floatformat:2 }} ₺</h4>
+                    <h4>{{ kart_satislar.toplam|turkish_currency }}</h4>
                     <small class="text-muted">{{ kart_satislar.adet }} adet</small>
                 </div>
             </div>
@@ -96,7 +96,7 @@
                     <h6 class="mb-0"><i class="fas fa-gift"></i> Hediye Çeki</h6>
                 </div>
                 <div class="card-body text-center">
-                    <h4>{{ hediye_ceki_satislar.toplam|floatformat:2 }} ₺</h4>
+                    <h4>{{ hediye_ceki_satislar.toplam|turkish_currency }}</h4>
                     <small class="text-muted">{{ hediye_ceki_satislar.adet }} adet</small>
                 </div>
             </div>
@@ -126,7 +126,7 @@
                                     <tr>
                                         <td>{{ item.urun.ad }}</td>
                                         <td><span class="badge bg-primary">{{ item.toplam_miktar }}</span></td>
-                                        <td>{{ item.toplam_ciro|floatformat:2 }} ₺</td>
+                                        <td>{{ item.toplam_ciro|turkish_currency }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -161,7 +161,7 @@
                                     <tr>
                                         <td>{{ satis.satis_tarihi|time:'H:i' }}</td>
                                         <td>{{ satis.musteri.ad_soyad|default:"Perakende" }}</td>
-                                        <td>{{ satis.toplam_tutar|floatformat:2 }} ₺</td>
+                                        <td>{{ satis.toplam_tutar|turkish_currency }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -199,12 +199,12 @@
                                 {% for kasa_item in kasa_durumu %}
                                 <tr>
                                     <td><strong>{{ kasa_item.kasa.ad }}</strong></td>
-                                    <td class="text-success">+{{ kasa_item.gunluk_giris|floatformat:2 }} ₺</td>
-                                    <td class="text-danger">-{{ kasa_item.gunluk_cikis|floatformat:2 }} ₺</td>
+                                    <td class="text-success">+{{ kasa_item.gunluk_giris|turkish_currency }}</td>
+                                    <td class="text-danger">-{{ kasa_item.gunluk_cikis|turkish_currency }}</td>
                                     <td class="{% if kasa_item.gunluk_net >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                        {{ kasa_item.gunluk_net|floatformat:2 }} ₺
+                                        {{ kasa_item.gunluk_net|turkish_currency }}
                                     </td>
-                                    <td><strong>{{ kasa_item.mevcut_bakiye|floatformat:2 }} ₺</strong></td>
+                                    <td><strong>{{ kasa_item.mevcut_bakiye|turkish_currency }}</strong></td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -241,7 +241,7 @@
                                     <td>{{ gider.tarih|time:'H:i' }}</td>
                                     <td>{{ gider.kategori.ad }}</td>
                                     <td>{{ gider.aciklama }}</td>
-                                    <td class="text-danger">{{ gider.tutar|floatformat:2 }} ₺</td>
+                                    <td class="text-danger">{{ gider.tutar|turkish_currency }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

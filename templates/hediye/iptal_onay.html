@@ -33,7 +33,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -60,8 +60,8 @@
                                 <h5 class="mb-2">{{ hediye_ceki.kod }}</h5>
                                 <div class="row">
                                     <div class="col-sm-6">
-                                        <strong>Tutar:</strong> {{ hediye_ceki.tutar|floatformat:2 }} ₺<br>
-                                        <strong>Kalan:</strong> {{ hediye_ceki.kalan_tutar|floatformat:2 }} ₺
+                                        <strong>Tutar:</strong> {{ hediye_ceki.tutar|turkish_currency }}<br>
+                                        <strong>Kalan:</strong> {{ hediye_ceki.kalan_tutar|turkish_currency }}
                                     </div>
                                     <div class="col-sm-6">
                                         <strong>Müşteri:</strong> 
@@ -93,7 +93,7 @@
                             <li>Bu işlem sistem kayıtlarında saklanacak</li>
                             <li>İptal edilen hediye çeki rapor ve listelerde "İptal Edilmiş" olarak görünecek</li>
                             {% if hediye_ceki.kalan_tutar != hediye_ceki.tutar %}
-                            <li class="text-danger"><strong>Bu hediye çeki daha önce {{ hediye_ceki.tutar|add:hediye_ceki.kalan_tutar|mul:-1|floatformat:2 }} ₺ kullanılmış</strong></li>
+                            <li class="text-danger"><strong>Bu hediye çeki daha önce {{ hediye_ceki.tutar|add:hediye_ceki.kalan_tutar|mul:-1|turkish_currency }} kullanılmış</strong></li>
                             {% endif %}
                         </ul>
                     </div>

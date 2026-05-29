@@ -3,7 +3,7 @@
 
 {% block title %}{{ title }}{% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>{{ title }}</h2>
@@ -30,12 +30,12 @@
                             <td>{{ forloop.counter }}</td>
                             <td>{{ item.urun__ad }}</td>
                             <td>{{ item.urun__barkod }}</td>
-                            <td>{{ item.urun__satis_fiyati|floatformat:2 }} ₺</td>
+                            <td>{{ item.urun__satis_fiyati|turkish_currency }}</td>
                             <td>
                                 <span class="badge bg-primary">{{ item.toplam_miktar }}</span>
                             </td>
                             <td>
-                                <span class="fw-bold text-success">{{ item.toplam_tutar|floatformat:2 }} ₺</span>
+                                <span class="fw-bold text-success">{{ item.toplam_tutar|turkish_currency }}</span>
                             </td>
                         </tr>
                         {% empty %}
@@ -65,7 +65,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body text-center">
                     <h5>En Yüksek Ciro</h5>
-                    <h3>{{ en_cok_satanlar.0.toplam_tutar|floatformat:2 }} ₺</h3>
+                    <h3>{{ en_cok_satanlar.0.toplam_tutar|turkish_currency }}</h3>
                     <p>{{ en_cok_satanlar.0.urun__ad|truncatechars:20 }}</p>
                 </div>
             </div>

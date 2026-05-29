@@ -88,7 +88,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -208,7 +208,7 @@
                                 </div>
                                 {% if odeme.odeme_tipi == 'kart' and odeme.taksit_sayisi %}
                                 <div class="col-12 mb-2">
-                                    <strong>Taksit:</strong> {{ odeme.taksit_sayisi }} x {{ odeme.taksit_tutari|floatformat:2 }} ₺
+                                    <strong>Taksit:</strong> {{ odeme.taksit_sayisi }} x {{ odeme.taksit_tutari|turkish_currency }}
                                 </div>
                                 {% endif %}
                                 {% if odeme.hediye_ceki_kodu %}
@@ -218,12 +218,12 @@
                                 {% endif %}
                                 {% if odeme.para_ustu > 0 %}
                                 <div class="col-12 mb-2">
-                                    <strong>Para Üstü:</strong> {{ odeme.para_ustu|floatformat:2 }} ₺
+                                    <strong>Para Üstü:</strong> {{ odeme.para_ustu|turkish_currency }}
                                 </div>
                                 {% endif %}
                                 <div class="col-12">
                                     <div class="payment-amount text-center">
-                                        {{ odeme.tutar|floatformat:2 }} ₺
+                                        {{ odeme.tutar|turkish_currency }}
                                     </div>
                                 </div>
                             </div>
@@ -314,7 +314,7 @@
                                         </span>
                                     </td>
                                     <td class="text-end">
-                                        <strong class="text-success">{{ odeme.tutar|floatformat:2 }} ₺</strong>
+                                        <strong class="text-success">{{ odeme.tutar|turkish_currency }}</strong>
                                     </td>
                                     <td class="text-center">
                                         {% if odeme.odeme_tipi == 'kart' and odeme.taksit_sayisi %}
@@ -322,7 +322,7 @@
                                         {% elif odeme.hediye_ceki_kodu %}
                                             <small>{{ odeme.hediye_ceki_kodu }}</small>
                                         {% elif odeme.para_ustu > 0 %}
-                                            <small>Üstü: {{ odeme.para_ustu|floatformat:2 }} ₺</small>
+                                            <small>Üstü: {{ odeme.para_ustu|turkish_currency }}</small>
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
@@ -357,7 +357,7 @@
                             <tfoot>
                                 <tr class="fw-bold bg-light">
                                     <td colspan="4" class="text-end">Bu Sayfadaki Toplam Tutar:</td>
-                                    <td class="text-end">{{ sayfa_toplam_tutar|floatformat:2 }} TL</td>
+                                    <td class="text-end">{{ sayfa_toplam_tutar|turkish_currency }}</td>
                                     <td></td>
                                 </tr>
                             </tfoot>
@@ -422,7 +422,7 @@
                         <div class="col-md-3">
                             <div class="card bg-primary text-white">
                                 <div class="card-body">
-                                    <h4>{{ toplam_tutar|floatformat:2 }} ₺</h4>
+                                    <h4>{{ toplam_tutar|turkish_currency }}</h4>
                                     <p>Toplam Tutar</p>
                                 </div>
                             </div>
@@ -438,7 +438,7 @@
                         <div class="col-md-3">
                             <div class="card bg-warning text-white">
                                 <div class="card-body">
-                                    <h4>{{ bugun_toplam|floatformat:2 }} ₺</h4>
+                                    <h4>{{ bugun_toplam|turkish_currency }}</h4>
                                     <p>Bugünkü Tutar</p>
                                 </div>
                             </div>

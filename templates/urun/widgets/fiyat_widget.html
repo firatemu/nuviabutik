@@ -1,0 +1,80 @@
+{% comment %}
+Fiyat Widget - Peşin ve Taksitli Fiyat Gösterimi
+Kullanım: {% include 'urun/widgets/fiyat_widget.html' with urun=urun %}
+{% endcomment %}
+{% load currency_filters %}
+
+<div class="fiyat-widget"
+    style="background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+
+    <!-- Başlık -->
+    <div style="text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+        <h4 style="margin: 0; color: #333; font-size: 16px;">Fiyat Seçenekleri</h4>
+    </div>
+
+    <!-- Peşin Fiyat -->
+    <div class="pesin-secim"
+        style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #4CAF50; border-radius: 10px; padding: 15px; margin-bottom: 12px; position: relative;">
+        <div
+            style="position: absolute; top: -10px; right: 10px; background: #4CAF50; color: white; padding: 3px 12px; border-radius: 15px; font-size: 11px; font-weight: bold;">
+            ÖNERİLEN
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div style="color: #666; font-size: 12px; margin-bottom: 5px;">
+                    💵 PEŞİN ÖDEME
+                </div>
+                <div style="font-size: 28px; font-weight: bold; color: #2e7d32;">
+                    {{ urun.pesin_fiyat|turkish_currency }}
+                </div>
+                <div style="color: #666; font-size: 11px; margin-top: 3px;">
+                    Nakit / Havale ile
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="background: #fff; border: 2px dashed #4CAF50; border-radius: 8px; padding: 8px 12px;">
+                    <div style="font-size: 11px; color: #666;">KAZANÇ</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #4CAF50;">
+                        {{ urun.fiyat_farki|turkish_currency }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Taksitli Fiyat -->
+    <div class="taksitli-secim"
+        style="background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%); border: 2px solid #FF9800; border-radius: 10px; padding: 15px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div style="color: #666; font-size: 12px; margin-bottom: 5px;">
+                    💳 TAKSİTLİ ÖDEME
+                </div>
+                <div style="font-size: 28px; font-weight: bold; color: #e65100;">
+                    {{ urun.taksitli_fiyat|turkish_currency }}
+                </div>
+                <div style="color: #666; font-size: 11px; margin-top: 3px;">
+                    Kredi kartı ile
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="background: #fff; border-radius: 8px; padding: 8px 12px;">
+                    <div style="font-size: 11px; color: #666;">9 TAKSİT</div>
+                    <div style="font-size: 14px; font-weight: bold; color: #FF9800;">
+                        {{ urun.taksitli_fiyat|turkish_currency }}/ay
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bilgi Notu -->
+    <div
+        style="margin-top: 12px; padding: 10px; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 0 5px 5px 0;">
+        <div style="font-size: 12px; color: #1565c0;">
+            <strong>💡 İpucu:</strong> Peşin ödeme yaparak <strong>%{{ urun.taksit_orani|floatformat:0 }}</strong>
+            tasarruf edin!
+        </div>
+    </div>
+</div>

@@ -126,39 +126,59 @@ class Musteri(models.Model):
         son_tahsilat = self.tahsilat_set.filter(durum='tahsil_edildi').first()
         return son_tahsilat.tahsilat_tarihi if son_tahsilat else None
     
-    def borc_hareket_ekle(self, tutar, aciklama, satis_id=None, user=None):
+    def borc_hareket_ekle(self, tutar, aciklama, satis_id=None, user=None, tarih=None):
         """Borç hareketi ekle"""
         onceki_bakiye = self.acik_hesap_bakiye
         self.acik_hesap_bakiye += tutar
         self.save()
         
-        BorcAlacakHareket.objects.create(
-            musteri=self,
-            hareket_tipi='borc',
-            tutar=tutar,
-            satis_id=satis_id,
-            onceki_bakiye=onceki_bakiye,
-            yeni_bakiye=self.acik_hesap_bakiye,
-            aciklama=aciklama,
-            islem_yapan=user
-        )
+        create_params = {
+            'musteri': self,
+            'hareket_tipi': 'borc',
+            'tutar': tutar,
+            'satis_id': satis_id,
+            'onceki_bakiye': onceki_bakiye,
+            'yeni_bakiye': self.acik_hesap_bakiye,
+            'aciklama': aciklama,
+            'islem_yapan': user
+        }
+        if tarih:
+            create_params['hareket_tarihi'] = tarih
+            
+        BorcAlacakHareket.objects.create(**create_params)
     
-    def alacak_hareket_ekle(self, tutar, aciklama, tahsilat=None, user=None):
+    def alacak_hareket_ekle(self, tutar, aciklama, tahsilat=None, user=None, tarih=None):
         """Alacak (tahsilat) hareketi ekle"""
         onceki_bakiye = self.acik_hesap_bakiye
         self.acik_hesap_bakiye -= tutar
         self.save()
         
-        BorcAlacakHareket.objects.create(
-            musteri=self,
-            hareket_tipi='alacak',
-            tutar=tutar,
-            tahsilat=tahsilat,
-            onceki_bakiye=onceki_bakiye,
-            yeni_bakiye=self.acik_hesap_bakiye,
-            aciklama=aciklama,
-            islem_yapan=user
-        )
+        create_params = {
+            'musteri': self,
+            'hareket_tipi': 'alacak',
+            'tutar': tutar,
+            'tahsilat': tahsilat,
+            'onceki_bakiye': onceki_bakiye,
+            'yeni_bakiye': self.acik_hesap_bakiye,
+            'aciklama': aciklama,
+            'islem_yapan': user
+        }
+        if tarih:
+            create_params['hareket_tarihi'] = tarih
+            
+        BorcAlacakHareket.objects.create(**create_params)
+
+    def bakiye_yeniden_hesapla(self):
+        """Cari bakiyeyi tüm hareketlerden yeniden hesapla (düzeltme sonrası tutarlılık)."""
+        from decimal import Decimal
+        bakiye = Decimal('0')
+        for h in BorcAlacakHareket.objects.filter(musteri=self).order_by('hareket_tarihi', 'id'):
+            if h.hareket_tipi == 'borc':
+                bakiye += h.tutar
+            else:
+                bakiye -= h.tutar
+        self.acik_hesap_bakiye = bakiye
+        self.save(update_fields=['acik_hesap_bakiye', 'guncelleme_tarihi'])
 
 
 class MusteriGruplar(models.Model):
@@ -257,10 +277,8 @@ class Tahsilat(models.Model):
             count = Tahsilat.objects.filter(olusturma_tarihi__date=today).count() + 1
             self.tahsilat_no = f"T{today.strftime('%Y%m%d')}{count:04d}"
         
-        # İlk kayıt ise müşteri bakiyesini güncelle
-        if not self.pk and self.durum == 'tahsil_edildi':
-            self.musteri.acik_hesap_bakiye -= self.tutar
-            self.musteri.save()
+        # NOT: Bakiye güncellemesi alacak_hareket_ekle() metodu ile view'da yapılıyor
+        # Bu sebeple burada bakiye güncellenmez (çift kayıt önlenir)
         
         super().save(*args, **kwargs)
 
@@ -303,7 +321,7 @@ class BorcAlacakHareket(models.Model):
     aciklama = models.TextField(verbose_name="Açıklama")
     
     # Tarih ve kullanıcı
-    hareket_tarihi = models.DateTimeField(auto_now_add=True, verbose_name="Hareket Tarihi")
+    hareket_tarihi = models.DateTimeField(default=timezone.now, verbose_name="Hareket Tarihi")
     islem_yapan = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name="İşlem Yapan")
     
     class Meta:

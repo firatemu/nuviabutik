@@ -1,501 +1,937 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Müşteri Listesi - Nuvia Otomasyon{% endblock %}
+{% block title %}Müşteri Yönetimi - Nuvia{% endblock %}
 
 {% block extra_css %}
 <style>
-    .customer-card {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        padding: 25px;
-        margin-bottom: 20px;
-        transition: all 0.3s ease;
-        border-left: 5px solid #3498db;
+    :root {
+        --primary: #667eea;
+        --primary-dark: #5a67d8;
+        --success: #48bb78;
+        --danger: #f56565;
+        --warning: #ed8936;
+        --info: #4299e1;
+        --dark: #2d3748;
+        --light: #f7fafc;
+        --border: #e2e8f0;
+        --shadow: 0 2px 8px rgba(0,0,0,0.08);
+        --shadow-hover: 0 4px 16px rgba(0,0,0,0.12);
     }
-    
-    .customer-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+
+    * {
+        box-sizing: border-box;
     }
-    
-    .customer-card.kurumsal {
-        border-left-color: #e67e22;
+
+    body {
+        background: var(--light);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-    
-    .customer-header {
-        display: flex;
-        justify-content: between;
-        align-items: center;
-        margin-bottom: 15px;
-        flex-wrap: wrap;
-    }
-    
-    .customer-name {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin: 0;
-        flex: 1;
-    }
-    
-    .customer-type {
-        font-size: 0.85rem;
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .customer-type.bireysel {
-        background: #e8f5e8;
-        color: #27ae60;
-    }
-    
-    .customer-type.kurumsal {
-        background: #fdf2e9;
-        color: #e67e22;
-    }
-    
-    .customer-details {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 15px;
-        margin-bottom: 15px;
-    }
-    
-    .detail-item {
-        display: flex;
-        align-items: center;
-        padding: 8px 0;
-    }
-    
-    .detail-item i {
-        width: 20px;
-        margin-right: 10px;
-        color: #7f8c8d;
-    }
-    
-    .detail-item span {
-        color: #34495e;
-        font-weight: 500;
-    }
-    
-    .customer-actions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        margin-top: 15px;
-        padding-top: 15px;
-        border-top: 1px solid #ecf0f1;
-    }
-    
-    .btn-sm {
-        padding: 6px 12px;
-        font-size: 0.875rem;
-        border-radius: 6px;
-        font-weight: 500;
-    }
-    
-    .search-container {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        padding: 25px;
-        margin-bottom: 25px;
-    }
-    
-    .search-form {
-        display: flex;
-        gap: 15px;
-        align-items: end;
-        flex-wrap: wrap;
-    }
-    
-    .search-input {
-        flex: 1;
-        min-width: 250px;
-    }
-    
-    .stats-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 25px;
-    }
-    
-    .stat-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        border-top: 4px solid #3498db;
-    }
-    
-    .stat-number {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin-bottom: 5px;
-    }
-    
-    .stat-label {
-        color: #7f8c8d;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.9rem;
-        letter-spacing: 0.5px;
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #95a5a6;
-    }
-    
-    .empty-state i {
-        font-size: 4rem;
-        margin-bottom: 20px;
-        color: #bdc3c7;
-    }
-    
-    .pagination-container {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        margin-top: 25px;
-    }
-    
+
+    /* Page Header */
     .page-header {
         display: flex;
-        justify-content: between;
+        justify-content: space-between;
         align-items: center;
-        margin-bottom: 25px;
-        flex-wrap: wrap;
-        gap: 15px;
+        padding: 1.5rem 2rem;
+        background: white;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 1.5rem;
     }
-    
+
     .page-title {
-        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.5rem;
         font-weight: 700;
+        color: var(--dark);
+        margin: 0;
+    }
+
+    .page-title i {
+        color: var(--primary);
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .btn-action {
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+        font-size: 0.9375rem;
+    }
+
+    .btn-action.primary {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-action.primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .btn-action.secondary {
+        background: white;
+        color: var(--dark);
+        border: 2px solid var(--border);
+    }
+
+    .btn-action.secondary:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    /* Container */
+    .container-fluid {
+        padding: 0 2rem 2rem 2rem;
+    }
+
+    /* Summary Cards */
+    .summary-section {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: var(--shadow);
+        transition: all 0.3s;
+        border-left: 4px solid var(--primary);
+    }
+
+    .summary-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-hover);
+    }
+
+    .summary-card.total { border-left-color: var(--primary); }
+    .summary-card.borclu { border-left-color: var(--danger); }
+    .summary-card.alacakli { border-left-color: var(--success); }
+    .summary-card.aktif { border-left-color: var(--info); }
+
+    .summary-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+
+    .summary-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.125rem;
+    }
+
+    .summary-card.total .summary-icon {
+        background: rgba(102, 126, 234, 0.1);
+        color: var(--primary);
+    }
+
+    .summary-card.borclu .summary-icon {
+        background: rgba(245, 101, 101, 0.1);
+        color: var(--danger);
+    }
+
+    .summary-card.alacakli .summary-icon {
+        background: rgba(72, 187, 120, 0.1);
+        color: var(--success);
+    }
+
+    .summary-card.aktif .summary-icon {
+        background: rgba(66, 153, 225, 0.1);
+        color: var(--info);
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.8125rem;
+        color: #718096;
+    }
+
+    /* Filter Section */
+    .filter-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow);
+    }
+
+    .filter-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr auto;
+        gap: 0.75rem;
+        align-items: center;
+    }
+
+    .search-box {
+        position: relative;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 2.75rem;
+        border: 2px solid var(--border);
+        border-radius: 8px;
+        font-size: 0.9375rem;
+        transition: all 0.2s;
+    }
+
+    .search-box input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #a0aec0;
+    }
+
+    .filter-select {
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--border);
+        border-radius: 8px;
+        font-size: 0.9375rem;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .filter-select:focus {
+        border-color: var(--primary);
+        outline: none;
+    }
+
+    .btn-filter {
+        padding: 0.75rem 1.5rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-filter:hover {
+        background: var(--primary-dark);
+    }
+
+    .btn-clear {
+        padding: 0.75rem 1rem;
+        background: var(--light);
+        color: #718096;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-clear:hover {
+        background: var(--border);
+    }
+
+    /* Table Card */
+    .table-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .table-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--dark);
         margin: 0;
         display: flex;
         align-items: center;
+        gap: 0.5rem;
     }
-    
-    .page-title i {
-        margin-right: 12px;
-        color: #3498db;
+
+    .table-title i {
+        color: var(--primary);
     }
-    
-    .add-customer-btn {
-        background: linear-gradient(135deg, #27ae60, #2ecc71);
-        border: none;
-        padding: 12px 25px;
-        border-radius: 8px;
-        color: white;
+
+    .table-count {
+        background: var(--light);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8125rem;
+        color: #718096;
+    }
+
+    /* Table */
+    .data-table {
+        width: 100%;
+        margin: 0;
+        border-collapse: collapse;
+    }
+
+    .data-table thead {
+        background: var(--light);
+    }
+
+    .data-table thead th {
+        padding: 1rem 1.25rem;
         font-weight: 600;
-        text-decoration: none;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #718096;
+        border-bottom: 2px solid var(--border);
+        text-align: left;
+    }
+
+    .data-table tbody tr {
+        transition: background 0.15s;
+        cursor: pointer;
+    }
+
+    .data-table tbody tr:hover {
+        background: rgba(102, 126, 234, 0.03);
+    }
+
+    .data-table tbody tr.selected {
+        background: rgba(102, 126, 234, 0.08);
+    }
+
+    .data-table tbody td {
+        padding: 1rem 1.25rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* Customer Cell */
+    .customer-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .customer-name {
+        font-weight: 600;
+        color: var(--dark);
+        margin-bottom: 0.25rem;
+    }
+
+    .customer-detail {
+        font-size: 0.8125rem;
+        color: #718096;
+    }
+
+    /* Badges */
+    .type-badge {
         display: inline-flex;
         align-items: center;
-        transition: all 0.3s ease;
+        gap: 0.35rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        font-weight: 500;
     }
-    
-    .add-customer-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
-        color: white;
+
+    .type-badge.bireysel {
+        background: rgba(102, 126, 234, 0.1);
+        color: var(--primary);
+    }
+
+    .type-badge.kurumsal {
+        background: rgba(72, 187, 120, 0.1);
+        color: var(--success);
+    }
+
+    .balance-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+    }
+
+    .balance-badge.positive {
+        background: rgba(245, 101, 101, 0.1);
+        color: var(--danger);
+    }
+
+    .balance-badge.negative {
+        background: rgba(72, 187, 120, 0.1);
+        color: var(--success);
+    }
+
+    .balance-badge.zero {
+        background: var(--light);
+        color: #718096;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+    }
+
+    .status-badge.aktif {
+        background: rgba(72, 187, 120, 0.1);
+        color: var(--success);
+    }
+
+    .status-badge.pasif {
+        background: rgba(245, 101, 101, 0.1);
+        color: var(--danger);
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.35rem;
+    }
+
+    .action-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: transparent;
+        color: #718096;
+        cursor: pointer;
+        transition: all 0.2s;
         text-decoration: none;
     }
-    
-    .add-customer-btn i {
-        margin-right: 8px;
+
+    .action-btn:hover {
+        background: var(--light);
+        color: var(--primary);
     }
-    
+
+    .action-btn.view:hover { background: rgba(66, 153, 225, 0.1); color: var(--info); }
+    .action-btn.edit:hover { background: rgba(237, 137, 54, 0.1); color: var(--warning); }
+    .action-btn.money:hover { background: rgba(72, 187, 120, 0.1); color: var(--success); }
+    .action-btn.pasif-btn:hover { background: rgba(245, 101, 101, 0.1); color: var(--danger); }
+    .action-btn.aktif-btn:hover { background: rgba(72, 187, 120, 0.1); color: var(--success); }
+
+    /* Pagination */
+    .table-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .page-info {
+        font-size: 0.875rem;
+        color: #718096;
+    }
+
+    .pagination {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .page-item {
+        min-width: 34px;
+        height: 34px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        color: var(--dark);
+        background: white;
+        border: 1px solid var(--border);
+    }
+
+    .page-item:hover {
+        background: var(--light);
+    }
+
+    .page-item.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .page-item.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #718096;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        opacity: 0.3;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h5 {
+        margin: 0 0 0.5rem 0;
+        color: var(--dark);
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+        .summary-section {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .filter-row {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
     @media (max-width: 768px) {
-        .customer-details {
+        .summary-section {
             grid-template-columns: 1fr;
         }
-        
-        .customer-actions {
-            justify-content: center;
+
+        .filter-row {
+            grid-template-columns: 1fr;
         }
-        
-        .search-form {
+
+        .page-header {
             flex-direction: column;
-            align-items: stretch;
+            gap: 1rem;
         }
-        
-        .search-input {
-            min-width: auto;
+
+        .header-actions {
+            width: 100%;
+        }
+
+        .header-actions .btn-action {
+            flex: 1;
+            justify-content: center;
         }
     }
 </style>
 {% endblock %}
 
-{% block content %}
-<div class="container-fluid">
-    <!-- Page Header -->
-    <div class="page-header">
-        <h1 class="page-title">
-            <i class="fas fa-users"></i>
-            Müşteri Listesi
-        </h1>
-        <a href="{% url 'musteri:ekle' %}" class="add-customer-btn">
-            <i class="fas fa-user-plus"></i>
-            Yeni Müşteri Ekle
+{% block page_content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-users"></i>
+        Müşteri Yönetimi
+    </h1>
+    <div class="header-actions">
+        <a href="{% url 'musteri:borc_alacak_listesi' %}" class="btn-action secondary">
+            <i class="fas fa-chart-line"></i> Borç-Alacak
+        </a>
+        <a href="{% url 'musteri:ekle' %}" class="btn-action primary">
+            <i class="fas fa-plus"></i> Yeni Müşteri
         </a>
     </div>
+</div>
 
-    <!-- Mesajlar -->
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                <strong>
-                    {% if message.tags == 'success' %}
-                        <i class="fas fa-check-circle"></i>
-                    {% elif message.tags == 'error' %}
-                        <i class="fas fa-exclamation-circle"></i>
-                    {% elif message.tags == 'warning' %}
-                        <i class="fas fa-exclamation-triangle"></i>
-                    {% endif %}
-                </strong>
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<div class="container-fluid">
+    <!-- Summary Cards -->
+    <div class="summary-section">
+        <div class="summary-card total">
+            <div class="summary-header">
+                <div>
+                    <div class="summary-value">{{ toplam_musteri|default:"0" }}</div>
+                    <div class="summary-label">Toplam Müşteri</div>
+                </div>
+                <div class="summary-icon">
+                    <i class="fas fa-users"></i>
+                </div>
             </div>
-        {% endfor %}
-    {% endif %}
+        </div>
 
-    <!-- İstatistikler -->
-    <div class="stats-container">
-        <div class="stat-card">
-            <div class="stat-number">{{ page_obj.paginator.count }}</div>
-            <div class="stat-label">Toplam Müşteri</div>
+        <div class="summary-card borclu">
+            <div class="summary-header">
+                <div>
+                    <div class="summary-value">{{ borclu_count|default:"0" }}</div>
+                    <div class="summary-label">Borçlu Müşteri</div>
+                </div>
+                <div class="summary-icon">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ bireysel_count|default:0 }}</div>
-            <div class="stat-label">Bireysel</div>
+
+        <div class="summary-card alacakli">
+            <div class="summary-header">
+                <div>
+                    <div class="summary-value">{{ alacakli_count|default:"0" }}</div>
+                    <div class="summary-label">Alacaklı Müşteri</div>
+                </div>
+                <div class="summary-icon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ kurumsal_count|default:0 }}</div>
-            <div class="stat-label">Kurumsal</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ aktif_count|default:0 }}</div>
-            <div class="stat-label">Aktif</div>
+
+        <div class="summary-card aktif">
+            <div class="summary-header">
+                <div>
+                    <div class="summary-value">{{ aktif_count|default:"0" }}</div>
+                    <div class="summary-label">Aktif Müşteri</div>
+                </div>
+                <div class="summary-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Arama -->
-    <div class="search-container">
-        <form method="get" class="search-form">
-            <div class="search-input">
-                <label for="q" class="form-label">Müşteri Ara</label>
-                <input type="text" 
-                       class="form-control" 
-                       id="q" 
-                       name="q" 
-                       value="{{ query|default:'' }}"
-                       placeholder="Ad, soyad, telefon veya firma adı ile ara...">
+    <!-- Filter Bar -->
+    <div class="filter-section">
+        <form method="get" class="filter-row">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" name="q" placeholder="Ad, soyad, telefon veya firma ara..." value="{{ query }}">
             </div>
-            <div>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-search"></i> Ara
-                </button>
-                {% if query %}
-                    <a href="{% url 'musteri:liste' %}" class="btn btn-secondary ms-2">
-                        <i class="fas fa-times"></i> Temizle
-                    </a>
-                {% endif %}
-            </div>
+            <select name="tip" class="filter-select">
+                <option value="all" {% if tip_filter == 'all' %}selected{% endif %}>Tüm Tipler</option>
+                <option value="bireysel" {% if tip_filter == 'bireysel' %}selected{% endif %}>Bireysel</option>
+                <option value="kurumsal" {% if tip_filter == 'kurumsal' %}selected{% endif %}>Kurumsal</option>
+            </select>
+            <select name="durum" class="filter-select">
+                <option value="all" {% if durum_filter == 'all' %}selected{% endif %}>Tüm Durumlar</option>
+                <option value="borclu" {% if durum_filter == 'borclu' %}selected{% endif %}>Borçlu</option>
+                <option value="alacakli" {% if durum_filter == 'alacakli' %}selected{% endif %}>Alacaklı</option>
+                <option value="sifir" {% if durum_filter == 'sifir' %}selected{% endif %}>Sıfır Bakiye</option>
+            </select>
+            <select name="aktif" class="filter-select">
+                <option value="all" {% if aktif_filter == 'all' %}selected{% endif %}>Tümü</option>
+                <option value="True" {% if aktif_filter == 'True' %}selected{% endif %}>Aktif</option>
+                <option value="False" {% if aktif_filter == 'False' %}selected{% endif %}>Pasif</option>
+            </select>
+            <button type="submit" class="btn-filter">
+                <i class="fas fa-search"></i> Filtrele
+            </button>
+            <a href="{% url 'musteri:liste' %}" class="btn-clear">
+                <i class="fas fa-times"></i>
+            </a>
         </form>
     </div>
 
-    <!-- Müşteri Listesi -->
-    {% if page_obj %}
-        {% for musteri in page_obj %}
-            <div class="customer-card {% if musteri.tip == 'kurumsal' %}kurumsal{% endif %}">
-                <!-- Müşteri Başlık -->
-                <div class="customer-header">
-                    <h3 class="customer-name">
-                        {% if musteri.tip == 'kurumsal' %}
-                            {{ musteri.firma_adi|default:"Firma Adı Girilmemiş" }}
-                        {% else %}
-                            {{ musteri.ad }} {{ musteri.soyad }}
-                        {% endif %}
-                    </h3>
-                    <span class="customer-type {{ musteri.tip }}">
-                        {% if musteri.tip == 'kurumsal' %}
-                            <i class="fas fa-building"></i> Kurumsal
-                        {% else %}
-                            <i class="fas fa-user"></i> Bireysel
-                        {% endif %}
-                    </span>
-                </div>
-
-                <!-- Müşteri Detayları -->
-                <div class="customer-details">
-                    <div class="detail-item">
-                        <i class="fas fa-phone"></i>
-                        <span>{{ musteri.telefon }}</span>
-                    </div>
-                    
-                    {% if musteri.email %}
-                        <div class="detail-item">
-                            <i class="fas fa-envelope"></i>
-                            <span>{{ musteri.email }}</span>
-                        </div>
-                    {% endif %}
-                    
-                    {% if musteri.tip == 'kurumsal' %}
-                        {% if musteri.vergi_no %}
-                            <div class="detail-item">
-                                <i class="fas fa-file-invoice"></i>
-                                <span>VN: {{ musteri.vergi_no }}</span>
-                            </div>
-                        {% endif %}
-                        {% if musteri.vergi_dairesi %}
-                            <div class="detail-item">
-                                <i class="fas fa-university"></i>
-                                <span>{{ musteri.vergi_dairesi }}</span>
-                            </div>
-                        {% endif %}
-                    {% else %}
-                        {% if musteri.tc_no %}
-                            <div class="detail-item">
-                                <i class="fas fa-id-card"></i>
-                                <span>TC: {{ musteri.tc_no }}</span>
-                            </div>
-                        {% endif %}
-                    {% endif %}
-                    
-                    {% if musteri.il %}
-                        <div class="detail-item">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <span>{{ musteri.il }}{% if musteri.ilce %} / {{ musteri.ilce }}{% endif %}</span>
-                        </div>
-                    {% endif %}
-                    
-                    <div class="detail-item">
-                        <i class="fas fa-calendar-plus"></i>
-                        <span>{{ musteri.kayit_tarihi|date:"d.m.Y" }}</span>
-                    </div>
-                    
-                    {% if musteri.acik_hesap_bakiye != 0 %}
-                        <div class="detail-item">
-                            <i class="fas fa-credit-card"></i>
-                            <span class="{% if musteri.acik_hesap_bakiye < 0 %}text-danger{% else %}text-success{% endif %}">
-                                Bakiye: {{ musteri.acik_hesap_bakiye|floatformat:2 }} ₺
-                            </span>
-                        </div>
-                    {% endif %}
-                </div>
-
-                <!-- Müşteri Aksiyonları -->
-                <div class="customer-actions">
-                    <a href="{% url 'musteri:detay' musteri.id %}" class="btn btn-sm btn-info">
-                        <i class="fas fa-eye"></i> Detay
-                    </a>
-                    <a href="{% url 'musteri:duzenle' musteri.id %}" class="btn btn-sm btn-warning">
-                        <i class="fas fa-edit"></i> Düzenle
-                    </a>
-                    {% if not musteri.aktif %}
-                        <span class="btn btn-sm btn-secondary disabled">
-                            <i class="fas fa-user-slash"></i> Pasif
-                        </span>
-                    {% endif %}
-                </div>
-            </div>
-        {% endfor %}
-
-        <!-- Pagination -->
-        {% if page_obj.has_other_pages %}
-            <div class="pagination-container">
-                <nav aria-label="Müşteri listesi sayfalama">
-                    <ul class="pagination justify-content-center mb-0">
-                        {% if page_obj.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}">
-                                    <i class="fas fa-angle-double-left"></i>
-                                </a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">
-                                    <i class="fas fa-angle-left"></i>
-                                </a>
-                            </li>
-                        {% endif %}
-
-                        {% for num in page_obj.paginator.page_range %}
-                            {% if page_obj.number == num %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ num }}</span>
-                                </li>
-                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}">{{ num }}</a>
-                                </li>
-                            {% endif %}
-                        {% endfor %}
-
-                        {% if page_obj.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">
-                                    <i class="fas fa-angle-right"></i>
-                                </a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}">
-                                    <i class="fas fa-angle-double-right"></i>
-                                </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
-                
-                <div class="text-center mt-3">
-                    <small class="text-muted">
-                        Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 
-                        (Toplam {{ page_obj.paginator.count }} müşteri)
-                    </small>
-                </div>
-            </div>
-        {% endif %}
-
-    {% else %}
-        <!-- Boş Durum -->
-        <div class="empty-state">
-            <i class="fas fa-users"></i>
-            <h3>Henüz müşteri bulunmuyor</h3>
-            <p>İlk müşterinizi eklemek için aşağıdaki butona tıklayın.</p>
-            <a href="{% url 'musteri:ekle' %}" class="btn btn-primary btn-lg">
-                <i class="fas fa-user-plus"></i> İlk Müşteriyi Ekle
-            </a>
+    <!-- Table -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3 class="table-title">
+                <i class="fas fa-list"></i> Müşteri Listesi
+                <span class="table-count">{{ page_obj.paginator.count|default:"0" }} kayıt</span>
+            </h3>
         </div>
-    {% endif %}
+
+        <div class="table-responsive">
+            <table class="table data-table">
+                <thead>
+                    <tr>
+                        <th>Müşteri</th>
+                        <th>Telefon</th>
+                        <th>Tip</th>
+                        <th>Bakiye</th>
+                        <th>30 Gün Satış</th>
+                        <th>30 Gün Tahsilat</th>
+                        <th>Durum</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for musteri in page_obj %}
+                    <tr data-musteri-id="{{ musteri.id }}"
+                        data-musteri-ad="{{ musteri.tam_ad|escapejs }}"
+                        data-musteri-telefon="{{ musteri.telefon|default:'' }}"
+                        data-musteri-tip="{{ musteri.tip }}"
+                        data-musteri-bakiye="{{ musteri.acik_hesap_bakiye }}"
+                        data-musteri-aktif="{{ musteri.aktif|lower }}">
+                        <td>
+                            <div class="customer-info">
+                                <span class="customer-name">{{ musteri.tam_ad }}</span>
+                                {% if musteri.firma_adi %}
+                                <span class="customer-detail">{{ musteri.firma_adi }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>{{ musteri.telefon|default:"-" }}</td>
+                        <td>
+                            <span class="type-badge {{ musteri.tip }}">
+                                {% if musteri.tip == 'bireysel' %}
+                                    <i class="fas fa-user"></i> Bireysel
+                                {% else %}
+                                    <i class="fas fa-building"></i> Kurumsal
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            {% if musteri.acik_hesap_bakiye > 0 %}
+                                <span class="balance-badge positive">{{ musteri.acik_hesap_bakiye|turkish_currency }}</span>
+                            {% elif musteri.acik_hesap_bakiye < 0 %}
+                                <span class="balance-badge negative">{{ musteri.acik_hesap_bakiye|floatformat:2|slice:"1:" }} ₺ Alacak</span>
+                            {% else %}
+                                <span class="balance-badge zero">0 ₺</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ musteri.son_30gun_satis|default:"0"|turkish_currency }}</td>
+                        <td>{{ musteri.son_30gun_tahsilat|default:"0"|turkish_currency }}</td>
+                        <td>
+                            <span class="status-badge {% if musteri.aktif %}aktif{% else %}pasif{% endif %}">
+                                {% if musteri.aktif %}Aktif{% else %}Pasif{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{% url 'musteri:detay' musteri.id %}" class="action-btn view" title="Detay">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'musteri:duzenle' musteri.id %}" class="action-btn edit" title="Düzenle">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% if musteri.aktif %}
+                                <button type="button" class="action-btn pasif-btn" title="Pasif Yap"
+                                        onclick="toggleMusteriAktif({{ musteri.id }}, '{{ musteri.tam_ad|escapejs }}', {{ musteri.acik_hesap_bakiye }}, true)"
+                                        data-musteri-id="{{ musteri.id }}">
+                                    <i class="fas fa-user-times"></i>
+                                </button>
+                                {% else %}
+                                <button type="button" class="action-btn aktif-btn" title="Aktif Yap"
+                                        onclick="toggleMusteriAktif({{ musteri.id }}, '{{ musteri.tam_ad|escapejs }}', {{ musteri.acik_hesap_bakiye }}, false)"
+                                        data-musteri-id="{{ musteri.id }}">
+                                    <i class="fas fa-user-check"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <i class="fas fa-search"></i>
+                                <h5>Kayıt Bulunamadı</h5>
+                                <p>Arama kriterlerinize uygun müşteri kaydı bulunamadı.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="table-footer">
+            <div class="page-info">
+                Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+            </div>
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&tip={{ tip_filter }}&durum={{ durum_filter }}&aktif={{ aktif_filter }}" class="page-item">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                {% else %}
+                    <span class="page-item disabled"><i class="fas fa-chevron-left"></i></span>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <span class="page-item active">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}&q={{ query }}&tip={{ tip_filter }}&durum={{ durum_filter }}&aktif={{ aktif_filter }}" class="page-item">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&tip={{ tip_filter }}&durum={{ durum_filter }}&aktif={{ aktif_filter }}" class="page-item">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                {% else %}
+                    <span class="page-item disabled"><i class="fas fa-chevron-right"></i></span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-$(document).ready(function() {
-    // Arama formunda Enter tuşu
-    $('#q').on('keypress', function(e) {
-        if (e.which === 13) {
-            $(this).closest('form').submit();
+function toggleMusteriAktif(musteriId, musteriAd, bakiye, sadecePasifYap) {
+    // Eğer sadece pasif yapma modundaysa ve bakiye sıfır değilse uyar
+    if (sadecePasifYap && bakiye != 0) {
+        let bakiyeTuru = bakiye > 0 ? 'borçlu' : 'alacaklı';
+        Swal.fire({
+            icon: 'error',
+            title: 'Pasif Yapılamaz',
+            html: `<b>${musteriAd}</b> pasif yapılamaz.<br>Müşterinin <b>${bakiyeTuru}</b> bakiyesi bulunmaktadır (${Math.abs(bakiye).toLocaleString('tr-TR')} ₺).<br><br>Önce bakiyeyi sıfıra indirin.`,
+            confirmButtonText: 'Tamam',
+            confirmButtonColor: '#f56565'
+        });
+        return;
+    }
+
+    // Aktif/Pasif durumu değişikliği için onay al
+    let yeniDurum = sadecePasifYap ? 'pasif' : 'aktif';
+    let confirmText = sadecePasifYap
+        ? `${musteriAd} pasif yapılacak. Devam etmek istiyor musunuz?`
+        : `${musteriAd} aktif yapılacak. Devam etmek istiyor musunuz?`;
+
+    Swal.fire({
+        icon: 'question',
+        title: 'Onay',
+        html: confirmText,
+        showCancelButton: true,
+        confirmButtonText: 'Evet',
+        cancelButtonText: 'Hayır',
+        confirmButtonColor: '#667eea',
+        cancelButtonColor: '#718096'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // AJAX ile sunucuya gönder
+            fetch('{% url "musteri:toggle_aktif" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: 'musteri_id=' + musteriId
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Başarılı',
+                        text: data.message,
+                        confirmButtonText: 'Tamam',
+                        confirmButtonColor: '#48bb78'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Hata',
+                        text: data.error,
+                        confirmButtonText: 'Tamam',
+                        confirmButtonColor: '#f56565'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Hata',
+                    text: 'Bir hata oluştu. Lütfen tekrar deneyin.',
+                    confirmButtonText: 'Tamam',
+                    confirmButtonColor: '#f56565'
+                });
+            });
         }
     });
-    
-    // Müşteri kartlarına tıklama efekti
-    $('.customer-card').on('click', function(e) {
-        if (!$(e.target).closest('.customer-actions').length) {
-            // Detay sayfasına yönlendirme (şimdilik console log)
-            console.log('Müşteri detayına git');
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle row click for selection
+    document.querySelectorAll('.data-table tbody tr[data-musteri-id]').forEach(row => {
+        row.addEventListener('click', function(e) {
+            if (e.target.closest('.action-buttons')) return;
+
+            document.querySelectorAll('.data-table tbody tr').forEach(r => r.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+
+        const rows = document.querySelectorAll('.data-table tbody tr[data-musteri-id]');
+        if (rows.length === 0) return;
+
+        let currentIndex = Array.from(rows).findIndex(row => row.classList.contains('selected'));
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (currentIndex < rows.length - 1) {
+                if (currentIndex >= 0) rows[currentIndex].classList.remove('selected');
+                rows[currentIndex + 1].classList.add('selected');
+                rows[currentIndex + 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (currentIndex > 0) {
+                rows[currentIndex].classList.remove('selected');
+                rows[currentIndex - 1].classList.add('selected');
+                rows[currentIndex - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
         }
     });
 });
