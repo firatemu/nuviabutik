@@ -854,7 +854,9 @@ def stok_excel(request):
         marka_id = request.GET.get('marka')
         durum = request.GET.get('durum')
         cinsiyet = request.GET.get('cinsiyet')
-        
+        kar_orani_min = request.GET.get('kar_orani_min', '').strip()
+        kar_orani_max = request.GET.get('kar_orani_max', '').strip()
+
         # Arama filtresi
         if arama:
             from django.db.models import Q
@@ -865,29 +867,61 @@ def stok_excel(request):
                 Q(renk__ad__icontains=arama) |
                 Q(beden__ad__icontains=arama)
             )
-        
+
         # Kategori filtresi - Güvenli None kontrolü
         if kategori_id and kategori_id != 'None' and kategori_id != '' and str(kategori_id).isdigit():
             varyantlar = varyantlar.filter(urun__kategori_id=int(kategori_id))
-        
+
         # Marka filtresi - Güvenli None kontrolü
         if marka_id and marka_id != 'None' and marka_id != '' and str(marka_id).isdigit():
             varyantlar = varyantlar.filter(urun__marka_id=int(marka_id))
-        
-        # Stok durumu filtresi - None kontrolü
+
+        # Stok durumu filtresi - Yeni 3 seçenek: Hepsi / Stoğu Olan / Stoğu Biten
         if durum and durum != 'None' and durum != '':
-            if durum == 'tukendi':
+            if durum == 'stogu_olan':
+                varyantlar = varyantlar.filter(stok_miktari__gt=0)
+            elif durum == 'stogu_biten':
                 varyantlar = varyantlar.filter(stok_miktari=0)
-            elif durum == 'kritik':
-                varyantlar = varyantlar.filter(
-                    stok_miktari__gt=0, stok_miktari__lte=5)
-            elif durum == 'normal':
-                varyantlar = varyantlar.filter(stok_miktari__gt=5)
-        
+            # Boş veya yok → tümü
+
         # Cinsiyet filtresi - None kontrolü
         if cinsiyet and cinsiyet != 'None' and cinsiyet != '' and cinsiyet != 'hepsi':
             varyantlar = varyantlar.filter(urun__cinsiyet=cinsiyet)
-            
+
+        # Kar oranı filtre - Python tarafı
+        varyant_list = list(varyantlar)
+        min_val = None
+        max_val = None
+        try:
+            if kar_orani_min:
+                min_val = float(kar_orani_min)
+        except (ValueError, TypeError):
+            pass
+        try:
+            if kar_orani_max:
+                max_val = float(kar_orani_max)
+        except (ValueError, TypeError):
+            pass
+
+        if min_val is not None or max_val is not None:
+            ZERO_D = Decimal('0')
+            filtered = []
+            for v in varyant_list:
+                alis = v.urun.alis_fiyati or ZERO_D
+                satis = v.urun.pesin_fiyat or ZERO_D
+                if satis != 0:
+                    oran = float((satis - alis) / satis * Decimal('100'))
+                else:
+                    oran = 0.0
+                if min_val is not None and oran < min_val:
+                    continue
+                if max_val is not None and oran > max_val:
+                    continue
+                filtered.append(v)
+            varyantlar = filtered
+        else:
+            varyantlar = varyant_list
+
     except (ValueError, TypeError) as e:
         # Hata durumunda filtreleri atla, tüm varyantları getir
         pass
@@ -899,7 +933,7 @@ def stok_excel(request):
 
     # Başlıklar
     headers = ['Ürün Adı', 'Varyant', 'Barkod', 'Kategori', 'Marka', 'Cinsiyet',
-               'Alış Fiyatı', 'Satış Fiyatı', 'Kar Oranı %', 'Stok Miktarı', 'Durum']
+               'Alış Fiyatı', 'Satış Fiyatı', 'Kar Oranı %', 'Kar Tutarı', 'Stok Miktarı', 'Durum']
     for col, header in enumerate(headers, 1):
         worksheet.cell(row=1, column=col, value=header)
 
@@ -932,10 +966,19 @@ def stok_excel(request):
         worksheet.cell(row=row, column=7, value=float(
             varyant.urun.alis_fiyati))
         worksheet.cell(row=row, column=8, value=float(
-            varyant.urun.satis_fiyati))
-        worksheet.cell(row=row, column=9, value=float(varyant.urun.kar_orani))
-        worksheet.cell(row=row, column=10, value=varyant.stok_miktari)
-        worksheet.cell(row=row, column=11, value=durum_text)
+            varyant.urun.pesin_fiyat))  # 'satis_fiyati' yerine 'pesin_fiyat'
+        # Kar oranı ve kâr tutarı dinamik hesaplama
+        _alis = varyant.urun.alis_fiyati or Decimal('0')
+        _satis = varyant.urun.pesin_fiyat or Decimal('0')
+        _tutar = _satis - _alis
+        if _satis != 0:
+            _oran = float(_tutar / _satis * Decimal('100'))
+        else:
+            _oran = 0.0
+        worksheet.cell(row=row, column=9, value=_oran)
+        worksheet.cell(row=row, column=10, value=float(_tutar))
+        worksheet.cell(row=row, column=11, value=varyant.stok_miktari)
+        worksheet.cell(row=row, column=12, value=durum_text)
 
     # Response
     response = HttpResponse(
