@@ -162,7 +162,7 @@
                     <div class="d-flex align-items-center justify-content-center">
                         <i class="fas fa-boxes text-primary fs-4 me-2"></i>
                         <div>
-                            <h5 class="mb-0">{{ varyantlar|length }}</h5>
+                            <h5 class="mb-0">{{ rows|length }}</h5>
                             <small class="text-muted">Bulunan Sonuç</small>
                         </div>
                     </div>
@@ -171,7 +171,7 @@
                     <div class="d-flex align-items-center justify-content-center">
                         <i class="fas fa-warehouse text-success fs-4 me-2"></i>
                         <div>
-                            <h5 class="mb-0">{{ varyantlar|length }}</h5>
+                            <h5 class="mb-0">{{ rows|length }}</h5>
                             <small class="text-muted">Toplam Varyant</small>
                         </div>
                     </div>
@@ -202,10 +202,10 @@
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
-                {% if durum == 'tukendi' %}
-                Tükenen Ürünler
-                {% elif durum == 'kritik' %}
-                Kritik Stok Seviyesindeki Ürünler
+                {% if durum == 'stogu_olan' %}
+                Stoğu Olan Ürünler
+                {% elif durum == 'stogu_biten' %}
+                Stoğu Biten Ürünler
                 {% else %}
                 Tüm Ürünler
                 {% endif %}
