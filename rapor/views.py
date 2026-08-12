@@ -1,8 +1,10 @@
 from decimal import Decimal
+import json
 
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_POST
 from django.db.models import Sum, Count, F, Max, ExpressionWrapper, DecimalField
 from datetime import date, datetime, timedelta
 from openpyxl import Workbook
@@ -87,6 +89,8 @@ def stok_raporu(request):
     marka_id = request.GET.get('marka')
     durum = request.GET.get('durum')
     cinsiyet = request.GET.get('cinsiyet')
+    kar_orani_min = request.GET.get('kar_orani_min', '').strip()
+    kar_orani_max = request.GET.get('kar_orani_max', '').strip()
 
     # Sıralama parametreleri
     sort_field = request.GET.get('sort', 'urun__ad')
@@ -123,13 +127,12 @@ def stok_raporu(request):
     if marka_id:
         varyantlar = varyantlar.filter(urun__marka_id=marka_id)
 
-    # Stok durumu filtresi
-    if durum == 'tukendi':
+    # Stok durumu filtresi - Yeni 3 seçenek: Hepsi / Stoğu Olan / Stoğu Biten
+    if durum == 'stogu_olan':
+        varyantlar = varyantlar.filter(stok_miktari__gt=0)
+    elif durum == 'stogu_biten':
         varyantlar = varyantlar.filter(stok_miktari=0)
-    elif durum == 'kritik':
-        varyantlar = varyantlar.filter(stok_miktari__gt=0, stok_miktari__lte=5)
-    elif durum == 'normal':
-        varyantlar = varyantlar.filter(stok_miktari__gt=5)
+    # '' (boş) veya yok → tümü
 
     # Cinsiyet filtresi
     if cinsiyet and cinsiyet != 'hepsi':
@@ -139,12 +142,62 @@ def stok_raporu(request):
     varyantlar = varyantlar.order_by(
         sort_field, 'urun__ad', 'renk__ad', 'beden__ad')
 
+    # Filtrelenmiş varyantları listeye çevir (Python tarafı kar oranı hesaplaması için)
+    varyant_list = list(varyantlar)
+
+    # Kar oranı aralık filtresi - Python tarafında uygulanır
+    min_val = None
+    max_val = None
+    try:
+        if kar_orani_min:
+            min_val = float(kar_orani_min)
+    except (ValueError, TypeError):
+        min_val = None
+    try:
+        if kar_orani_max:
+            max_val = float(kar_orani_max)
+    except (ValueError, TypeError):
+        max_val = None
+
+    def _passes_kar(v):
+        alis = v.urun.alis_fiyati or Decimal('0')
+        satis = v.urun.pesin_fiyat or Decimal('0')
+        if satis != 0:
+            oran = float((satis - alis) / satis * Decimal('100'))
+        else:
+            oran = 0.0
+        if min_val is not None and oran < min_val:
+            return False
+        if max_val is not None and oran > max_val:
+            return False
+        return True
+
+    if min_val is not None or max_val is not None:
+        varyant_list = [v for v in varyant_list if _passes_kar(v)]
+
+    # Her varyant için kar tutarı ve kar oranı hesapla (template'e hazır dict)
+    ZERO = Decimal('0')
+    rows = []
+    for v in varyant_list:
+        alis = v.urun.alis_fiyati or ZERO
+        satis = v.urun.pesin_fiyat or ZERO
+        kar_tutari = satis - alis
+        if satis != 0:
+            kar_orani = (kar_tutari / satis) * Decimal('100')
+        else:
+            kar_orani = ZERO
+        rows.append({
+            'varyant': v,
+            'kar_tutari': kar_tutari,
+            'kar_orani': kar_orani,
+        })
+
     # Dropdown için veriler
     kategoriler = UrunKategoriUst.objects.all().order_by('ad')
     markalar = Marka.objects.all().order_by('ad')
 
     context = {
-        'varyantlar': varyantlar,
+        'rows': rows,
         'kategoriler': kategoriler,
         'markalar': markalar,
         'arama': arama,
@@ -152,15 +205,16 @@ def stok_raporu(request):
         'marka_id': marka_id,
         'durum': durum,
         'cinsiyet': cinsiyet,
+        'kar_orani_min': kar_orani_min,
+        'kar_orani_max': kar_orani_max,
         'sort_field': request.GET.get('sort', 'urun__ad'),
         'sort_order': request.GET.get('order', 'asc'),
     }
     return render(request, 'rapor/stok_raporu.html', context)
 
 
-@login_required
-def stok_degeri(request):
-    """Ürün bazında stok maliyeti (alış × stok)."""
+def _stok_degeri_by_urun():
+    """Aktif varyantlardan ürün başına stok miktarı ve ürün nesnesi."""
     from collections import defaultdict
     from urun.models import UrunVaryanti
 
@@ -174,6 +228,69 @@ def stok_degeri(request):
     for v in varyantlar:
         by_urun[v.urun_id] += v.stok_miktari
         urun_map[v.urun_id] = v.urun
+    return by_urun, urun_map
+
+
+def _urun_stok_toplami(urun_id, by_urun=None):
+    if by_urun is None:
+        by_urun, _ = _stok_degeri_by_urun()
+    return by_urun.get(urun_id, 0)
+
+
+def _stok_degeri_filter_params(request):
+    """GET filtreleri: kategori, marka, alis_fiyat ('', sifir, sifir_degil)."""
+    kategori = (request.GET.get('kategori') or '').strip()
+    marka = (request.GET.get('marka') or '').strip()
+    alis_fiyat = (request.GET.get('alis_fiyat') or '').strip()
+    if alis_fiyat not in ('', 'sifir', 'sifir_degil'):
+        alis_fiyat = ''
+
+    kategori_id = None
+    if kategori:
+        try:
+            kategori_id = int(kategori)
+        except (TypeError, ValueError):
+            kategori = ''
+            kategori_id = None
+
+    marka_id = None
+    if marka:
+        try:
+            marka_id = int(marka)
+        except (TypeError, ValueError):
+            marka = ''
+            marka_id = None
+
+    return {
+        'kategori': kategori,
+        'marka': marka,
+        'alis_fiyat': alis_fiyat,
+        'kategori_id': kategori_id,
+        'marka_id': marka_id,
+    }
+
+
+def _urun_matches_stok_degeri_filters(urun, alis, kategori_id=None, marka_id=None, alis_fiyat=''):
+    if kategori_id is not None and urun.kategori_id != kategori_id:
+        return False
+    if marka_id is not None and urun.marka_id != marka_id:
+        return False
+    if alis_fiyat == 'sifir' and alis != 0:
+        return False
+    if alis_fiyat == 'sifir_degil' and alis <= 0:
+        return False
+    return True
+
+
+def _build_stok_degeri_liste(
+    by_urun=None,
+    urun_map=None,
+    kategori_id=None,
+    marka_id=None,
+    alis_fiyat='',
+):
+    if by_urun is None or urun_map is None:
+        by_urun, urun_map = _stok_degeri_by_urun()
 
     urun_stok_degerleri = []
     toplam_stok_degeri = Decimal('0')
@@ -182,6 +299,10 @@ def stok_degeri(request):
         alis = urun.alis_fiyati or Decimal('0')
         if not isinstance(alis, Decimal):
             alis = Decimal(str(alis))
+        if not _urun_matches_stok_degeri_filters(
+            urun, alis, kategori_id=kategori_id, marka_id=marka_id, alis_fiyat=alis_fiyat
+        ):
+            continue
         deger = alis * ts
         toplam_stok_degeri += deger
         urun_stok_degerleri.append({
@@ -191,13 +312,97 @@ def stok_degeri(request):
             'stok_degeri': deger,
         })
     urun_stok_degerleri.sort(key=lambda x: x['stok_degeri'], reverse=True)
+    return urun_stok_degerleri, toplam_stok_degeri
+
+
+@login_required
+def stok_degeri(request):
+    """Ürün bazında stok maliyeti (alış × stok)."""
+    from urun.models import UrunKategoriUst, Marka
+
+    filters = _stok_degeri_filter_params(request)
+    by_urun, urun_map = _stok_degeri_by_urun()
+    urun_stok_degerleri, toplam_stok_degeri = _build_stok_degeri_liste(
+        by_urun,
+        urun_map,
+        kategori_id=filters['kategori_id'],
+        marka_id=filters['marka_id'],
+        alis_fiyat=filters['alis_fiyat'],
+    )
 
     context = {
         'toplam_urun_sayisi': len(urun_stok_degerleri),
         'toplam_stok_degeri': toplam_stok_degeri,
         'urun_stok_degerleri': urun_stok_degerleri,
+        'kategori': filters['kategori'],
+        'marka': filters['marka'],
+        'alis_fiyat': filters['alis_fiyat'],
+        'kategori_listesi': UrunKategoriUst.objects.filter(aktif=True).order_by('ad'),
+        'marka_listesi': Marka.objects.filter(aktif=True).order_by('ad'),
     }
     return render(request, 'rapor/stok_degeri.html', context)
+
+
+@login_required
+@require_POST
+def stok_degeri_alis_fiyat_guncelle(request):
+    """Yalnızca ürün alış fiyatını günceller (save/sinyal tetiklenmez)."""
+    if request.content_type and 'application/json' in request.content_type:
+        try:
+            payload = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'message': 'Geçersiz JSON.'}, status=400)
+        urun_id = payload.get('urun_id')
+        alis_raw = payload.get('alis_fiyati')
+    else:
+        urun_id = request.POST.get('urun_id')
+        alis_raw = request.POST.get('alis_fiyati')
+
+    try:
+        urun_id = int(urun_id)
+    except (TypeError, ValueError):
+        return JsonResponse({'success': False, 'message': 'Geçersiz ürün.'}, status=400)
+
+    try:
+        alis = Decimal(str(alis_raw).replace(',', '.'))
+    except Exception:
+        return JsonResponse({'success': False, 'message': 'Geçersiz alış fiyatı.'}, status=400)
+
+    if alis < 0:
+        return JsonResponse({'success': False, 'message': 'Alış fiyatı negatif olamaz.'}, status=400)
+
+    urun = Urun.objects.filter(pk=urun_id, aktif=True).first()
+    if not urun:
+        return JsonResponse({'success': False, 'message': 'Ürün bulunamadı.'}, status=404)
+
+    toplam_stok = _urun_stok_toplami(urun_id)
+    if toplam_stok <= 0:
+        return JsonResponse(
+            {'success': False, 'message': 'Bu ürünün stoğu olan kaydı yok.'},
+            status=400,
+        )
+
+    updated = Urun.objects.filter(pk=urun_id, aktif=True).update(alis_fiyati=alis)
+    if not updated:
+        return JsonResponse({'success': False, 'message': 'Güncelleme yapılamadı.'}, status=400)
+
+    filters = _stok_degeri_filter_params(request)
+    by_urun, urun_map = _stok_degeri_by_urun()
+    _, toplam_stok_degeri = _build_stok_degeri_liste(
+        by_urun,
+        urun_map,
+        kategori_id=filters['kategori_id'],
+        marka_id=filters['marka_id'],
+        alis_fiyat=filters['alis_fiyat'],
+    )
+    stok_degeri = alis * toplam_stok
+
+    return JsonResponse({
+        'success': True,
+        'alis_fiyati': f'{alis:.2f}',
+        'stok_degeri': f'{stok_degeri:.2f}',
+        'toplam_stok_degeri': f'{toplam_stok_degeri:.2f}',
+    })
 
 
 def _fatura_karlilik_tarih_araligi(request):
