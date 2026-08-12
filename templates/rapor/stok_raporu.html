@@ -22,11 +22,11 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Stok Raporu</h2>
         <div class="d-flex gap-2">
-            <a href="{% url 'rapor:stok_excel' %}?arama={{ arama }}&kategori={{ kategori_id }}&marka={{ marka_id }}&durum={{ durum }}&cinsiyet={{ cinsiyet }}"
+            <a href="{% url 'rapor:stok_excel' %}?arama={{ arama }}&kategori={{ kategori_id }}&marka={{ marka_id }}&durum={{ durum }}&cinsiyet={{ cinsiyet }}&kar_orani_min={{ kar_orani_min }}&kar_orani_max={{ kar_orani_max }}"
                 class="btn btn-success">
                 <i class="fas fa-file-excel"></i> Excel İndir
             </a>
-            <a href="{% url 'rapor:stok_pdf' %}?arama={{ arama }}&kategori={{ kategori_id }}&marka={{ marka_id }}&durum={{ durum }}&cinsiyet={{ cinsiyet }}"
+            <a href="{% url 'rapor:stok_pdf' %}?arama={{ arama }}&kategori={{ kategori_id }}&marka={{ marka_id }}&durum={{ durum }}&cinsiyet={{ cinsiyet }}&kar_orani_min={{ kar_orani_min }}&kar_orani_max={{ kar_orani_max }}"
                 class="btn btn-danger">
                 <i class="fas fa-file-pdf"></i> PDF İndir
             </a>
@@ -90,10 +90,9 @@
                     <div class="col-md-2">
                         <label for="durum" class="form-label">Stok Durumu</label>
                         <select class="form-select" id="durum" name="durum">
-                            <option value="">Tümü</option>
-                            <option value="normal" {% if durum == 'normal' %}selected{% endif %}>Normal (5+)</option>
-                            <option value="kritik" {% if durum == 'kritik' %}selected{% endif %}>Kritik (1-5)</option>
-                            <option value="tukendi" {% if durum == 'tukendi' %}selected{% endif %}>Tükendi (0)</option>
+                            <option value="" {% if not durum %}selected{% endif %}>Hepsi</option>
+                            <option value="stogu_olan" {% if durum == 'stogu_olan' %}selected{% endif %}>Stoğu Olan</option>
+                            <option value="stogu_biten" {% if durum == 'stogu_biten' %}selected{% endif %}>Stoğu Biten</option>
                         </select>
                     </div>
 
@@ -105,6 +104,17 @@
                             <option value="kadin" {% if cinsiyet == 'kadin' %}selected{% endif %}>Kadın</option>
                             <option value="erkek" {% if cinsiyet == 'erkek' %}selected{% endif %}>Erkek</option>
                         </select>
+                    </div>
+
+                    <!-- Kar Oranı Aralığı -->
+                    <div class="col-md-2">
+                        <label class="form-label">Kar Oranı Aralığı (%)</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" min="0" max="1000" class="form-control"
+                                name="kar_orani_min" value="{{ kar_orani_min }}" placeholder="Min">
+                            <input type="number" step="0.01" min="0" max="1000" class="form-control"
+                                name="kar_orani_max" value="{{ kar_orani_max }}" placeholder="Max">
+                        </div>
                     </div>
 
                     <!-- Butonlar -->
@@ -123,20 +133,16 @@
                     <div class="col-12">
                         <div class="btn-group btn-group-sm" role="group">
                             <a href="?{% if sort_field %}sort={{ sort_field }}&order={{ sort_order }}{% endif %}"
-                                class="btn btn-outline-primary {% if not durum and not arama and not kategori_id and not marka_id %}active{% endif %}">
-                                <i class="fas fa-list"></i> Tümü
+                                class="btn btn-outline-primary {% if not durum and not arama and not kategori_id and not marka_id and not kar_orani_min and not kar_orani_max %}active{% endif %}">
+                                <i class="fas fa-list"></i> Hepsi
                             </a>
-                            <a href="?durum=tukendi{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}"
-                                class="btn btn-outline-danger {% if durum == 'tukendi' %}active{% endif %}">
-                                <i class="fas fa-times-circle"></i> Tükenenler
+                            <a href="?durum=stogu_olan{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}{% if kar_orani_min %}&kar_orani_min={{ kar_orani_min }}{% endif %}{% if kar_orani_max %}&kar_orani_max={{ kar_orani_max }}{% endif %}"
+                                class="btn btn-outline-success {% if durum == 'stogu_olan' %}active{% endif %}">
+                                <i class="fas fa-check-circle"></i> Stoğu Olan
                             </a>
-                            <a href="?durum=kritik{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}"
-                                class="btn btn-outline-warning {% if durum == 'kritik' %}active{% endif %}">
-                                <i class="fas fa-exclamation-triangle"></i> Kritik
-                            </a>
-                            <a href="?durum=normal{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}"
-                                class="btn btn-outline-success {% if durum == 'normal' %}active{% endif %}">
-                                <i class="fas fa-check-circle"></i> Normal
+                            <a href="?durum=stogu_biten{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}{% if kar_orani_min %}&kar_orani_min={{ kar_orani_min }}{% endif %}{% if kar_orani_max %}&kar_orani_max={{ kar_orani_max }}{% endif %}"
+                                class="btn btn-outline-danger {% if durum == 'stogu_biten' %}active{% endif %}">
+                                <i class="fas fa-times-circle"></i> Stoğu Biten
                             </a>
                             <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
                                 <i class="fas fa-eraser"></i> Temizle
@@ -242,6 +248,7 @@
                                 Satış Fiyatı
                                 <i class="fas fa-sort sort-icon ms-1"></i>
                             </th>
+                            <th>Kar Tutarı</th>
                             <th class="sortable" data-sort="urun__kar_orani">
                                 Kar Oranı
                                 <i class="fas fa-sort sort-icon ms-1"></i>
@@ -255,56 +262,58 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for varyant in varyantlar %}
+                        {% for row in rows %}
                         <tr>
-                            <td>{{ varyant.urun.ad }}</td>
+                            <td>{{ row.varyant.urun.ad }}</td>
                             <td>
                                 <small class="text-muted">
-                                    {% if varyant.renk %}{{ varyant.renk.ad }}{% endif %}
-                                    {% if varyant.renk and varyant.beden %} - {% endif %}
-                                    {% if varyant.beden %}{{ varyant.beden.ad }}{% endif %}
-                                    {% if not varyant.renk and not varyant.beden %}Standart{% endif %}
+                                    {% if row.varyant.renk %}{{ row.varyant.renk.ad }}{% endif %}
+                                    {% if row.varyant.renk and row.varyant.beden %} - {% endif %}
+                                    {% if row.varyant.beden %}{{ row.varyant.beden.ad }}{% endif %}
+                                    {% if not row.varyant.renk and not row.varyant.beden %}Standart{% endif %}
                                 </small>
                             </td>
-                            <td><code>{{ varyant.barkod }}</code></td>
-                            <td>{{ varyant.urun.kategori.ad }}</td>
-                            <td>{{ varyant.urun.marka.ad|default:"-" }}</td>
+                            <td><code>{{ row.varyant.barkod }}</code></td>
+                            <td>{{ row.varyant.urun.kategori.ad }}</td>
+                            <td>{{ row.varyant.urun.marka.ad|default:"-" }}</td>
                             <td>
                                 <span
-                                    class="badge {% if varyant.urun.cinsiyet == 'kadin' %}bg-pink{% else %}bg-blue{% endif %}">
-                                    {{ varyant.urun.get_cinsiyet_display }}
+                                    class="badge {% if row.varyant.urun.cinsiyet == 'kadin' %}bg-pink{% else %}bg-blue{% endif %}">
+                                    {{ row.varyant.urun.get_cinsiyet_display }}
                                 </span>
                             </td>
                             <td>
-                                <span class="text-primary fw-bold">{{ varyant.urun.alis_fiyati|turkish_currency }}</span>
+                                <span class="text-primary fw-bold">{{ row.varyant.urun.alis_fiyati|turkish_currency }}</span>
                             </td>
                             <td>
-                                <span class="text-success fw-bold">{{ varyant.urun.satis_fiyati|turkish_currency }}</span>
+                                <span class="text-success fw-bold">{{ row.varyant.urun.pesin_fiyat|turkish_currency }}</span>
                             </td>
                             <td>
-                                {% with kar_orani=varyant.urun.kar_orani %}
-                                <span
-                                    class="badge {% if kar_orani >= 50 %}bg-success{% elif kar_orani >= 30 %}bg-warning{% else %}bg-danger{% endif %}">
-                                    %{{ kar_orani|floatformat:1 }}
-                                </span>
-                                {% endwith %}
-                            </td>
-                            <td>
-                                <span
-                                    class="fw-bold {% if varyant.stok_miktari == 0 %}text-danger{% elif varyant.stok_miktari <= 5 %}text-warning{% else %}text-success{% endif %}">
-                                    {{ varyant.stok_miktari }}
+                                <span class="fw-bold {% if row.kar_tutari > 0 %}text-success{% elif row.kar_tutari < 0 %}text-danger{% else %}text-muted{% endif %}">
+                                    {{ row.kar_tutari|turkish_currency }}
                                 </span>
                             </td>
                             <td>
-                                {% if varyant.stok_miktari == 0 %}
+                                <span
+                                    class="badge {% if row.kar_orani >= 50 %}bg-success{% elif row.kar_orani >= 30 %}bg-warning{% elif row.kar_orani >= 0 %}bg-info{% else %}bg-danger{% endif %}">
+                                    %{{ row.kar_orani|floatformat:1 }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="stok-badge fw-bold {% if row.varyant.stok_miktari == 0 %}text-danger{% elif row.varyant.stok_miktari <= 5 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ row.varyant.stok_miktari }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if row.varyant.stok_miktari == 0 %}
                                 <span class="badge bg-danger">Tükendi</span>
-                                {% elif varyant.stok_miktari <= 5 %} <span class="badge bg-warning">Kritik</span>
+                                {% elif row.varyant.stok_miktari <= 5 %} <span class="badge bg-warning">Kritik</span>
                                     {% else %}
                                     <span class="badge bg-success">Normal</span>
                                     {% endif %}
                             </td>
                             <td>
-                                <a href="{% url 'rapor:stok_hareketleri' varyant.id %}"
+                                <a href="{% url 'rapor:stok_hareketleri' row.varyant.id %}"
                                     class="btn btn-outline-info btn-sm" title="Stok Hareketlerini Görüntüle">
                                     <i class="fas fa-history"></i> Hareketler
                                 </a>
@@ -312,7 +321,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="11" class="text-center">Ürün bulunamadı.</td>
+                            <td colspan="13" class="text-center">Ürün bulunamadı.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -426,6 +435,8 @@
         document.getElementById('kategori').value = '';
         document.getElementById('marka').value = '';
         document.getElementById('durum').value = '';
+        document.querySelector('input[name="kar_orani_min"]').value = '';
+        document.querySelector('input[name="kar_orani_max"]').value = '';
 
         // Yeni URL oluştur (sadece sıralama ile)
         let newUrl = window.location.pathname;
