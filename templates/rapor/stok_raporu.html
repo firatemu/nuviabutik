@@ -1,588 +1,363 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Stok Raporu{% endblock %}
+{% block title %}Detaylı Stok Raporu{% endblock %}
 
 {% block extra_css %}
-<style>
-    .bg-pink {
-        background-color: #e91e63 !important;
-        color: white;
-    }
+<link rel="stylesheet" href="{% static 'css/stok-raporu.css' %}?v=20260812">
+{% endblock %}
 
-    .bg-blue {
-        background-color: #2196f3 !important;
-        color: white;
-    }
-</style>
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="{% static 'js/stok-raporu.js' %}?v=20260812" defer></script>
 {% endblock %}
 
 {% block page_content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Stok Raporu</h2>
-        <div class="d-flex gap-2">
-            <a href="{% url 'rapor:stok_excel' %}?arama={{ arama }}&kategori={{ kategori_id }}&marka={{ marka_id }}&durum={{ durum }}&cinsiyet={{ cinsiyet }}&kar_orani_min={{ kar_orani_min }}&kar_orani_max={{ kar_orani_max }}"
-                class="btn btn-success">
-                <i class="fas fa-file-excel"></i> Excel İndir
-            </a>
-            <a href="{% url 'rapor:stok_pdf' %}?arama={{ arama }}&kategori={{ kategori_id }}&marka={{ marka_id }}&durum={{ durum }}&cinsiyet={{ cinsiyet }}&kar_orani_min={{ kar_orani_min }}&kar_orani_max={{ kar_orani_max }}"
-                class="btn btn-danger">
-                <i class="fas fa-file-pdf"></i> PDF İndir
-            </a>
+<div class="sr-page">
+
+    <!-- Sticky Header Bar -->
+    <header class="sr-sticky-header">
+        <div>
+            <h2><i class="bi bi-boxes-stacked me-2"></i>Detaylı Stok Raporu</h2>
+            <small class="text-muted">{{ toplam_varyant }} varyant · Filtrelenmiş sonuç</small>
+        </div>
+        <div class="sr-actions">
+            <button type="button" id="sr-open-filters" class="btn btn-light">
+                <i class="bi bi-funnel me-1"></i>Filtreler
+            </button>
+            <div class="dropdown">
+                <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-download me-1"></i>Dışa Aktar
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item"
+                           href="{% url 'rapor:stok_excel' %}?arama={{ arama }}&kategori={{ kategori_id }}&marka={{ marka_id }}&durum={{ durum }}&cinsiyet={{ cinsiyet }}&kar_orani_min={{ kar_orani_min }}&kar_orani_max={{ kar_orani_max }}">
+                            <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'rapor:stok_pdf' %}?{{ request.GET.urlencode }}">
+                            <i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- KPI Cards -->
+    <section class="sr-kpi-grid" aria-label="KPI özet">
+
+        <article class="sr-kpi-card sr-grad-blue">
+            <div class="sr-icon"><i class="bi bi-boxes"></i></div>
+            <div class="sr-kpi-value">{{ toplam_varyant|default:0 }}</div>
+            <div class="sr-kpi-label">Toplam Varyant</div>
+        </article>
+
+        <article class="sr-kpi-card sr-grad-green">
+            <div class="sr-icon"><i class="bi bi-heart-pulse"></i></div>
+            <div class="sr-kpi-value">%{{ stok_saglik_skoru|floatformat:0 }}</div>
+            <div class="sr-kpi-label">Stok Sağlık Skoru</div>
+            {% if stok_saglik_skoru >= 80 %}
+                <span class="sr-kpi-badge ok">Sağlıklı</span>
+            {% elif stok_saglik_skoru >= 50 %}
+                <span class="sr-kpi-badge warn">Orta</span>
+            {% else %}
+                <span class="sr-kpi-badge bad">Kritik</span>
+            {% endif %}
+        </article>
+
+        <article class="sr-kpi-card sr-grad-purple">
+            <div class="sr-icon"><i class="bi bi-vault"></i></div>
+            <div class="sr-kpi-value">{{ toplam_stok_degeri|turkish_currency }}</div>
+            <div class="sr-kpi-label">Toplam Stok Değeri (₺)</div>
+        </article>
+
+        <article class="sr-kpi-card sr-grad-orange">
+            <div class="sr-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="sr-kpi-value">{{ toplam_potansiyel_kar|turkish_currency }}</div>
+            <div class="sr-kpi-label">Toplam Potansiyel Kâr (₺)</div>
+        </article>
+
+        <article class="sr-kpi-card sr-grad-pink">
+            <div class="sr-icon"><i class="bi bi-percent"></i></div>
+            <div class="sr-kpi-value">%{{ ortalama_kar_orani|floatformat:1 }}</div>
+            <div class="sr-kpi-label">Ortalama Kâr Oranı</div>
+        </article>
+
+    </section>
+
+    <!-- Charts Row -->
+    <section class="sr-charts-row">
+        <div class="sr-chart-card">
+            <h3 class="sr-chart-title">Stok Sağlığı</h3>
+            <p class="sr-chart-subtitle">Mevcut varyantların stok durumuna göre dağılımı</p>
+            <div id="sr-stok-saglik-chart"
+                 class="sr-chart-canvas"
+                 data-stok-olan="{{ stok_olan_sayisi }}"
+                 data-kritik="{{ kritik_sayisi }}"
+                 data-tukenmis="{{ tukenmis_sayisi }}"></div>
+        </div>
+        <div class="sr-chart-card">
+            <h3 class="sr-chart-title">Kâr Marjı Dağılımı</h3>
+            <p class="sr-chart-subtitle">Varyantların kâr oranı yüzdelerine göre dağılımı</p>
+            <div id="sr-kar-dagilimi-chart"
+                 class="sr-chart-canvas"
+                 data-dagilim="{{ kar_dagilimi_json }}"></div>
+        </div>
+    </section>
+
+    <!-- Aktif Filtre Chip Toolbar -->
+    {% if arama or kategori_id or marka_id or durum or cinsiyet or kar_orani_min or kar_orani_max %}
+    <div class="sr-chip-toolbar" aria-label="Aktif filtreler">
+        {% if arama %}
+            <span class="sr-chip">Arama: {{ arama }}<button data-remove-filter="arama">×</button></span>
+        {% endif %}
+        {% if kategori_id %}
+            <span class="sr-chip">Kategori: {{ kategori_id }}<button data-remove-filter="kategori">×</button></span>
+        {% endif %}
+        {% if marka_id %}
+            <span class="sr-chip">Marka: {{ marka_id }}<button data-remove-filter="marka">×</button></span>
+        {% endif %}
+        {% if durum %}
+            <span class="sr-chip">Durum: {{ durum }}<button data-remove-filter="durum">×</button></span>
+        {% endif %}
+        {% if cinsiyet and cinsiyet != 'hepsi' %}
+            <span class="sr-chip">Cinsiyet: {{ cinsiyet }}<button data-remove-filter="cinsiyet">×</button></span>
+        {% endif %}
+        {% if kar_orani_min %}
+            <span class="sr-chip">Kar Oranı ≥ {{ kar_orani_min }}%<button data-remove-filter="kar_orani_min">×</button></span>
+        {% endif %}
+        {% if kar_orani_max %}
+            <span class="sr-chip">Kar Oranı ≤ {{ kar_orani_max }}%<button data-remove-filter="kar_orani_max">×</button></span>
+        {% endif %}
+        <a href="javascript:void(0)" id="sr-clear-all" class="sr-chip-clear">Tümünü Temizle</a>
+    </div>
+    {% endif %}
+
+    <!-- Filtre Form (gizli, offcanvas + sayfa submit için) -->
+    <form method="get" id="filterForm" style="display:none;">
+        <input type="hidden" name="sort" value="{{ sort_field }}">
+        <input type="hidden" name="order" value="{{ sort_order }}">
+        <input type="hidden" name="arama" value="{{ arama }}">
+        <input type="hidden" name="kategori" value="{{ kategori_id }}">
+        <input type="hidden" name="marka" value="{{ marka_id }}">
+        <input type="hidden" name="cinsiyet" value="{{ cinsiyet }}">
+        <input type="hidden" name="kar_orani_min" value="{{ kar_orani_min }}">
+        <input type="hidden" name="kar_orani_max" value="{{ kar_orani_max }}">
+        <input type="hidden" id="sr-durum-hidden" name="durum" value="{{ durum }}">
+    </form>
+
+    <!-- Filtre Offcanvas -->
+    <div class="offcanvas offcanvas-start sr-offcanvas" tabindex="-1" id="sr-filter-offcanvas">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title"><i class="bi bi-funnel me-2"></i>Filtreler</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="sr-filter-section">
+                <label>Arama</label>
+                <input id="filter-arama" name="arama" type="text" class="form-control" value="{{ arama }}" placeholder="Ürün, barkod, renk, beden...">
+            </div>
+            <div class="sr-filter-section">
+                <label>Kategori</label>
+                <select id="filter-kategori" name="kategori" class="form-select">
+                    <option value="">Tüm Kategoriler</option>
+                    {% for k in kategoriler %}
+                        <option value="{{ k.id }}" {% if kategori_id == k.id|stringformat:"s" %}selected{% endif %}>{{ k.ad }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sr-filter-section">
+                <label>Marka</label>
+                <select id="filter-marka" name="marka" class="form-select">
+                    <option value="">Tüm Markalar</option>
+                    {% for m in markalar %}
+                        <option value="{{ m.id }}" {% if marka_id == m.id|stringformat:"s" %}selected{% endif %}>{{ m.ad }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sr-filter-section">
+                <label>Stok Durumu</label>
+                <div class="sr-segment" role="radiogroup">
+                    <input type="radio" id="durum-h" name="durum-segment" value="" {% if not durum %}checked{% endif %}>
+                    <label for="durum-h">Hepsi</label>
+                    <input type="radio" id="durum-o" name="durum-segment" value="stogu_olan" {% if durum == 'stogu_olan' %}checked{% endif %}>
+                    <label for="durum-o">Stoğu Olan</label>
+                    <input type="radio" id="durum-b" name="durum-segment" value="stogu_biten" {% if durum == 'stogu_biten' %}checked{% endif %}>
+                    <label for="durum-b">Stoğu Biten</label>
+                </div>
+            </div>
+            <div class="sr-filter-section">
+                <label>Cinsiyet</label>
+                <select id="filter-cinsiyet" name="cinsiyet" class="form-select">
+                    <option value="hepsi" {% if cinsiyet == 'hepsi' or not cinsiyet %}selected{% endif %}>Hepsi</option>
+                    <option value="kadin" {% if cinsiyet == 'kadin' %}selected{% endif %}>Kadın</option>
+                    <option value="erkek" {% if cinsiyet == 'erkek' %}selected{% endif %}>Erkek</option>
+                </select>
+            </div>
+            <div class="sr-filter-section">
+                <label>Kar Oranı Aralığı (%)</label>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <input id="filter-kmin" name="kar_orani_min" type="number" step="0.01" min="0" max="1000" class="form-control" value="{{ kar_orani_min }}" placeholder="Min">
+                    </div>
+                    <div class="col-6">
+                        <input id="filter-kmax" name="kar_orani_max" type="number" step="0.01" min="0" max="1000" class="form-control" value="{{ kar_orani_max }}" placeholder="Max">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="offcanvas-footer p-3 d-flex gap-2">
+            <button type="button" class="btn btn-primary flex-grow-1" onclick="submitFilters()">
+                <i class="bi bi-search me-1"></i>Filtrele
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                <i class="bi bi-eraser me-1"></i>Temizle
+            </button>
         </div>
     </div>
 
-    <!-- Filtreler -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h6 class="mb-0">
-                <i class="fas fa-filter me-2"></i>
-                Filtreleme ve Arama
-            </h6>
-        </div>
-        <div class="card-body">
-            <form method="get" id="filterForm">
-                <!-- Hidden fields for sorting -->
-                <input type="hidden" name="sort" value="{{ sort_field }}">
-                <input type="hidden" name="order" value="{{ sort_order }}">
-
-                <div class="row g-3 mb-3">
-                    <!-- Arama -->
-                    <div class="col-md-4">
-                        <label for="arama" class="form-label">Arama</label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="fas fa-search"></i>
+    <!-- Ana Tablo -->
+    <section class="sr-table-card">
+        <div class="table-responsive">
+            <table class="sr-table">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="urun__ad">Ürün Adı</th>
+                        <th class="sortable" data-sort="renk__ad">Varyant</th>
+                        <th class="sortable" data-sort="barkod">Barkod</th>
+                        <th class="sortable" data-sort="urun__kategori__ad">Kategori</th>
+                        <th class="sortable" data-sort="urun__marka__ad">Marka</th>
+                        <th class="sortable" data-sort="urun__cinsiyet">Cinsiyet</th>
+                        <th class="sortable" data-sort="urun__alis_fiyati">Alış ₺</th>
+                        <th class="sortable" data-sort="urun__satis_fiyati">Satış ₺</th>
+                        <th>Kar Tutarı</th>
+                        <th class="sortable" data-sort="urun__kar_orani">Kar Oranı</th>
+                        <th class="sortable" data-sort="stok_miktari">Stok</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td><strong>{{ row.varyant.urun.ad }}</strong></td>
+                        <td>
+                            <small class="text-muted">
+                                {% if row.varyant.renk %}{{ row.varyant.renk.ad }}{% endif %}
+                                {% if row.varyant.renk and row.varyant.beden %} - {% endif %}
+                                {% if row.varyant.beden %}{{ row.varyant.beden.ad }}{% endif %}
+                                {% if not row.varyant.renk and not row.varyant.beden %}Standart{% endif %}
+                            </small>
+                        </td>
+                        <td><code>{{ row.varyant.barkod }}</code></td>
+                        <td>{{ row.varyant.urun.kategori.ad }}</td>
+                        <td>{{ row.varyant.urun.marka.ad|default:"-" }}</td>
+                        <td>
+                            <span class="badge {% if row.varyant.urun.cinsiyet == 'kadin' %}bg-pink{% else %}bg-blue{% endif %}">
+                                {{ row.varyant.urun.get_cinsiyet_display }}
                             </span>
-                            <input type="text" class="form-control" id="arama" name="arama" value="{{ arama }}"
-                                placeholder="Ürün adı, barkod, renk, beden...">
-                        </div>
-                    </div>
-
-                    <!-- Kategori -->
-                    <div class="col-md-2">
-                        <label for="kategori" class="form-label">Kategori</label>
-                        <select class="form-select" id="kategori" name="kategori">
-                            <option value="">Tüm Kategoriler</option>
-                            {% for kategori in kategoriler %}
-                            <option value="{{ kategori.id }}" {% if kategori_id == kategori.id|stringformat:"s" %}selected{% endif %}>
-                                {{ kategori.ad }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Marka -->
-                    <div class="col-md-2">
-                        <label for="marka" class="form-label">Marka</label>
-                        <select class="form-select" id="marka" name="marka">
-                            <option value="">Tüm Markalar</option>
-                            {% for marka in markalar %}
-                            <option value="{{ marka.id }}" {% if marka_id == marka.id|stringformat:"s" %}selected{% endif %}>
-                                {{ marka.ad }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Stok Durumu -->
-                    <div class="col-md-2">
-                        <label for="durum" class="form-label">Stok Durumu</label>
-                        <select class="form-select" id="durum" name="durum">
-                            <option value="" {% if not durum %}selected{% endif %}>Hepsi</option>
-                            <option value="stogu_olan" {% if durum == 'stogu_olan' %}selected{% endif %}>Stoğu Olan</option>
-                            <option value="stogu_biten" {% if durum == 'stogu_biten' %}selected{% endif %}>Stoğu Biten</option>
-                        </select>
-                    </div>
-
-                    <!-- Cinsiyet -->
-                    <div class="col-md-2">
-                        <label for="cinsiyet" class="form-label">Cinsiyet</label>
-                        <select class="form-select" id="cinsiyet" name="cinsiyet">
-                            <option value="hepsi" {% if cinsiyet == 'hepsi' or not cinsiyet %}selected{% endif %}>Hepsi</option>
-                            <option value="kadin" {% if cinsiyet == 'kadin' %}selected{% endif %}>Kadın</option>
-                            <option value="erkek" {% if cinsiyet == 'erkek' %}selected{% endif %}>Erkek</option>
-                        </select>
-                    </div>
-
-                    <!-- Kar Oranı Aralığı -->
-                    <div class="col-md-2">
-                        <label class="form-label">Kar Oranı Aralığı (%)</label>
-                        <div class="input-group">
-                            <input type="number" step="0.01" min="0" max="1000" class="form-control"
-                                name="kar_orani_min" value="{{ kar_orani_min }}" placeholder="Min">
-                            <input type="number" step="0.01" min="0" max="1000" class="form-control"
-                                name="kar_orani_max" value="{{ kar_orani_max }}" placeholder="Max">
-                        </div>
-                    </div>
-
-                    <!-- Butonlar -->
-                    <div class="col-md-2">
-                        <label class="form-label">&nbsp;</label>
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Filtrele
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hızlı Filtreler -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="btn-group btn-group-sm" role="group">
-                            <a href="?{% if sort_field %}sort={{ sort_field }}&order={{ sort_order }}{% endif %}"
-                                class="btn btn-outline-primary {% if not durum and not arama and not kategori_id and not marka_id and not kar_orani_min and not kar_orani_max %}active{% endif %}">
-                                <i class="fas fa-list"></i> Hepsi
+                        </td>
+                        <td>{{ row.varyant.urun.alis_fiyati|turkish_currency }}</td>
+                        <td><strong>{{ row.varyant.urun.pesin_fiyat|turkish_currency }}</strong></td>
+                        <td>
+                            {% with tutar=row.kar_tutari %}
+                                <span class="sr-kar-tutari {% if tutar > 0 %}pos{% elif tutar < 0 %}neg{% else %}zero{% endif %}">
+                                    {{ tutar|turkish_currency }}
+                                </span>
+                            {% endwith %}
+                        </td>
+                        <td>
+                            {% with oran=row.kar_orani %}
+                                {% if oran >= 50 %}
+                                    <span class="sr-kar-badge high">%{{ oran|floatformat:1 }}</span>
+                                {% elif oran >= 30 %}
+                                    <span class="sr-kar-badge mid">%{{ oran|floatformat:1 }}</span>
+                                {% elif oran >= 0 %}
+                                    <span class="sr-kar-badge low">%{{ oran|floatformat:1 }}</span>
+                                {% elif oran < 0 %}
+                                    <span class="sr-kar-badge neg">%{{ oran|floatformat:1 }}</span>
+                                {% else %}
+                                    <span class="sr-kar-badge zero">%{{ oran|floatformat:1 }}</span>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            <span class="fw-bold
+                                {% if row.varyant.stok_miktari == 0 %}text-danger
+                                {% elif row.varyant.stok_miktari <= 5 %}text-warning
+                                {% else %}text-success{% endif %}">
+                                {{ row.varyant.stok_miktari }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'rapor:stok_hareketleri' row.varyant.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-clock-history"></i>
                             </a>
-                            <a href="?durum=stogu_olan{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}{% if kar_orani_min %}&kar_orani_min={{ kar_orani_min }}{% endif %}{% if kar_orani_max %}&kar_orani_max={{ kar_orani_max }}{% endif %}"
-                                class="btn btn-outline-success {% if durum == 'stogu_olan' %}active{% endif %}">
-                                <i class="fas fa-check-circle"></i> Stoğu Olan
-                            </a>
-                            <a href="?durum=stogu_biten{% if sort_field %}&sort={{ sort_field }}&order={{ sort_order }}{% endif %}{% if kar_orani_min %}&kar_orani_min={{ kar_orani_min }}{% endif %}{% if kar_orani_max %}&kar_orani_max={{ kar_orani_max }}{% endif %}"
-                                class="btn btn-outline-danger {% if durum == 'stogu_biten' %}active{% endif %}">
-                                <i class="fas fa-times-circle"></i> Stoğu Biten
-                            </a>
-                            <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
-                                <i class="fas fa-eraser"></i> Temizle
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="12" class="text-center py-4 text-muted">Ürün bulunamadı.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </div>
+    </section>
 
-    <!-- Sonuç Özeti -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row text-center">
-                <div class="col-md-3">
-                    <div class="d-flex align-items-center justify-content-center">
-                        <i class="fas fa-boxes text-primary fs-4 me-2"></i>
-                        <div>
-                            <h5 class="mb-0">{{ rows|length }}</h5>
-                            <small class="text-muted">Bulunan Sonuç</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="d-flex align-items-center justify-content-center">
-                        <i class="fas fa-warehouse text-success fs-4 me-2"></i>
-                        <div>
-                            <h5 class="mb-0">{{ rows|length }}</h5>
-                            <small class="text-muted">Toplam Varyant</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="d-flex align-items-center justify-content-center">
-                        <i class="fas fa-exclamation-triangle text-warning fs-4 me-2"></i>
-                        <div>
-                            <h5 class="mb-0" id="kritikCount">-</h5>
-                            <small class="text-muted">Kritik Stok</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="d-flex align-items-center justify-content-center">
-                        <i class="fas fa-times-circle text-danger fs-4 me-2"></i>
-                        <div>
-                            <h5 class="mb-0" id="tukenenCount">-</h5>
-                            <small class="text-muted">Tükenenler</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Stok Tablosu -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">
-                {% if durum == 'stogu_olan' %}
-                Stoğu Olan Ürünler
-                {% elif durum == 'stogu_biten' %}
-                Stoğu Biten Ürünler
-                {% else %}
-                Tüm Ürünler
-                {% endif %}
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th class="sortable" data-sort="urun__ad">
-                                Ürün Adı
-                                <i class="fas fa-sort sort-icon ms-1"></i>
-                            </th>
-                            <th class="sortable" data-sort="renk__ad">
-                                Varyant
-                                <i class="fas fa-sort sort-icon ms-1"></i>
-                            </th>
-                            <th class="sortable" data-sort="barkod">
-                                Barkod
-                                <i class="fas fa-sort sort-icon ms-1"></i>
-                            </th>
-                            <th class="sortable" data-sort="urun__kategori__ad">
-                                Kategori
-                                <i class="fas fa-sort sort-icon ms-1"></i>
-                            </th>
-                            <th class="sortable" data-sort="urun__marka__ad">
-                                Marka
-                                <i class="fas fa-sort sort-icon ms-1"></i>
-                            </th>
-                            <th class="sortable" data-sort="urun__cinsiyet">
-                                Cinsiyet
-                                <i class="fas fa-sort sort-icon ms-1"></i>
-                            </th>
-                            <th class="sortable" data-sort="urun__alis_fiyati">
-                                Alış Fiyatı
-                                <i class="fas fa-sort sort-icon ms-1"></i>
-                            </th>
-                            <th class="sortable" data-sort="urun__satis_fiyati">
-                                Satış Fiyatı
-                                <i class="fas fa-sort sort-icon ms-1"></i>
-                            </th>
-                            <th>Kar Tutarı</th>
-                            <th class="sortable" data-sort="urun__kar_orani">
-                                Kar Oranı
-                                <i class="fas fa-sort sort-icon ms-1"></i>
-                            </th>
-                            <th class="sortable" data-sort="stok_miktari">
-                                Mevcut Stok
-                                <i class="fas fa-sort sort-icon ms-1"></i>
-                            </th>
-                            <th>Durum</th>
-                            <th>İşlemler</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in rows %}
-                        <tr>
-                            <td>{{ row.varyant.urun.ad }}</td>
-                            <td>
-                                <small class="text-muted">
-                                    {% if row.varyant.renk %}{{ row.varyant.renk.ad }}{% endif %}
-                                    {% if row.varyant.renk and row.varyant.beden %} - {% endif %}
-                                    {% if row.varyant.beden %}{{ row.varyant.beden.ad }}{% endif %}
-                                    {% if not row.varyant.renk and not row.varyant.beden %}Standart{% endif %}
-                                </small>
-                            </td>
-                            <td><code>{{ row.varyant.barkod }}</code></td>
-                            <td>{{ row.varyant.urun.kategori.ad }}</td>
-                            <td>{{ row.varyant.urun.marka.ad|default:"-" }}</td>
-                            <td>
-                                <span
-                                    class="badge {% if row.varyant.urun.cinsiyet == 'kadin' %}bg-pink{% else %}bg-blue{% endif %}">
-                                    {{ row.varyant.urun.get_cinsiyet_display }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="text-primary fw-bold">{{ row.varyant.urun.alis_fiyati|turkish_currency }}</span>
-                            </td>
-                            <td>
-                                <span class="text-success fw-bold">{{ row.varyant.urun.pesin_fiyat|turkish_currency }}</span>
-                            </td>
-                            <td>
-                                <span class="fw-bold {% if row.kar_tutari > 0 %}text-success{% elif row.kar_tutari < 0 %}text-danger{% else %}text-muted{% endif %}">
-                                    {{ row.kar_tutari|turkish_currency }}
-                                </span>
-                            </td>
-                            <td>
-                                <span
-                                    class="badge {% if row.kar_orani >= 50 %}bg-success{% elif row.kar_orani >= 30 %}bg-warning{% elif row.kar_orani >= 0 %}bg-info{% else %}bg-danger{% endif %}">
-                                    %{{ row.kar_orani|floatformat:1 }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="stok-badge fw-bold {% if row.varyant.stok_miktari == 0 %}text-danger{% elif row.varyant.stok_miktari <= 5 %}text-warning{% else %}text-success{% endif %}">
-                                    {{ row.varyant.stok_miktari }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if row.varyant.stok_miktari == 0 %}
-                                <span class="badge bg-danger">Tükendi</span>
-                                {% elif row.varyant.stok_miktari <= 5 %} <span class="badge bg-warning">Kritik</span>
-                                    {% else %}
-                                    <span class="badge bg-success">Normal</span>
-                                    {% endif %}
-                            </td>
-                            <td>
-                                <a href="{% url 'rapor:stok_hareketleri' row.varyant.id %}"
-                                    class="btn btn-outline-info btn-sm" title="Stok Hareketlerini Görüntüle">
-                                    <i class="fas fa-history"></i> Hareketler
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="13" class="text-center">Ürün bulunamadı.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 </div>
 
-<style>
-    .badge-kar-marji {
-        font-size: 0.8em;
-    }
-
-    .table-responsive {
-        border-radius: 0.375rem;
-    }
-
-    .table thead th {
-        border-top: none;
-    }
-
-    .stok-badge {
-        min-width: 50px;
-    }
-
-    .filter-section {
-        background-color: #f8f9fa;
-        border-radius: 0.375rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .input-group-text {
-        background-color: #e9ecef;
-        border-color: #dee2e6;
-    }
-
-    /* Sıralama stilleri */
-    .sortable {
-        cursor: pointer;
-        user-select: none;
-        position: relative;
-        background-color: #495057 !important;
-        color: #ffffff !important;
-    }
-
-    /* Hover efekti kaldırıldı - sadece cursor pointer kalacak */
-    .sortable:hover {
-        background-color: #495057 !important;
-        color: #ffffff !important;
-    }
-
-    /* Tablo başlık stilleri */
-    .table thead th {
-        border-bottom: 2px solid #dee2e6;
-        font-weight: 600;
-        vertical-align: middle;
-        padding: 12px 8px;
-        background-color: #495057 !important;
-        color: #ffffff !important;
-    }
-
-    .sort-icon {
-        opacity: 0.6;
-        font-size: 0.8em;
-        margin-left: 4px;
-        display: inline-block;
-        color: #ffffff;
-    }
-
-    .sortable:hover .sort-icon {
-        opacity: 0.8;
-        color: #ffffff;
-    }
-
-    .sort-asc .sort-icon,
-    .sort-desc .sort-icon {
-        opacity: 1;
-        color: #ffffff;
-    }
-
-    .sort-asc .sort-icon {
-        transform: rotate(0deg);
-    }
-
-    .sort-desc .sort-icon {
-        transform: rotate(180deg);
-    }
-
-    .sort-asc .sort-icon::before {
-        content: "\f0de";
-        /* fa-sort-up */
-    }
-
-    .sort-desc .sort-icon::before {
-        content: "\f0dd";
-        /* fa-sort-down */
-    }
-</style>
-
+<!-- submitFilters: offcanvas içindeki alanları filterForm'a aktar ve submit et -->
 <script>
-    // Filtreleri temizle
-    function clearFilters() {
-        // Sıralama parametrelerini koru
-        const sortField = document.querySelector('input[name="sort"]').value;
-        const sortOrder = document.querySelector('input[name="order"]').value;
-
-        // Form alanlarını temizle
-        document.getElementById('arama').value = '';
-        document.getElementById('kategori').value = '';
-        document.getElementById('marka').value = '';
-        document.getElementById('durum').value = '';
-        document.getElementById('cinsiyet').value = 'hepsi';
-        document.querySelector('input[name="kar_orani_min"]').value = '';
-        document.querySelector('input[name="kar_orani_max"]').value = '';
-
-        // Yeni URL oluştur (sadece sıralama ile)
-        let newUrl = window.location.pathname;
-        if (sortField && sortField !== 'urun__ad') {
-            newUrl += `?sort=${sortField}&order=${sortOrder}`;
-        }
-
-        window.location.href = newUrl;
-    }
-
-    // Enter tuşu ile arama
-    document.getElementById('arama').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            document.getElementById('filterForm').submit();
-        }
-    });
-
-    // Sayfa yüklendiğinde filtreleri kontrol et ve sayıları hesapla
-    document.addEventListener('DOMContentLoaded', function () {
-        // URL parametrelerini kontrol et ve sonuç sayısını güncelle
-        const urlParams = new URLSearchParams(window.location.search);
-        const hasFilters = urlParams.get('arama') || urlParams.get('kategori') ||
-            urlParams.get('marka') || urlParams.get('durum');
-
-        if (hasFilters) {
-            // Filtrelenmiş sonuçları vurgula
-            const filterCard = document.querySelector('.card-header h6');
-            if (filterCard) {
-                filterCard.innerHTML = '<i class="fas fa-filter me-2 text-primary"></i>Filtreleme ve Arama (Aktif)';
-            }
-        }
-
-        // Stok sayılarını hesapla ve sıralama event'lerini ekle
-        calculateStockCounts();
-        initializeSorting();
-    });
-
-    // Sıralama fonksiyonları
-    function initializeSorting() {
-        const sortableHeaders = document.querySelectorAll('.sortable');
-
-        sortableHeaders.forEach(header => {
-            header.addEventListener('click', function () {
-                const sortField = this.getAttribute('data-sort');
-                const currentSort = new URLSearchParams(window.location.search).get('sort');
-                const currentOrder = new URLSearchParams(window.location.search).get('order');
-
-                let newOrder = 'asc';
-                if (currentSort === sortField && currentOrder === 'asc') {
-                    newOrder = 'desc';
-                }
-
-                // Yeni URL oluştur
-                const params = new URLSearchParams(window.location.search);
-                params.set('sort', sortField);
-                params.set('order', newOrder);
-
-                // Sayfayı yenile
-                window.location.search = params.toString();
-            });
-        });
-
-        // Mevcut sıralama durumunu göster
-        const currentSort = new URLSearchParams(window.location.search).get('sort');
-        const currentOrder = new URLSearchParams(window.location.search).get('order');
-
-        if (currentSort) {
-            const activeHeader = document.querySelector(`[data-sort="${currentSort}"]`);
-            if (activeHeader) {
-                activeHeader.classList.add(currentOrder === 'desc' ? 'sort-desc' : 'sort-asc');
-
-                // Diğer headerlardan sıralama sınıflarını kaldır
-                sortableHeaders.forEach(header => {
-                    if (header !== activeHeader) {
-                        header.classList.remove('sort-asc', 'sort-desc');
-                    }
-                });
-            }
+function submitFilters() {
+    var form = document.getElementById('filterForm');
+    function setVal(name) {
+        var src = document.getElementById('filter-' + name);
+        if (src) {
+            form.querySelector('input[name="' + name + '"]').value = src.value;
         }
     }
-
-    // Stok sayılarını hesapla
-    function calculateStockCounts() {
-        const rows = document.querySelectorAll('tbody tr');
-        let kritikCount = 0;
-        let tukenenCount = 0;
-
-        rows.forEach(row => {
-            const stokBadge = row.querySelector('.stok-badge');
-            if (stokBadge) {
-                const stokMiktari = parseInt(stokBadge.textContent);
-                if (stokMiktari === 0) {
-                    tukenenCount++;
-                } else if (stokMiktari <= 5) {
-                    kritikCount++;
-                }
-            }
-        });
-
-        // Sayıları güncelle
-        document.getElementById('kritikCount').textContent = kritikCount;
-        document.getElementById('tukenenCount').textContent = tukenenCount;
-    }
-
-    // Canlı arama (300ms gecikme ile)
-    let searchTimeout;
-    document.getElementById('arama').addEventListener('input', function () {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(function () {
-            // İsteğe bağlı: otomatik arama
-            // document.getElementById('filterForm').submit();
-        }, 300);
-    });
-
-    // Excel export fonksiyonu
-    function exportToExcel() {
-        // Mevcut filtreleri al
-        const params = new URLSearchParams(window.location.search);
-        params.append('export', 'excel');
-
-        // Export URL'ini oluştur
-        const exportUrl = window.location.pathname + '?' + params.toString();
-
-        // Yeni pencerede aç
-        window.open(exportUrl, '_blank');
-    }
-
-    // Yazdırma fonksiyonu
-    function printReport() {
-        window.print();
-    }
-
-    // Responsive tablo scroll
-    document.addEventListener('DOMContentLoaded', function () {
-        const tableContainer = document.querySelector('.table-responsive');
-        if (tableContainer) {
-            tableContainer.addEventListener('scroll', function () {
-                if (this.scrollLeft > 0) {
-                    this.classList.add('shadow-sm');
-                } else {
-                    this.classList.remove('shadow-sm');
-                }
-            });
-        }
-    });
+    setVal('arama');
+    setVal('kategori');
+    setVal('marka');
+    setVal('cinsiyet');
+    setVal('kmin');
+    form.querySelector('input[name="kar_orani_min"]').value = document.getElementById('filter-kmin').value;
+    form.querySelector('input[name="kar_orani_max"]').value = document.getElementById('filter-kmax').value;
+    form.submit();
+}
 </script>
+
+<!-- Sıralama script'i (değişmedi, mevcut haliyle korunur) -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const sortableHeaders = document.querySelectorAll('.sr-table thead th.sortable');
+    const url = new URL(window.location.href);
+
+    sortableHeaders.forEach(h => {
+        h.addEventListener('click', function () {
+            const sortField = this.getAttribute('data-sort');
+            const currentSort = url.searchParams.get('sort');
+            const currentOrder = url.searchParams.get('order');
+            const newOrder = (currentSort === sortField && currentOrder === 'asc') ? 'desc' : 'asc';
+            url.searchParams.set('sort', sortField);
+            url.searchParams.set('order', newOrder);
+            window.location.href = url.toString();
+        });
+    });
+    // Aktif sıralama işareti
+    const currentSort = url.searchParams.get('sort');
+    const currentOrder = url.searchParams.get('order');
+    if (currentSort) {
+        const activeHeader = document.querySelector('[data-sort="' + currentSort + '"]');
+        if (activeHeader) {
+            activeHeader.classList.add(currentOrder === 'desc' ? 'sort-desc' : 'sort-asc');
+            const icon = document.createElement('i');
+            icon.className = 'bi bi-caret-up-fill sort-icon';
+            activeHeader.appendChild(icon);
+        }
+    }
+});
+</script>
+
 {% endblock %}
