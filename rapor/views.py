@@ -933,7 +933,7 @@ def stok_excel(request):
 
     # Başlıklar
     headers = ['Ürün Adı', 'Varyant', 'Barkod', 'Kategori', 'Marka', 'Cinsiyet',
-               'Alış Fiyatı', 'Satış Fiyatı', 'Kar Oranı %', 'Kar Tutarı', 'Stok Miktarı', 'Durum']
+               'Alış Fiyatı', 'Satış Fiyatı', 'Kar Tutarı', 'Kar Oranı %', 'Stok Miktarı', 'Durum']
     for col, header in enumerate(headers, 1):
         worksheet.cell(row=1, column=col, value=header)
 
@@ -975,8 +975,8 @@ def stok_excel(request):
             _oran = float(_tutar / _satis * Decimal('100'))
         else:
             _oran = 0.0
-        worksheet.cell(row=row, column=9, value=_oran)
-        worksheet.cell(row=row, column=10, value=float(_tutar))
+        worksheet.cell(row=row, column=9, value=float(_tutar))
+        worksheet.cell(row=row, column=10, value=_oran)
         worksheet.cell(row=row, column=11, value=varyant.stok_miktari)
         worksheet.cell(row=row, column=12, value=durum_text)
 
