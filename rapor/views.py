@@ -192,6 +192,62 @@ def stok_raporu(request):
             'kar_orani': kar_orani,
         })
 
+    # Premium KPI agregasyonları (rows zaten hesaplanmış)
+    ZERO_DEC = Decimal('0')
+    toplam_stok_degeri = ZERO_DEC
+    toplam_potansiyel_kar = ZERO_DEC
+    kar_orani_toplam = ZERO_DEC
+    stok_olan_sayisi = 0
+    kritik_sayisi = 0
+    tukenmis_sayisi = 0
+    kar_dagilimi = {'0-20': 0, '20-40': 0, '40-60': 0, '60-80': 0, '80+': 0}
+
+    for row in rows:
+        v = row['varyant']
+        try:
+            stok = int(v.stok_miktari or 0)
+        except (TypeError, ValueError):
+            stok = 0
+        alis = v.urun.alis_fiyati or ZERO_DEC
+        kar_tutari = row['kar_tutari'] or ZERO_DEC
+
+        toplam_stok_degeri += alis * Decimal(stok)
+        toplam_potansiyel_kar += kar_tutari * Decimal(stok)
+        kar_orani_toplam += (row['kar_orani'] or ZERO_DEC)
+
+        if stok == 0:
+            tukenmis_sayisi += 1
+        elif stok <= 5:
+            kritik_sayisi += 1
+        else:
+            stok_olan_sayisi += 1
+
+        oran = float(row['kar_orani'] or 0)
+        if oran < 20:
+            kar_dagilimi['0-20'] += 1
+        elif oran < 40:
+            kar_dagilimi['20-40'] += 1
+        elif oran < 60:
+            kar_dagilimi['40-60'] += 1
+        elif oran < 80:
+            kar_dagilimi['60-80'] += 1
+        else:
+            kar_dagilimi['80+'] += 1
+
+    toplam_varyant = len(rows)
+    if toplam_varyant > 0:
+        stok_saglik_skoru = (stok_olan_sayisi / toplam_varyant) * 100
+        ortalama_kar_orani = kar_orani_toplam / Decimal(toplam_varyant)
+    else:
+        stok_saglik_skoru = 0
+        ortalama_kar_orani = ZERO_DEC
+
+    # ApexCharts için JSON (template'te |safe ile render edilir)
+    import json
+    kar_dagilimi_json = json.dumps([
+        {'range': k, 'count': v} for k, v in kar_dagilimi.items()
+    ])
+
     # Dropdown için veriler
     kategoriler = UrunKategoriUst.objects.all().order_by('ad')
     markalar = Marka.objects.all().order_by('ad')
@@ -209,6 +265,15 @@ def stok_raporu(request):
         'kar_orani_max': kar_orani_max,
         'sort_field': request.GET.get('sort', 'urun__ad'),
         'sort_order': request.GET.get('order', 'asc'),
+        'toplam_varyant': toplam_varyant,
+        'stok_olan_sayisi': stok_olan_sayisi,
+        'kritik_sayisi': kritik_sayisi,
+        'tukenmis_sayisi': tukenmis_sayisi,
+        'stok_saglik_skoru': stok_saglik_skoru,
+        'toplam_stok_degeri': toplam_stok_degeri,
+        'toplam_potansiyel_kar': toplam_potansiyel_kar,
+        'ortalama_kar_orani': ortalama_kar_orani,
+        'kar_dagilimi_json': kar_dagilimi_json,
     }
     return render(request, 'rapor/stok_raporu.html', context)
 
