@@ -87,7 +87,8 @@ def stok_raporu(request):
     arama = request.GET.get('arama', '').strip()
     kategori_id = request.GET.get('kategori')
     marka_id = request.GET.get('marka')
-    durum = request.GET.get('durum')
+    # 'durum' parametresi URL'de yoksa varsayilan olarak 'stogu_olan' kullan (ilk yuklemede sadece stogu olanlar)
+    durum = request.GET.get('durum') or 'stogu_olan'
     cinsiyet = request.GET.get('cinsiyet')
     kar_orani_min = request.GET.get('kar_orani_min', '').strip()
     kar_orani_max = request.GET.get('kar_orani_max', '').strip()

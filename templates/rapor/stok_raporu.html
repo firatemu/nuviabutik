@@ -88,28 +88,8 @@
 
     </section>
 
-    <!-- Charts Row -->
-    <section class="sr-charts-row">
-        <div class="sr-chart-card">
-            <h3 class="sr-chart-title">Stok Sağlığı</h3>
-            <p class="sr-chart-subtitle">Mevcut varyantların stok durumuna göre dağılımı</p>
-            <div id="sr-stok-saglik-chart"
-                 class="sr-chart-canvas"
-                 data-stok-olan="{{ stok_olan_sayisi }}"
-                 data-kritik="{{ kritik_sayisi }}"
-                 data-tukenmis="{{ tukenmis_sayisi }}"></div>
-        </div>
-        <div class="sr-chart-card">
-            <h3 class="sr-chart-title">Kâr Marjı Dağılımı</h3>
-            <p class="sr-chart-subtitle">Varyantların kâr oranı yüzdelerine göre dağılımı</p>
-            <div id="sr-kar-dagilimi-chart"
-                 class="sr-chart-canvas"
-                 data-dagilim="{{ kar_dagilimi_json }}"></div>
-        </div>
-    </section>
-
     <!-- Aktif Filtre Chip Toolbar -->
-    {% if arama or kategori_id or marka_id or durum or cinsiyet or kar_orani_min or kar_orani_max %}
+    {% if arama or kategori_id or marka_id or cinsiyet or kar_orani_min or kar_orani_max or durum == 'stogu_biten' %}
     <div class="sr-chip-toolbar" aria-label="Aktif filtreler">
         {% if arama %}
             <span class="sr-chip">Arama: {{ arama }}<button data-remove-filter="arama">×</button></span>
@@ -120,8 +100,8 @@
         {% if marka_id %}
             <span class="sr-chip">Marka: {{ marka_id }}<button data-remove-filter="marka">×</button></span>
         {% endif %}
-        {% if durum %}
-            <span class="sr-chip">Durum: {{ durum }}<button data-remove-filter="durum">×</button></span>
+        {% if durum == 'stogu_biten' %}
+            <span class="sr-chip">Durum: stoğu biten<button data-remove-filter="durum">×</button></span>
         {% endif %}
         {% if cinsiyet and cinsiyet != 'hepsi' %}
             <span class="sr-chip">Cinsiyet: {{ cinsiyet }}<button data-remove-filter="cinsiyet">×</button></span>
@@ -181,9 +161,9 @@
             <div class="sr-filter-section">
                 <label>Stok Durumu</label>
                 <div class="sr-segment" role="radiogroup">
-                    <input type="radio" id="durum-h" name="durum-segment" value="" {% if not durum %}checked{% endif %}>
+                    <input type="radio" id="durum-h" name="durum-segment" value="" {% if durum == '' or durum == 'hepsi' %}checked{% endif %}>
                     <label for="durum-h">Hepsi</label>
-                    <input type="radio" id="durum-o" name="durum-segment" value="stogu_olan" {% if durum == 'stogu_olan' %}checked{% endif %}>
+                    <input type="radio" id="durum-o" name="durum-segment" value="stogu_olan" {% if durum == 'stogu_olan' or not durum %}checked{% endif %}>
                     <label for="durum-o">Stoğu Olan</label>
                     <input type="radio" id="durum-b" name="durum-segment" value="stogu_biten" {% if durum == 'stogu_biten' %}checked{% endif %}>
                     <label for="durum-b">Stoğu Biten</label>
@@ -255,7 +235,7 @@
                         <td>{{ row.varyant.urun.kategori.ad }}</td>
                         <td>{{ row.varyant.urun.marka.ad|default:"-" }}</td>
                         <td>
-                            <span class="badge {% if row.varyant.urun.cinsiyet == 'kadin' %}bg-pink{% else %}bg-blue{% endif %}">
+                            <span class="badge bg-light text-dark">
                                 {{ row.varyant.urun.get_cinsiyet_display }}
                             </span>
                         </td>
