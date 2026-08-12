@@ -162,8 +162,9 @@ def stok_raporu(request):
     def _passes_kar(v):
         alis = v.urun.alis_fiyati or Decimal('0')
         satis = v.urun.pesin_fiyat or Decimal('0')
-        if satis != 0:
-            oran = float((satis - alis) / satis * Decimal('100'))
+        # Kar oranı alış fiyatı üzerinden (markup): (satis - alis) / alis * 100
+        if alis != 0:
+            oran = float((satis - alis) / alis * Decimal('100'))
         else:
             oran = 0.0
         if min_val is not None and oran < min_val:
@@ -182,8 +183,9 @@ def stok_raporu(request):
         alis = v.urun.alis_fiyati or ZERO
         satis = v.urun.pesin_fiyat or ZERO
         kar_tutari = satis - alis
-        if satis != 0:
-            kar_orani = (kar_tutari / satis) * Decimal('100')
+        # Kar oranı alış fiyatı üzerinden (markup): (satis - alis) / alis * 100
+        if alis != 0:
+            kar_orani = (kar_tutari / alis) * Decimal('100')
         else:
             kar_orani = ZERO
         rows.append({
@@ -974,8 +976,9 @@ def stok_excel(request):
             for v in varyant_list:
                 alis = v.urun.alis_fiyati or ZERO_D
                 satis = v.urun.pesin_fiyat or ZERO_D
-                if satis != 0:
-                    oran = float((satis - alis) / satis * Decimal('100'))
+                # Kar oranı alış fiyatı üzerinden (markup): (satis - alis) / alis * 100
+                if alis != 0:
+                    oran = float((satis - alis) / alis * Decimal('100'))
                 else:
                     oran = 0.0
                 if min_val is not None and oran < min_val:
@@ -1033,11 +1036,12 @@ def stok_excel(request):
         worksheet.cell(row=row, column=8, value=float(
             varyant.urun.pesin_fiyat))  # 'satis_fiyati' yerine 'pesin_fiyat'
         # Kar oranı ve kâr tutarı dinamik hesaplama
+        # Kar oranı alış fiyatı üzerinden (markup): (satis - alis) / alis * 100
         _alis = varyant.urun.alis_fiyati or Decimal('0')
         _satis = varyant.urun.pesin_fiyat or Decimal('0')
         _tutar = _satis - _alis
-        if _satis != 0:
-            _oran = float(_tutar / _satis * Decimal('100'))
+        if _alis != 0:
+            _oran = float(_tutar / _alis * Decimal('100'))
         else:
             _oran = 0.0
         worksheet.cell(row=row, column=9, value=float(_tutar))
