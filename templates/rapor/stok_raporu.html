@@ -313,15 +313,15 @@ function submitFilters() {
     var form = document.getElementById('filterForm');
     function setVal(name) {
         var src = document.getElementById('filter-' + name);
-        if (src) {
-            form.querySelector('input[name="' + name + '"]').value = src.value;
+        var dst = form.querySelector('input[name="' + name + '"]');
+        if (src && dst) {
+            dst.value = src.value;
         }
     }
     setVal('arama');
     setVal('kategori');
     setVal('marka');
     setVal('cinsiyet');
-    setVal('kmin');
     form.querySelector('input[name="kar_orani_min"]').value = document.getElementById('filter-kmin').value;
     form.querySelector('input[name="kar_orani_max"]').value = document.getElementById('filter-kmax').value;
     form.submit();
