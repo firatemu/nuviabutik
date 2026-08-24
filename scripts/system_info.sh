@@ -59,10 +59,11 @@ echo ""
 # Application Info
 echo "🚀 APPLICATION"
 echo "---------------------------------------"
-echo "Project Path: /var/www/nuviabutik"
-echo "Project Size: $(du -sh /var/www/nuviabutik 2>/dev/null | cut -f1)"
+echo "Project Path: /srv/apps/nuviabutik"
+echo "Project Size: $(du -sh /srv/apps/nuviabutik 2>/dev/null | cut -f1)"
+echo "Data Path: /srv/data/nuviabutik"
 echo "Python Version: $(python3 --version 2>/dev/null || echo "Unknown")"
-echo "Django Version: $(cd /var/www/nuviabutik && ./venv/bin/python -c "import django; print(django.get_version())" 2>/dev/null || echo "Unknown")"
+echo "Django Version: $(cd /srv/apps/nuviabutik && ./venv/bin/python -c "import django; print(django.get_version())" 2>/dev/null || echo "Unknown")"
 echo ""
 
 # Recent Activity

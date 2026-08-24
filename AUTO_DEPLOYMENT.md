@@ -1,89 +1,63 @@
 # GitHub Actions Otomatik Deployment Kurulum Rehberi
 
-## 🔑 GitHub Secrets Kurulumu
+## GitHub Secrets
 
-GitHub repository'nizde Settings > Secrets and variables > Actions bölümünde aşağıdaki secret'ları ekleyin:
+Repository: **Settings → Secrets and variables → Actions**
 
-### Gerekli Secrets:
+| Secret | Value |
+|---|---|
+| `SSH_HOST` | `76.13.14.43` |
+| `SSH_USER` | `root` |
+| `SSH_PRIVATE_KEY` | Sunucudaki private key (aşağıya bakın) |
 
-1. **SSH_HOST**
-   - Value: `31.57.33.34`
-
-2. **SSH_USER** 
-   - Value: `root`
-
-3. **SSH_PRIVATE_KEY**
-   - SSH private key'inizin içeriği
-   - Key oluşturmak için sunucuda: `ssh-keygen -t rsa -b 4096 -C "github-actions"`
-   - Private key: `cat ~/.ssh/id_rsa` (tamamını kopyalayın)
-   - Public key'i authorized_keys'e ekleyin: `cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys`
-
-## 🚀 Nasıl Çalışır?
-
-1. **Kod değişikliği yapıp GitHub'a push atın**
-   ```bash
-   git add .
-   git commit -m "feature: yeni özellik eklendi"
-   git push origin main
-   ```
-
-2. **GitHub Actions otomatik tetiklenir**
-   - Actions sekmesinde progress'i takip edebilirsiniz
-
-3. **Deployment süreci (yaklaşık 2-3 dakika):**
-   - ✅ Kod checkout
-   - ✅ SSH bağlantı kurma
-   - ✅ Sunucuda backup alma
-   - ✅ Git pull (son kodları çekme)
-   - ✅ Dependencies güncelleme
-   - ✅ Database migration
-   - ✅ Static files toplama
-   - ✅ Servisleri restart etme
-   - ✅ Health check
-
-4. **Başarılı deployment sonrası site otomatik güncellenir**
-
-## 📋 Manuel Deployment (Sunucuda)
-
-Eğer GitHub Actions kullanmak istemezseniz, sunucuda manuel deployment:
+Private key sunucuda:
 
 ```bash
-cd /var/www/nuviabutik
-chmod +x server_deploy.sh
-./server_deploy.sh
+cat /root/.ssh/github_actions_deploy
 ```
 
-## 🔍 Deployment Logları
+Tam çıktıyı ( `-----BEGIN` … `-----END` dahil) `SSH_PRIVATE_KEY` secret'ına yapıştırın.
 
-- GitHub Actions logları: GitHub > Actions sekmesi
-- Sunucu deployment logları: `/var/log/deployment.log`
-- Service logları: `journalctl -u nuviabutik -f`
+## Sunucu Yolları
 
-## 🚨 Rollback (Geri Alma)
+| Alan | Path |
+|---|---|
+| Uygulama | `/srv/apps/nuviabutik` |
+| Deploy script | `/srv/apps/nuviabutik/scripts/deploy.sh` |
+| Data (media/logs) | `/srv/data/nuviabutik` |
+| DB backups | `/srv/backups/nuviabutik/database/` |
 
-Eğer deployment hata verirse:
+## Nasıl Çalışır?
+
+1. `main` branch'e push
+2. GitHub Actions `deploy.yml` tetiklenir
+3. SSH ile sunucuya bağlanır → `scripts/deploy.sh` çalışır:
+   - `git pull`
+   - `pip install`
+   - `collectstatic`
+   - `manage.py check`
+   - `systemctl restart nuviabutik`
+
+**Not:** Production'da migration çalıştırılmaz (planlı değilse).
+
+## Manuel Deploy
 
 ```bash
-cd /var/backups/nuviabutik
-ls -la  # backup listesi
-cp -r nuviabutik_backup_YYYYMMDD_HHMMSS/* /var/www/nuviabutik/
-systemctl restart nuviabutik nginx
+/srv/apps/nuviabutik/scripts/deploy.sh
 ```
 
-## ⚡ Özellikler
+## Loglar
 
-- ✅ **Otomatik backup** (her deployment öncesi)
-- ✅ **Zero-downtime deployment** (hızlı restart)
-- ✅ **Health check** (deployment sonrası test)
-- ✅ **Rollback desteği** (hata durumunda geri alma)
-- ✅ **Detailed logging** (detaylı loglar)
-- ✅ **Safety checks** (güvenlik kontrolleri)
+- Deploy: `/var/log/nuviabutik-deploy.log`
+- Gunicorn: `journalctl -u nuviabutik -f`
 
-## 🔧 İlk Kurulum
+## Rollback
 
-1. GitHub Secrets'ları ekleyin
-2. SSH key'lerini sunucuda yapılandırın
-3. Bu dosyaları commit edip push edin
-4. GitHub Actions'ın çalıştığını kontrol edin
+```bash
+cd /srv/apps/nuviabutik
+git log --oneline -5
+git reset --hard <commit>
+/srv/apps/nuviabutik/scripts/deploy.sh
+```
 
-**Not:** İlk deployment'ta SSH connection error alabilirsiniz. Bu durumda SSH key'lerinizi kontrol edin.
+Database geri alma için: `/srv/backups/nuviabutik/database/` içindeki `.sql.gz` yedeklerini kullanın.

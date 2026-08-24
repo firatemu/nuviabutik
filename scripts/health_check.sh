@@ -4,7 +4,7 @@
 # This script monitors system resources, services, and application health
 #
 # Usage: ./health_check.sh
-# Cron: */5 * * * * /var/www/nuviabutik/scripts/health_check.sh
+# Cron: */5 * * * * /srv/apps/nuviabutik/scripts/health_check.sh
 
 set -e
 

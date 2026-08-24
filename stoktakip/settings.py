@@ -16,6 +16,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = Path(os.environ.get('NUVIABUTIK_DATA_DIR', '/srv/data/nuviabutik'))
 
 
 # Quick-start development settings - unsuitable for production
@@ -39,7 +40,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'nuviabutik.com',
     'www.nuviabutik.com',
-    '31.57.33.34',
+    '76.13.14.43',
     'testserver',  # For Django testing
     # Your production domain will be added here
 ]
@@ -55,8 +56,8 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'https://nuviabutik.com',
     'http://nuviabutik.com',
-    'https://31.57.33.34',
-    'http://31.57.33.34',
+    'https://76.13.14.43',
+    'http://76.13.14.43',
     # Your production HTTPS domains will be added here
 ]
 
@@ -208,7 +209,7 @@ STORAGES = {
 
 # Media files
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = DATA_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -313,7 +314,7 @@ LOGGING = {
         'checkout_file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'checkout.log',
+            'filename': DATA_DIR / 'logs' / 'checkout.log',
             'maxBytes': 5 * 1024 * 1024,
             'backupCount': 3,
             'formatter': 'verbose',
@@ -321,7 +322,7 @@ LOGGING = {
         'django_error_file': {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'django_error.log',
+            'filename': DATA_DIR / 'logs' / 'django_error.log',
             'maxBytes': 5 * 1024 * 1024,
             'backupCount': 5,
             'formatter': 'verbose',

@@ -4,7 +4,7 @@
 # satis_fiyati → pesin_fiyat ve taksitli_fiyat'a günceller
 #
 
-TEMPLATE_DIR="/var/www/nuviabutik/templates"
+TEMPLATE_DIR="/srv/apps/nuviabutik/templates"
 BACKUP_DIR="/var/backups/nuviabutik/templates_$(date +%Y%m%d_%H%M%S)"
 
 echo "================================================"
