@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">{{ title }}</div>
+                <div class="card-body">
+                    <p><strong>{{ gider.baslik }}</strong> giderini silmek istediğinize emin misiniz?</p>
+                    <p class="text-muted mb-0">Tutar: {{ gider.tutar|floatformat:2 }} ₺ — {{ gider.tarih }}</p>
+                    <form method="post" class="mt-3">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Sil</button>
+                        <a href="{% url 'gider:liste' %}" class="btn btn-outline-secondary">Vazgeç</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

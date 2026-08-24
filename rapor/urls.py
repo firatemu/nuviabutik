@@ -8,6 +8,11 @@ urlpatterns = [
     path('gunluk-satis/', views.gunluk_satis, name='gunluk_satis'),
     path('stok-raporu/', views.stok_raporu, name='stok_raporu'),
     path('stok-degeri/', views.stok_degeri, name='stok_degeri'),
+    path(
+        'stok-degeri/alis-fiyat-guncelle/',
+        views.stok_degeri_alis_fiyat_guncelle,
+        name='stok_degeri_alis_fiyat_guncelle',
+    ),
     path('stok-hareketleri/<int:varyant_id>/', views.stok_hareketleri, name='stok_hareketleri'),
     path('cok-satan-urunler/', views.cok_satan_urunler, name='cok_satan_urunler'),
     path('urun-bazli-karlilik/', views.urun_bazli_karlilik, name='urun_bazli_karlilik'),
@@ -18,6 +23,7 @@ urlpatterns = [
         name='fatura_karlilik_detay',
     ),
     path('musteri-raporu/', views.musteri_raporu, name='musteri_raporu'),
+    path('kar-zarar/', views.kar_zarar, name='kar_zarar'),
     path('satici-raporu/', views.satici_raporu, name='satici_raporu'),
     
     # Rapor export

@@ -80,6 +80,8 @@ Modern, kapsamlı ve kullanıcı dostu **Stok ve Satış Takip Sistemi**. Django
 
 ## 📦 Kurulum
 
+Production deploy adımları için [DEPLOY.md](DEPLOY.md) dosyasına bakın.
+
 ### Gereksinimler
 - Python 3.13+
 - pip

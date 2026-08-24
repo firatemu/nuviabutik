@@ -4,300 +4,405 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hediye Çeki - {{ hediye_ceki.kod }}</title>
+    <title>Hediye Çeki — {{ hediye_ceki.kod }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@700&display=swap" rel="stylesheet">
     <style>
-        * {
+        /* 80mm termal yazıcı — yazdırılabilir alan ~72mm */
+        @page {
+            size: 80mm auto;
+            margin: 2mm;
+        }
+
+        *, *::before, *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
+        html {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
         body {
-            font-family: 'Courier New', 'Arial', monospace;
-            font-size: 12px;
-            line-height: 1.3;
+            font-family: "Noto Sans", "DejaVu Sans", "Liberation Sans", Arial, Helvetica, sans-serif;
+            font-weight: 700;
+            font-size: 10pt;
+            line-height: 1.35;
             color: #000;
-            background: white;
-            width: 76mm;
+            background: #fff;
+            width: 72mm;
+            max-width: 72mm;
             margin: 0 auto;
-            padding: 3mm;
+            padding: 2mm;
         }
-        
-        .header {
+
+        /* ── Toolbar (screen only) ── */
+        .no-print {
             text-align: center;
-            margin-bottom: 10px;
-            border-bottom: 3px double #000;
-            padding-bottom: 6px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #ccc;
         }
-        
-        .company-name {
-            font-size: 20px;
-            font-weight: 900;
-            letter-spacing: 2px;
-            margin-bottom: 3px;
-            text-shadow: 1px 1px 0px #000;
-        }
-        
-        .company-tagline {
-            font-size: 14px;
-            font-weight: 900;
-            margin-bottom: 4px;
-            letter-spacing: 1px;
-        }
-        
-        .company-info {
+
+        .no-print button {
+            padding: 6px 14px;
+            font-family: inherit;
             font-size: 11px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+            background: #fff;
+            color: #222;
+        }
+
+        .no-print button.primary {
+            background: #111;
+            color: #fff;
+            border-color: #111;
+        }
+
+        .no-print button + button {
+            margin-left: 6px;
+        }
+
+        /* ── Header / Brand ── */
+        .brand {
+            text-align: center;
+            padding-bottom: 6px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #000;
+        }
+
+        .brand-name {
+            font-size: 13pt;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
             line-height: 1.2;
-            font-weight: 600;
         }
-        
-        .hediye-ceki-title {
+
+        .brand-sub {
+            font-size: 7.5pt;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .brand-tagline {
+            font-size: 7pt;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-top: 4px;
+            color: #333;
+        }
+
+        /* ── Document title ── */
+        .doc-title {
             text-align: center;
-            font-size: 18px;
-            font-weight: 900;
-            margin: 10px 0;
-            background: #000;
-            color: white;
-            padding: 6px 0;
-            letter-spacing: 3px;
-            text-shadow: none;
+            font-size: 11pt;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            padding: 5px 0;
+            margin-bottom: 6px;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
         }
-        
-        .cek-bilgi {
-            margin: 10px 0;
-            border: 3px solid #000;
-            padding: 10px;
-            background: #f8f8f8;
-            border-radius: 2px;
-        }
-        
-        .cek-kod {
+
+        /* ── Amount hero ── */
+        .amount-block {
             text-align: center;
-            font-size: 22px;
-            font-weight: 900;
-            letter-spacing: 4px;
-            margin: 6px 0;
-            padding: 8px;
-            border: 2px dashed #000;
-            background: white;
-            font-family: 'Courier New', monospace;
+            padding: 8px 0 6px;
+            margin-bottom: 6px;
         }
-        
-        .cek-tutar {
+
+        .amount-label {
+            font-size: 7pt;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #444;
+            margin-bottom: 2px;
+        }
+
+        .amount-value {
+            font-size: 20pt;
+            letter-spacing: 0.02em;
+            line-height: 1.1;
+        }
+
+        .amount-remaining {
+            font-size: 8pt;
+            margin-top: 3px;
+            color: #333;
+        }
+
+        /* ── Code + barcode ── */
+        .code-block {
             text-align: center;
-            font-size: 28px;
-            font-weight: 900;
-            margin: 10px 0;
-            color: #000;
-            text-shadow: 1px 1px 0px #333;
+            padding: 6px 4px;
+            margin-bottom: 6px;
+            border: 1px solid #000;
         }
-        
-        .bilgi-satir {
+
+        .barcode-wrap {
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .barcode-wrap svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .code-text {
+            font-size: 11pt;
+            letter-spacing: 0.18em;
+            word-break: break-all;
+        }
+
+        /* ── Info rows ── */
+        .info-section {
+            margin-bottom: 6px;
+        }
+
+        .info-row {
             display: flex;
             justify-content: space-between;
-            margin: 4px 0;
-            font-weight: 700;
-            padding: 2px 0;
+            align-items: baseline;
+            gap: 4px;
+            padding: 2.5px 0;
+            font-size: 8.5pt;
+            border-bottom: 1px dotted #bbb;
         }
-        
-        .bilgi-label {
-            font-weight: 900;
-            font-size: 11px;
+
+        .info-row:last-child {
+            border-bottom: none;
         }
-        
-        .bilgi-deger {
-            font-weight: 900;
-            font-size: 11px;
+
+        .info-label {
+            flex-shrink: 0;
+            color: #333;
         }
-        
-        .ayrac {
+
+        .info-value {
+            text-align: right;
+            word-break: break-word;
+        }
+
+        /* ── Divider ── */
+        .rule {
+            border: none;
+            border-top: 1px solid #000;
+            margin: 6px 0;
+        }
+
+        .rule-dashed {
+            border: none;
+            border-top: 1px dashed #999;
+            margin: 5px 0;
+        }
+
+        /* ── Terms ── */
+        .terms {
+            font-size: 7pt;
+            line-height: 1.45;
+            color: #222;
+        }
+
+        .terms-title {
+            font-size: 7.5pt;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
             text-align: center;
-            margin: 8px 0;
-            font-size: 16px;
-            font-weight: 900;
+            margin-bottom: 4px;
         }
-        
-        .kullanim-bilgi {
-            margin: 10px 0;
-            padding: 8px;
-            border: 2px solid #000;
-            font-size: 10px;
-            text-align: left;
-            background: #f0f0f0;
-            font-weight: 600;
+
+        .terms ul {
+            list-style: none;
+            padding: 0;
         }
-        
-        .alt-bilgi {
-            margin-top: 10px;
-            font-size: 9px;
+
+        .terms li {
+            position: relative;
+            padding-left: 8px;
+            margin-bottom: 2px;
+        }
+
+        .terms li::before {
+            content: "–";
+            position: absolute;
+            left: 0;
+        }
+
+        /* ── Footer ── */
+        .footer {
             text-align: center;
-            border-top: 2px solid #000;
-            padding-top: 6px;
-            font-weight: 600;
+            padding-top: 4px;
         }
-        
-        .tesekkur {
-            text-align: center;
-            font-weight: 900;
-            font-size: 14px;
-            margin: 12px 0 6px 0;
-            letter-spacing: 1px;
+
+        .footer-thanks {
+            font-size: 8.5pt;
+            letter-spacing: 0.06em;
+            margin-bottom: 4px;
         }
-        
+
+        .footer-contact {
+            font-size: 7pt;
+            line-height: 1.4;
+            color: #333;
+        }
+
+        .footer-meta {
+            font-size: 6.5pt;
+            color: #555;
+            margin-top: 5px;
+            padding-top: 4px;
+            border-top: 1px dashed #bbb;
+        }
+
+        .note-block {
+            font-size: 7pt;
+            font-style: italic;
+            margin-bottom: 5px;
+            padding: 3px 0;
+            border-bottom: 1px dotted #bbb;
+        }
+
         @media print {
             body {
-                width: 76mm;
-                font-size: 12px;
+                width: 72mm;
+                max-width: 72mm;
                 margin: 0;
-                padding: 3mm;
+                padding: 0;
             }
+
             .no-print {
-                display: none;
+                display: none !important;
             }
-            .header {
-                margin-bottom: 8px;
-            }
-            .hediye-ceki-title {
-                margin: 8px 0;
-            }
-            .cek-bilgi {
-                margin: 8px 0;
-            }
-        }
-        
-        /* Özel kalın yazı tipleri */
-        .bold {
-            font-weight: 900;
-        }
-        
-        .extra-bold {
-            font-weight: 900;
-            text-shadow: 0.8px 0.8px 0px #000;
-        }
-        
-        .super-bold {
-            font-weight: 900;
-            text-shadow: 1px 1px 0px #000, 0.5px 0.5px 0px #333;
         }
     </style>
 </head>
 <body>
-    <!-- Print Button (hidden when printing) -->
-    <div class="no-print" style="text-align: center; margin-bottom: 10px;">
-        <button onclick="window.print()" style="padding: 8px 16px; font-size: 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-            🖨️ Yazdır
-        </button>
-        <button onclick="window.close()" style="padding: 8px 16px; font-size: 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 8px; font-weight: bold;">
-            ❌ Kapat
-        </button>
+
+    <div class="no-print">
+        <button type="button" class="primary" onclick="window.print()">Yazdır</button>
+        <button type="button" onclick="window.close()">Kapat</button>
     </div>
 
-    <!-- Receipt Header -->
-    <div class="header">
-        <div class="company-name super-bold">NUVIA PREMIUM WEAR</div>
-        <div class="company-tagline extra-bold">MAN & WOMAN</div>
-        <div class="company-info bold">ADRES: TURGUT ÖZAL BUL. AKSA DOĞALGAZ ARASI</div>
-        <div class="company-info bold">WHATSAPP TEL: 0542112 6001</div>
-        <div class="company-info bold">INSTAGRAM: nuviagiyim</div>
+    <header class="brand">
+        <div class="brand-name">NUVIA</div>
+        <div class="brand-sub">Premium Wear</div>
+        <div class="brand-tagline">Man &amp; Woman</div>
+    </header>
+
+    <div class="doc-title">Hediye Çeki</div>
+
+    <div class="amount-block">
+        <div class="amount-label">Çek Tutarı</div>
+        <div class="amount-value">{{ hediye_ceki.tutar|turkish_currency }}</div>
+        {% if hediye_ceki.kalan_tutar != hediye_ceki.tutar %}
+        <div class="amount-remaining">Kalan: {{ hediye_ceki.kalan_tutar|turkish_currency }}</div>
+        {% endif %}
     </div>
 
-    <!-- Gift Certificate Title -->
-    <div class="hediye-ceki-title super-bold">
-        🎁 HEDİYE ÇEKİ 🎁
+    <div class="code-block">
+        <div class="barcode-wrap">
+            <svg id="hediye-barcode"></svg>
+        </div>
+        <div class="code-text">{{ hediye_ceki.kod }}</div>
     </div>
 
-    <!-- Gift Certificate Information -->
-    <div class="cek-bilgi">
-        <div class="cek-kod super-bold">
-            {{ hediye_ceki.kod }}
+    <section class="info-section">
+        <div class="info-row">
+            <span class="info-label">Oluşturma</span>
+            <span class="info-value">{{ hediye_ceki.olusturma_tarihi|date:"d.m.Y H:i" }}</span>
         </div>
-        
-        <div class="cek-tutar super-bold">
-            {{ hediye_ceki.tutar|turkish_currency }}
+        <div class="info-row">
+            <span class="info-label">Geçerlilik</span>
+            <span class="info-value">{{ hediye_ceki.gecerlilik_tarihi|date:"d.m.Y" }}</span>
         </div>
-        
-        <div class="bilgi-satir">
-            <span class="bilgi-label">KALAN TUTAR:</span>
-            <span class="bilgi-deger">{{ hediye_ceki.kalan_tutar|turkish_currency }}</span>
-        </div>
-        
-        <div class="bilgi-satir">
-            <span class="bilgi-label">TARİH:</span>
-            <span class="bilgi-deger">{{ hediye_ceki.olusturma_tarihi|date:"d.m.Y" }}</span>
-        </div>
-        
-        <div class="bilgi-satir">
-            <span class="bilgi-label">GEÇERLİLİK:</span>
-            <span class="bilgi-deger">{{ hediye_ceki.gecerlilik_tarihi|date:"d.m.Y" }}</span>
-        </div>
-        
         {% if hediye_ceki.musteri %}
-        <div class="bilgi-satir">
-            <span class="bilgi-label">MÜŞTERİ:</span>
-            <span class="bilgi-deger">{{ hediye_ceki.musteri.ad }} {{ hediye_ceki.musteri.soyad }}</span>
+        <div class="info-row">
+            <span class="info-label">Müşteri</span>
+            <span class="info-value">{{ hediye_ceki.musteri.ad }} {{ hediye_ceki.musteri.soyad }}</span>
         </div>
         {% endif %}
-        
-        <div class="bilgi-satir">
-            <span class="bilgi-label">DURUM:</span>
-            <span class="bilgi-deger">{{ hediye_ceki.get_durum_display|upper }}</span>
+        <div class="info-row">
+            <span class="info-label">Durum</span>
+            <span class="info-value status-{{ hediye_ceki.durum }}">{{ hediye_ceki.get_durum_display|upper }}</span>
         </div>
-    </div>
+        {% if hediye_ceki.kalan_tutar != hediye_ceki.tutar %}
+        <div class="info-row">
+            <span class="info-label">Kalan Tutar</span>
+            <span class="info-value">{{ hediye_ceki.kalan_tutar|turkish_currency }}</span>
+        </div>
+        {% endif %}
+    </section>
 
-    <div class="ayrac extra-bold">
-        ══════════════════════════════════════
-    </div>
+    {% if hediye_ceki.aciklama %}
+    <div class="note-block">{{ hediye_ceki.aciklama }}</div>
+    {% endif %}
 
-    <!-- Usage Information -->
-    <div class="kullanim-bilgi">
-        <div class="extra-bold" style="text-align: center; margin-bottom: 5px;">KULLANIM BİLGİLERİ</div>
-        <div class="bold">• Bu çek tüm mağazalarımızda geçerlidir</div>
-        <div class="bold">• İade edilemez, nakit ile değiştirilemez</div>
-        <div class="bold">• Hediye çeki kodunuzu mutlaka saklayınız</div>
-        <div class="bold">• Geçerlilik tarihi: {{ hediye_ceki.gecerlilik_tarihi|date:"d.m.Y" }}</div>
-    </div>
+    <hr class="rule">
 
-    <div class="ayrac extra-bold">
-        ══════════════════════════════════════
-    </div>
+    <section class="terms">
+        <div class="terms-title">Kullanım Koşulları</div>
+        <ul>
+            <li>Bu çek Nuvia Premium Wear mağazalarında geçerlidir.</li>
+            <li>Geçerlilik tarihi: {{ hediye_ceki.gecerlilik_tarihi|date:"d.m.Y" }}</li>
+            <li>İade edilemez; nakde çevrilemez.</li>
+            <li>Çalınma veya kayıp durumunda sorumluluk kabul edilmez.</li>
+            <li>Hediye çeki kodunuzu satın alma sırasında ibraz ediniz.</li>
+        </ul>
+    </section>
 
-    <!-- Footer Information -->
-    <div class="alt-bilgi">
-        <div class="extra-bold">HEDİYE ÇEKİ KOŞULLARI:</div>
-        <div class="bold">• Bu hediye çeki {{ hediye_ceki.gecerlilik_tarihi|date:"d.m.Y" }} tarihine kadar geçerlidir</div>
-        <div class="bold">• Satın alma işlemlerinde nakit yerine kullanılabilir</div>
-        <div class="bold">• Çalınması veya kaybolması durumunda sorumluluk kabul edilmez</div>
-        <div class="bold">• Müşteri hizmetleri: 0542112 6001</div>
-    </div>
+    <hr class="rule-dashed">
 
-    <div class="tesekkur super-bold">
-        🌟 ALIŞVERİŞİNİZ İÇİN TEŞEKKÜRLER 🌟
-    </div>
+    <footer class="footer">
+        <div class="footer-thanks">Alışverişiniz İçin Teşekkür Ederiz</div>
+        <div class="footer-contact">
+            Turgut Özal Bul. Aksa Doğalgaz Arası<br>
+            WhatsApp: 0542 112 60 01<br>
+            Instagram: @nuviagiyim
+        </div>
+        <div class="footer-meta">
+            Belge No: {{ hediye_ceki.pk }} &middot; {{ hediye_ceki.olusturma_tarihi|date:"d.m.Y H:i" }}
+        </div>
+    </footer>
 
-    <div style="text-align: center; margin-top: 10px; font-size: 10px; font-weight: 700;">
-        {{ hediye_ceki.olusturma_tarihi|date:"d.m.Y H:i" }}
-    </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script>
-        // Sayfa yüklendiğinde otomatik yazdırma seçeneği
-        window.onload = function() {
-            // URL parametresinde auto_print varsa otomatik yazdır
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('auto_print') === '1') {
-                setTimeout(() => {
-                    window.print();
-                }, 500);
+        (function () {
+            var kod = "{{ hediye_ceki.kod|escapejs }}";
+            if (kod && typeof JsBarcode !== "undefined") {
+                try {
+                    JsBarcode("#hediye-barcode", kod, {
+                        format: "CODE128",
+                        width: 1.6,
+                        height: 44,
+                        displayValue: false,
+                        margin: 0,
+                        background: "#ffffff",
+                        lineColor: "#000000"
+                    });
+                } catch (e) {
+                    document.querySelector(".barcode-wrap").style.display = "none";
+                }
             }
-        };
-        
-        // Print event listeners
-        window.addEventListener('beforeprint', function() {
-            document.body.style.margin = '0';
-            document.body.style.padding = '2mm';
-        });
-        
-        window.addEventListener('afterprint', function() {
-            // Print sonrası işlemler
+
+            var params = new URLSearchParams(window.location.search);
+            if (params.get("auto_print") === "1") {
+                window.addEventListener("load", function () {
+                    setTimeout(function () { window.print(); }, 600);
+                });
+            }
+        })();
+
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") window.close();
         });
     </script>
 </body>

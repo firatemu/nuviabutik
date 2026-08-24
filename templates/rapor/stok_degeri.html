@@ -26,7 +26,7 @@
                     <div class="d-flex align-items-center justify-content-center">
                         <i class="fas fa-calculator text-success fs-4 me-2"></i>
                         <div>
-                            <h5 class="mb-0">{{ toplam_stok_degeri|stringformat:".2f" }} ₺</h5>
+                            <h5 class="mb-0" id="toplam-stok-degeri-kesir">{{ toplam_stok_degeri|stringformat:".2f" }} ₺</h5>
                             <small class="text-muted">Toplam Stok Değeri</small>
                         </div>
                     </div>
@@ -35,12 +35,68 @@
                     <div class="d-flex align-items-center justify-content-center">
                         <i class="fas fa-tags text-warning fs-4 me-2"></i>
                         <div>
-                            <h5 class="mb-0">{{ toplam_stok_degeri|stringformat:".0f" }} ₺</h5>
+                            <h5 class="mb-0" id="toplam-stok-degeri-yuvarlanmis">{{ toplam_stok_degeri|stringformat:".0f" }} ₺</h5>
                             <small class="text-muted">Yuvarlanmış Değer</small>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Filtreler -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <i class="fas fa-filter me-2"></i>
+                Filtreleme
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="get" id="stok-degeri-filter-form">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label for="kategori" class="form-label">Kategori</label>
+                        <select class="form-select" id="kategori" name="kategori">
+                            <option value="">Tümü</option>
+                            {% for kat in kategori_listesi %}
+                            <option value="{{ kat.id }}" {% if kategori == kat.id|stringformat:"s" %}selected{% endif %}>
+                                {{ kat.ad }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="marka" class="form-label">Marka</label>
+                        <select class="form-select" id="marka" name="marka">
+                            <option value="">Tümü</option>
+                            {% for m in marka_listesi %}
+                            <option value="{{ m.id }}" {% if marka == m.id|stringformat:"s" %}selected{% endif %}>
+                                {{ m.ad }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="alis_fiyat" class="form-label">Alış fiyatı</label>
+                        <select class="form-select" id="alis_fiyat" name="alis_fiyat">
+                            <option value="" {% if not alis_fiyat %}selected{% endif %}>Tümü</option>
+                            <option value="sifir" {% if alis_fiyat == 'sifir' %}selected{% endif %}>Fiyatı 0 olanlar</option>
+                            <option value="sifir_degil" {% if alis_fiyat == 'sifir_degil' %}selected{% endif %}>Fiyatı 0 olmayanlar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i> Filtrele
+                            </button>
+                            <a href="{% url 'rapor:stok_degeri' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> Temizle
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -54,37 +110,52 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-striped" id="stok-degeri-tablosu">
                     <thead>
                         <tr>
+                            <th>Ürün Kodu</th>
                             <th>Ürün Adı</th>
                             <th>Kategori</th>
                             <th>Marka</th>
                             <th class="text-end">Alış Fiyatı</th>
                             <th class="text-end">Toplam Stok</th>
                             <th class="text-end">Stok Değeri (Maliyet)</th>
+                            <th class="text-center">İşlem</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in urun_stok_degerleri %}
-                        <tr>
+                        <tr data-urun-id="{{ item.urun.pk }}">
+                            <td><code>{{ item.urun.urun_kodu|default:"—" }}</code></td>
                             <td>{{ item.urun.ad }}</td>
                             <td>{{ item.urun.kategori.ad }}</td>
                             <td>{{ item.urun.marka.ad|default:"-" }}</td>
-                            <td class="text-end">{{ item.alis_fiyati|stringformat:".2f" }} ₺</td>
+                            <td class="text-end alis-fiyati-cell">{{ item.alis_fiyati|stringformat:".2f" }} ₺</td>
                             <td class="text-end">{{ item.toplam_stok }}</td>
-                            <td class="text-end fw-bold text-primary">{{ item.stok_degeri|stringformat:".2f" }} ₺</td>
+                            <td class="text-end fw-bold text-primary stok-degeri-cell">{{ item.stok_degeri|stringformat:".2f" }} ₺</td>
+                            <td class="text-center">
+                                <button type="button"
+                                    class="btn btn-sm btn-outline-primary btn-alis-guncelle"
+                                    data-urun-id="{{ item.urun.pk }}"
+                                    data-urun-kodu="{{ item.urun.urun_kodu|default:'' }}"
+                                    data-urun-ad="{{ item.urun.ad }}"
+                                    data-alis-fiyati="{{ item.alis_fiyati|stringformat:".2f" }}"
+                                    data-toplam-stok="{{ item.toplam_stok }}">
+                                    Alış Güncelle
+                                </button>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center">Stoğu olan ürün bulunamadı.</td>
+                            <td colspan="8" class="text-center">Stoğu olan ürün bulunamadı.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
                         <tr class="table-dark">
-                            <td colspan="5" class="text-end"><strong>TOPLAM:</strong></td>
-                            <td class="text-end fw-bold fs-5">{{ toplam_stok_degeri|stringformat:".2f" }} ₺</td>
+                            <td colspan="6" class="text-end"><strong>TOPLAM:</strong></td>
+                            <td class="text-end fw-bold fs-5" id="tablo-toplam-stok-degeri">{{ toplam_stok_degeri|stringformat:".2f" }} ₺</td>
+                            <td></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -92,4 +163,144 @@
         </div>
     </div>
 </div>
+
+<!-- Alış fiyatı güncelleme modalı -->
+<div class="modal fade" id="alisFiyatModal" tabindex="-1" aria-labelledby="alisFiyatModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="alisFiyatModalLabel">Alış fiyatı güncelle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <div id="alis-fiyat-modal-alert" class="alert alert-danger d-none" role="alert"></div>
+                <p class="mb-1 text-muted small">Ürün</p>
+                <p class="fw-semibold mb-3">
+                    <code id="modal-urun-kodu"></code>
+                    <span id="modal-urun-ad"></span>
+                </p>
+                <label for="modal-alis-fiyati" class="form-label">Alış fiyatı (₺)</label>
+                <input type="number" class="form-control" id="modal-alis-fiyati" step="0.01" min="0" required>
+                <input type="hidden" id="modal-urun-id">
+                <input type="hidden" id="modal-toplam-stok">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="alis-fiyat-kaydet-btn">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    'use strict';
+
+    var updateUrl = '{% url "rapor:stok_degeri_alis_fiyat_guncelle" %}';
+    var modalEl = document.getElementById('alisFiyatModal');
+    var modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+    var alertEl = document.getElementById('alis-fiyat-modal-alert');
+    var activeRow = null;
+
+    function formatMoney(val) {
+        var n = parseFloat(val);
+        if (isNaN(n)) return '0.00 ₺';
+        return n.toFixed(2) + ' ₺';
+    }
+
+    function hideAlert() {
+        if (!alertEl) return;
+        alertEl.classList.add('d-none');
+        alertEl.textContent = '';
+    }
+
+    function showAlert(msg) {
+        if (!alertEl) return;
+        alertEl.textContent = msg;
+        alertEl.classList.remove('d-none');
+    }
+
+    function updateSummary(toplam) {
+        var kesir = document.getElementById('toplam-stok-degeri-kesir');
+        var yuvar = document.getElementById('toplam-stok-degeri-yuvarlanmis');
+        var tabloToplam = document.getElementById('tablo-toplam-stok-degeri');
+        var n = parseFloat(toplam);
+        if (kesir) kesir.textContent = formatMoney(n);
+        if (yuvar) yuvar.textContent = Math.round(n).toString() + ' ₺';
+        if (tabloToplam) tabloToplam.textContent = formatMoney(n);
+    }
+
+    document.querySelectorAll('.btn-alis-guncelle').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            hideAlert();
+            activeRow = btn.closest('tr');
+            document.getElementById('modal-urun-id').value = btn.getAttribute('data-urun-id');
+            document.getElementById('modal-toplam-stok').value = btn.getAttribute('data-toplam-stok');
+            document.getElementById('modal-urun-kodu').textContent = btn.getAttribute('data-urun-kodu') || '—';
+            document.getElementById('modal-urun-ad').textContent = ' ' + (btn.getAttribute('data-urun-ad') || '');
+            document.getElementById('modal-alis-fiyati').value = btn.getAttribute('data-alis-fiyati');
+            if (modal) modal.show();
+        });
+    });
+
+    var kaydetBtn = document.getElementById('alis-fiyat-kaydet-btn');
+    if (kaydetBtn) {
+        kaydetBtn.addEventListener('click', function () {
+            hideAlert();
+            var urunId = document.getElementById('modal-urun-id').value;
+            var alisFiyati = document.getElementById('modal-alis-fiyati').value;
+            if (!urunId || alisFiyati === '') {
+                showAlert('Lütfen alış fiyatını girin.');
+                return;
+            }
+
+            kaydetBtn.disabled = true;
+            var body = new URLSearchParams();
+            body.append('urun_id', urunId);
+            body.append('alis_fiyati', alisFiyati);
+
+            var postUrl = updateUrl + (window.location.search || '');
+            fetch(postUrl, {
+                method: 'POST',
+                headers: Object.assign(
+                    { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    window.NuviaCsrf ? window.NuviaCsrf.headers() : {}
+                ),
+                body: body.toString(),
+                credentials: 'same-origin',
+            })
+                .then(function (res) {
+                    return res.json().then(function (data) {
+                        return { ok: res.ok, status: res.status, data: data };
+                    });
+                })
+                .then(function (result) {
+                    if (!result.ok || !result.data.success) {
+                        showAlert(result.data.message || 'Güncelleme başarısız.');
+                        return;
+                    }
+                    var d = result.data;
+                    if (activeRow) {
+                        var alisCell = activeRow.querySelector('.alis-fiyati-cell');
+                        var stokCell = activeRow.querySelector('.stok-degeri-cell');
+                        if (alisCell) alisCell.textContent = formatMoney(d.alis_fiyati);
+                        if (stokCell) stokCell.textContent = formatMoney(d.stok_degeri);
+                        var btn = activeRow.querySelector('.btn-alis-guncelle');
+                        if (btn) btn.setAttribute('data-alis-fiyati', d.alis_fiyati);
+                    }
+                    updateSummary(d.toplam_stok_degeri);
+                    if (modal) modal.hide();
+                })
+                .catch(function () {
+                    showAlert('Bağlantı hatası. Lütfen tekrar deneyin.');
+                })
+                .finally(function () {
+                    kaydetBtn.disabled = false;
+                });
+        });
+    }
+})();
+</script>
 {% endblock %}

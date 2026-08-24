@@ -44,7 +44,7 @@ urlpatterns = [
     path('barkod-sorgula/', views.barkod_sorgula, name='barkod_sorgula'),
     
     # Satış Elemanı Raporları
-    path('rapor/satici/', views.satici_rapor, name='satici_rapor'),
+    path('rapor/satici/', views.satici_rapor_redirect, name='satici_rapor'),
     path('rapor/satici/gunluk/', views.satici_gunluk, name='satici_gunluk'),
     path('rapor/satici/aylik/', views.satici_aylik, name='satici_aylik'),
     

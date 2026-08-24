@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Hata Detayı{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between">
+            <h5 class="mb-0">Hata #{{ hata.pk }}</h5>
+            <a href="{% url 'log:sistem_hatalari' %}" class="btn btn-sm btn-outline-secondary">Geri</a>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-2">Seviye</dt><dd class="col-sm-10">{{ hata.get_seviye_display }}</dd>
+                <dt class="col-sm-2">Tarih</dt><dd class="col-sm-10">{{ hata.tarih }}</dd>
+                <dt class="col-sm-2">Mesaj</dt><dd class="col-sm-10"><pre class="mb-0">{{ hata.mesaj }}</pre></dd>
+                <dt class="col-sm-2">Çözüldü</dt><dd class="col-sm-10">{{ hata.cozuldu|yesno:"Evet,Hayır" }}</dd>
+            </dl>
+            <form method="post" class="mt-3">
+                {% csrf_token %}
+                {% if not hata.cozuldu %}
+                <input type="hidden" name="action" value="coz">
+                <textarea name="cozum_notu" class="form-control mb-2" placeholder="Çözüm notu"></textarea>
+                <button type="submit" class="btn btn-success btn-sm">Çözüldü işaretle</button>
+                {% else %}
+                <input type="hidden" name="action" value="ac">
+                <button type="submit" class="btn btn-warning btn-sm">Tekrar aç</button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
@@ -167,6 +168,7 @@ def hediye_ceki_ajax_sorgula(request):
 
 
 @login_required
+@never_cache
 def hediye_ceki_yazdir(request, pk):
     """Hediye çeki yazdırma sayfası - 8cm termal yazıcı için optimize edilmiş"""
     hediye_ceki = get_object_or_404(HediyeCeki, pk=pk)

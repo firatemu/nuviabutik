@@ -8,7 +8,6 @@ from django.db.models import Q
 from django.http import JsonResponse, HttpResponseForbidden
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
 import json
 
 from .models import CustomUser, UserSession, UserActivityLog, UserProfile

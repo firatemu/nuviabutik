@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Login Logları{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid mt-4">
+    <div class="card">
+        <div class="card-header"><h5 class="mb-0">Giriş Logları</h5></div>
+        <div class="card-body table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Tarih</th><th>Kullanıcı</th><th>IP</th><th>Başarılı</th></tr></thead>
+                <tbody>
+                {% for log in page_obj %}
+                <tr>
+                    <td>{{ log.giris_tarihi }}</td>
+                    <td>{{ log.kullanici }}</td>
+                    <td>{{ log.ip_adresi|default:'—' }}</td>
+                    <td>{{ log.basarili|yesno:"Evet,Hayır" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-muted">Kayıt yok.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

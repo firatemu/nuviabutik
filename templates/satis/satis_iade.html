@@ -208,17 +208,17 @@
                                 <tbody>
                                     {% for kalem in kalemler %}
                                     <tr class="urun-satiri"
-                                        data-kalem-id="{{ kalem.id }}"
+                                        data-kalem-id="{{ kalem.id|unlocalize }}"
                                         data-net-birim="{{ kalem.net_birim_fiyat|unlocalize }}"
                                         data-max-miktar="{{ kalem.miktar|unlocalize }}">
                                         <td>
                                             <div class="d-flex align-items-start gap-2">
                                                 <input class="form-check-input urun-secim mt-1"
                                                        type="checkbox"
-                                                       id="urun_{{ kalem.id }}"
-                                                       name="urun_secili_{{ kalem.id }}"
+                                                       id="urun_{{ kalem.id|unlocalize }}"
+                                                       name="urun_secili_{{ kalem.id|unlocalize }}"
                                                        value="1"
-                                                       onchange="urunSecimDegisti({{ kalem.id }})"
+                                                       onchange="urunSecimDegisti({{ kalem.id|unlocalize }})"
                                                        aria-label="{{ kalem.urun.ad }} seç">
                                                 <div>
                                                     <strong class="d-block">{{ kalem.urun.ad }}</strong>
@@ -237,22 +237,20 @@
                                         </td>
                                         <td class="text-end col-net">{{ kalem.net_birim_fiyat|turkish_currency }}</td>
                                         <td class="text-center">
-                                            <input type="hidden"
-                                                   name="iade_miktar_{{ kalem.id }}"
-                                                   id="iade_miktar_post_{{ kalem.id }}"
-                                                   value="0">
                                             <input type="number"
                                                    class="form-control form-control-sm iade-miktar iade-miktar-kilitli"
-                                                   id="iade_miktar_ui_{{ kalem.id }}"
+                                                   id="iade_miktar_{{ kalem.id|unlocalize }}"
+                                                   name="iade_miktar_{{ kalem.id|unlocalize }}"
                                                    min="0"
-                                                   max="{{ kalem.miktar }}"
+                                                   max="{{ kalem.miktar|unlocalize }}"
                                                    value="0"
-                                                   oninput="hesaplaIadeTutari({{ kalem.id }})"
+                                                   readonly
+                                                   oninput="hesaplaIadeTutari({{ kalem.id|unlocalize }})"
                                                    aria-label="İade adedi">
                                         </td>
                                         <td class="text-end pe-3">
                                             <span class="badge rounded-pill iade-tutar iade-tutar-badge"
-                                                  id="iade_tutar_{{ kalem.id }}">0,00 ₺</span>
+                                                  id="iade_tutar_{{ kalem.id|unlocalize }}">0,00 ₺</span>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -343,12 +341,8 @@
         return document.querySelector('.urun-satiri[data-kalem-id="' + kalemId + '"]');
     }
 
-    function getMiktarUi(kalemId) {
-        return document.getElementById('iade_miktar_ui_' + kalemId);
-    }
-
-    function getMiktarPost(kalemId) {
-        return document.getElementById('iade_miktar_post_' + kalemId);
+    function getMiktarInput(kalemId) {
+        return document.getElementById('iade_miktar_' + kalemId);
     }
 
     /** Sunucudan gelen net birim (noktalı ondalık); TR binlik ayırıcı güvenli ayrıştırma */
@@ -385,28 +379,28 @@
     }
 
     function syncMiktarPost(kalemId) {
-        const ui = getMiktarUi(kalemId);
-        const post = getMiktarPost(kalemId);
+        const input = getMiktarInput(kalemId);
         const cb = document.getElementById('urun_' + kalemId);
         const row = getRow(kalemId);
-        if (!ui || !post || !row) return 0;
+        if (!input || !row) return 0;
 
         const maxM = parseInt(row.dataset.maxMiktar, 10) || 0;
-        let m = parseInt(ui.value, 10) || 0;
+        let m = parseInt(input.value, 10) || 0;
 
         if (!cb || !cb.checked) {
             m = 0;
-            ui.value = 0;
-            ui.classList.add('iade-miktar-kilitli');
+            input.value = 0;
+            input.readOnly = true;
+            input.classList.add('iade-miktar-kilitli');
             row.classList.remove('is-selected');
         } else {
-            ui.classList.remove('iade-miktar-kilitli');
+            input.readOnly = false;
+            input.classList.remove('iade-miktar-kilitli');
             row.classList.add('is-selected');
             if (m <= 0 && maxM > 0) m = maxM;
             if (maxM > 0 && m > maxM) m = maxM;
-            ui.value = m;
+            input.value = m;
         }
-        post.value = String(m);
         return m;
     }
 
@@ -418,16 +412,18 @@
 
     window.urunSecimDegisti = function (kalemId) {
         const cb = document.getElementById('urun_' + kalemId);
-        const ui = getMiktarUi(kalemId);
+        const input = getMiktarInput(kalemId);
         const row = getRow(kalemId);
-        if (!cb || !ui || !row) return;
+        if (!cb || !input || !row) return;
         const maxM = parseInt(row.dataset.maxMiktar, 10) || 0;
         if (cb.checked) {
-            ui.classList.remove('iade-miktar-kilitli');
-            ui.value = maxM;
+            input.readOnly = false;
+            input.classList.remove('iade-miktar-kilitli');
+            input.value = maxM;
         } else {
-            ui.classList.add('iade-miktar-kilitli');
-            ui.value = 0;
+            input.readOnly = true;
+            input.classList.add('iade-miktar-kilitli');
+            input.value = 0;
         }
         hesaplaIadeTutari(kalemId);
     };
@@ -454,7 +450,8 @@
         const btn = document.getElementById('iade-btn');
         const ozet = document.getElementById('iade-ozeti');
         if (!btn) return;
-        if (toplamIadeTutari > 0) {
+        const secilen = countSecilenKalemler();
+        if (secilen > 0 && toplamIadeTutari > 0) {
             btn.disabled = false;
             iadeOzetiGoster();
         } else {
@@ -468,7 +465,7 @@
         document.querySelectorAll('.urun-secim:checked').forEach(function (cb) {
             const kid = cb.id.replace('urun_', '');
             const row = getRow(kid);
-            const ui = getMiktarUi(kid);
+            const ui = getMiktarInput(kid);
             const sp = document.getElementById('iade_tutar_' + kid);
             if (!row || !ui || !sp) return;
             const ad = row.querySelector('strong');
@@ -484,7 +481,10 @@
     function countSecilenKalemler() {
         let n = 0;
         document.querySelectorAll('.urun-satiri').forEach(function (row) {
-            if (syncMiktarPost(row.dataset.kalemId) > 0) n += 1;
+            const kalemId = row.dataset.kalemId;
+            const cb = document.getElementById('urun_' + kalemId);
+            const m = syncMiktarPost(kalemId);
+            if (cb && cb.checked && m > 0) n += 1;
         });
         return n;
     }
@@ -507,19 +507,13 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('iade-formu');
-        const btn = document.getElementById('iade-btn');
-        if (!form || !btn) return;
+        if (!form) return;
 
-        btn.addEventListener('click', function (e) {
-            if (btn.disabled) {
-                e.preventDefault();
-                return;
-            }
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
             syncAllPostFields();
-            toplamIadeHesapla();
             const n = countSecilenKalemler();
             if (n === 0) {
-                e.preventDefault();
                 alert('İade için en az bir ürün seçin.');
                 return;
             }
@@ -527,18 +521,10 @@
                 n + ' kalem iade edilecek.\nHediye çeki: ' + formatTry(toplamIadeTutari) +
                 '\n\nStok girişi yapılır. Onaylıyor musunuz?'
             )) {
-                e.preventDefault();
                 return;
             }
             syncAllPostFields();
-        });
-
-        form.addEventListener('submit', function (e) {
-            syncAllPostFields();
-            if (countSecilenKalemler() === 0) {
-                e.preventDefault();
-                alert('İade için en az bir ürün seçin.');
-            }
+            HTMLFormElement.prototype.submit.call(form);
         });
     });
 })();

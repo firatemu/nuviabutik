@@ -46,6 +46,8 @@
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 
     <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=20260529">
+    <link rel="stylesheet" href="{% static 'css/shell.css' %}?v=20260529">
     <link rel="stylesheet" href="{% static 'css/main.css' %}?v=20260418">
     <style>
         :root {
@@ -1633,6 +1635,7 @@
     </script>
     {% endif %}
 
+    <script src="{% static 'js/nuvia-csrf.js' %}?v=20260529"></script>
     {% block extra_js %}{% endblock %}
     <script>
     (function () {

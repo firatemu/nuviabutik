@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Kâr / Zarar Analizi{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid py-4">
+    <h2 class="mb-4">Kâr / Zarar Analizi</h2>
+    <form method="get" class="row g-2 mb-4">
+        <div class="col-auto"><input type="date" name="baslangic" class="form-control" value="{{ baslangic|date:'Y-m-d' }}"></div>
+        <div class="col-auto"><input type="date" name="bitis" class="form-control" value="{{ bitis|date:'Y-m-d' }}"></div>
+        <div class="col-auto"><button class="btn btn-primary">Uygula</button></div>
+    </form>
+    <div class="row g-3">
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Ciro</div><div class="h4">{{ toplam_ciro|floatformat:2 }} ₺</div></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Maliyet</div><div class="h4">{{ toplam_maliyet|floatformat:2 }} ₺</div></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Kâr</div><div class="h4">{{ toplam_kar|floatformat:2 }} ₺</div></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Marj</div><div class="h4">%{{ kar_marji|floatformat:1 }}</div></div></div></div>
+    </div>
+</div>
+{% endblock %}

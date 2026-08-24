@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Log Temizleme{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-3"><div class="card-body">
+                <h6>Özet</h6>
+                <ul class="list-unstyled small mb-0">
+                    <li>Aktivite: {{ stats.toplam_aktivite }}</li>
+                    <li>Hata (açık): {{ stats.cozulmemis_hata }}</li>
+                    <li>Login: {{ stats.toplam_login }}</li>
+                </ul>
+            </div></div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">Eski logları temizle</div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Tip</label>
+                            <select name="tip" class="form-select" required>
+                                <option value="aktivite">Aktivite</option>
+                                <option value="hata">Çözülmüş hatalar</option>
+                                <option value="login">Login</option>
+                                <option value="hepsi">Hepsi</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Şu günden eski (gün)</label>
+                            <input type="number" name="gun_sayisi" class="form-control" value="30" min="7">
+                        </div>
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Emin misiniz?')">Temizle</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -103,7 +103,7 @@
                 </label>
                 <input type="text" class="form-control form-control-lg" 
                        name="search" value="{{ search_query }}" 
-                       placeholder="Satış No, müşteri adı, soyadı veya telefon numarası ile arayın...">
+                       placeholder="Satış No, sipariş no, müşteri adı, soyadı veya telefon ile arayın...">
             </div>
             <div class="col-md-3 col-lg-2">
                 <label class="form-label fw-bold" for="id_per_page">Sayfa başına</label>
@@ -136,7 +136,7 @@
                         <div class="satis-no">#{{ satis.satis_no }}</div>
                         <div class="tarih-bilgi">
                             <i class="fas fa-clock me-1"></i>
-                            {{ satis.tarih|date:"d.m.Y H:i" }}
+                            {{ satis.satis_tarihi|default:satis.siparis_tarihi|date:"d.m.Y H:i" }}
                         </div>
                     </div>
                     <div class="text-end">
@@ -160,7 +160,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="small text-muted">
                         <i class="fas fa-credit-card me-1"></i>
-                        {{ satis.get_odeme_yontemi_display }}
+                        {{ satis.odeme_yontemleri }}
                     </div>
                     <div class="btn btn-outline-primary btn-sm">
                         <i class="fas fa-arrow-right"></i>

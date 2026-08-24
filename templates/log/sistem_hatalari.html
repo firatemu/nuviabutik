@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Sistem Hataları{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid mt-4">
+    <div class="card">
+        <div class="card-header"><h5 class="mb-0">Sistem Hataları</h5></div>
+        <div class="card-body">
+            <form method="get" class="row g-2 mb-3">
+                <div class="col-md-3">
+                    <select name="seviye" class="form-select">
+                        <option value="">Tüm seviyeler</option>
+                        {% for kod, ad in hata_seviyeleri %}
+                        <option value="{{ kod }}" {% if secili_seviye == kod %}selected{% endif %}>{{ ad }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="cozuldu" class="form-select">
+                        <option value="">Tümü</option>
+                        <option value="1" {% if secili_cozuldu == '1' %}selected{% endif %}>Çözüldü</option>
+                        <option value="0" {% if secili_cozuldu == '0' %}selected{% endif %}>Açık</option>
+                    </select>
+                </div>
+                <div class="col-auto"><button class="btn btn-primary">Filtrele</button></div>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead><tr><th>Tarih</th><th>Seviye</th><th>Mesaj</th><th></th></tr></thead>
+                    <tbody>
+                    {% for h in page_obj %}
+                    <tr>
+                        <td>{{ h.tarih }}</td>
+                        <td>{{ h.get_seviye_display }}</td>
+                        <td>{{ h.mesaj|truncatechars:80 }}</td>
+                        <td><a href="{% url 'log:hata_detay' h.pk %}">Detay</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-muted">Kayıt yok.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -4,7 +4,7 @@ Nuvia Premium Wear — tek canonical ZPL etiket şablonu (Zebra uyumlu).
 import re
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
+from kullanici.decorators import login_required_json
 from urun.models import Urun, UrunVaryanti
 
 
@@ -281,7 +281,7 @@ def generate_label(data=None):
     return build_nuvia_exact_zpl(data)
 
 
-@csrf_exempt
+@login_required_json
 def tsc_design_as_zpl(request):
     """Etiket tasarımını ZPL formatında döndür"""
 
@@ -297,7 +297,7 @@ def tsc_design_as_zpl(request):
     return HttpResponse(zpl_content, content_type='text/plain')
 
 
-@csrf_exempt
+@login_required_json
 def tsc_design_dynamic_zpl(request):
     """Dinamik verilerle etiket tasarımını ZPL formatında döndür"""
 
@@ -313,7 +313,7 @@ def tsc_design_dynamic_zpl(request):
     return HttpResponse(zpl_content, content_type='text/plain')
 
 
-@csrf_exempt
+@login_required_json
 def urun_etiket_zpl(request, urun_id):
     """Ürün için tüm varyantların etiketlerini ZPL döndür"""
     try:
@@ -363,7 +363,7 @@ def urun_etiket_zpl(request, urun_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-@csrf_exempt
+@login_required_json
 def varyant_etiket_zpl(request, varyant_id):
     """Ürün varyantı için etiket ZPL döndür"""
     try:

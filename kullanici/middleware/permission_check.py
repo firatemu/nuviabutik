@@ -5,24 +5,30 @@ from django.http import JsonResponse
 
 
 class PermissionCheckMiddleware(MiddlewareMixin):
-    """Yetki kontrolü middleware'i"""
-    
+    """Global login gate — static/media and auth pages are public."""
+
+    ALLOWED_PREFIXES = (
+        '/kullanici/login/',
+        '/admin/login/',
+        '/admin/logout/',
+        '/static/',
+        '/media/',
+        '/favicon.ico',
+    )
+
     def process_request(self, request):
-        # Login gerektirmeyen sayfalar
-        allowed_paths = [
-            '/kullanici/login/',
-            '/admin/',
-            '/favicon.ico',
-            '/urun/barkod/',  # Barkod sorgulama sayfası
-        ]
-        
-        # Eğer kullanıcı login olmamışsa ve izin verilen sayfalarda değilse
-        if not request.user.is_authenticated:
-            # İzin verilen sayfalarda değilse login'e yönlendir
-            if not any(request.path.startswith(path) for path in allowed_paths):
-                # AJAX istekleri için farklı response
-                is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-                if is_ajax or request.content_type == 'application/json':
-                    return JsonResponse({'error': 'Authentication required'}, status=401)
-                else:
-                    return redirect(reverse('kullanici:login'))
+        if request.user.is_authenticated:
+            return None
+
+        path = request.path
+        if any(path.startswith(prefix) for prefix in self.ALLOWED_PREFIXES):
+            return None
+
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        is_json = 'application/json' in (request.content_type or '')
+        if is_ajax or is_json:
+            return JsonResponse(
+                {'success': False, 'message': 'Oturum açmanız gerekiyor.'},
+                status=401,
+            )
+        return redirect(reverse('kullanici:login'))

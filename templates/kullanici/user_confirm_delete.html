@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Kullanıcı Sil{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <p><strong>{{ user_obj.username }}</strong> kullanıcısını silmek istediğinize emin misiniz?</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Sil</button>
+                        <a href="{% url 'kullanici:user_detail' user_obj.id %}" class="btn btn-outline-secondary">Vazgeç</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

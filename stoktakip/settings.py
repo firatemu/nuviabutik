@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,11 +21,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-_l8=*rmi(*guvey5ndw6rqux34#=r9s4^=qaa-xh7s=-y6@x01')
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'django-insecure-dev-only-change-me'
+    else:
+        raise ImproperlyConfigured(
+            'SECRET_KEY environment variable is required when DEBUG=False.'
+        )
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -82,12 +90,11 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'stoktakip.middleware.NuviaTabEmbedMiddleware',
-    # # 'django.middleware.csrf.CsrfViewMiddleware',  # GEÇİCİ KAPALI  # GEÇİCİ OLARAK KAPALI
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',  # Messages middleware önce olmalı
-    # 'kullanici.middleware.admin_access.AdminAccessMiddleware',  # GEÇİCİ KAPALI  # Admin panel erişim kontrolü
-    # 'kullanici.middleware.user_session.UserSessionMiddleware',  # GEÇİCİ KAPALI  # Oturum kontrolü
-    # 'kullanici.middleware.permission_check.PermissionCheckMiddleware',  # GEÇİCİ KAPALI  # Yetki kontrolü
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'kullanici.middleware.admin_access.AdminAccessMiddleware',
+    'kullanici.middleware.permission_check.PermissionCheckMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -116,30 +123,35 @@ WSGI_APPLICATION = 'stoktakip.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'nuviabutik_db',
-        'USER': 'nuviabutik_user',
-        'PASSWORD': 'nuviabutik123',
-        'HOST': 'localhost',
-        'PORT': '5432',
-        'CONN_MAX_AGE': 600,  # Persistent connections (10 dakika)
-        'CONN_HEALTH_CHECKS': True,  # Bağlantı sağlık kontrolü
-        'OPTIONS': {
-            'connect_timeout': 10,
-            'options': '-c statement_timeout=30000'  # 30 saniye query timeout
-        },
-    }
-}
-
-# Production database configuration via environment variables
-if 'DATABASE_URL' in os.environ:
+if os.environ.get('DATABASE_URL'):
     import dj_database_url
-    DATABASES['default'] = dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        conn_health_checks=True,
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ['DATABASE_URL'],
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+elif DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', 'nuviabutik_db'),
+            'USER': os.environ.get('DB_USER', 'nuviabutik_user'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 600,
+            'CONN_HEALTH_CHECKS': True,
+            'OPTIONS': {
+                'connect_timeout': 10,
+                'options': '-c statement_timeout=30000',
+            },
+        }
+    }
+else:
+    raise ImproperlyConfigured(
+        'DATABASE_URL environment variable is required when DEBUG=False.'
     )
 
 
@@ -288,4 +300,43 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-# GEÇİCİ CSRF AYARLARI
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'checkout_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'checkout.log',
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 3,
+            'formatter': 'verbose',
+        },
+        'django_error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'django_error.log',
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'satis.checkout': {
+            'handlers': ['checkout_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['django_error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}

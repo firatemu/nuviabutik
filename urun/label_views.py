@@ -5,14 +5,15 @@ ZPL Etiket API Endpoints
 
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-import json
+
+from kullanici.decorators import login_required_json
 
 from .models import Urun, UrunVaryanti
 from stoktakip.tsc_to_zpl_converter import generate_label, varyant_barkod_etiket_icin
 
-@csrf_exempt
+
+@login_required_json
 @require_http_methods(["GET", "POST"])
 def get_label_api(request, urun_id):
     """
@@ -20,12 +21,9 @@ def get_label_api(request, urun_id):
     URL: /urun/api/getlabel/<id>/
     """
     try:
-        # Ürünü bul
         urun = get_object_or_404(Urun, id=urun_id)
-        
-        # İlk varyantı al (varsa)
         varyant = urun.varyantlar.first()
-        
+
         pesin = str(urun.pesin_fiyat) if urun.pesin_fiyat is not None else str(urun.satis_fiyati or 0)
         taksit = str(urun.taksitli_fiyat) if urun.taksitli_fiyat is not None else pesin
         bc = (
@@ -40,37 +38,31 @@ def get_label_api(request, urun_id):
             'barcode': bc,
             'product_code': urun.urun_kodu or str(urun.id),
         }
-        
-        # ZPL generator - çalışan format
+
         zpl_content = generate_label(label_data)
-        
+
         if request.method == 'POST':
-            return JsonResponse({'zpl': zpl_content})
-        
-        # Content-Type: text/plain (RAW format)
+            return JsonResponse({'success': True, 'zpl': zpl_content})
+
         response = HttpResponse(zpl_content, content_type='text/plain; charset=utf-8')
         response['Content-Disposition'] = f'attachment; filename="label_{urun_id}.prn"'
-        
         return response
-        
+
     except Exception as e:
         return JsonResponse({
-            'error': f'Label generation failed: {str(e)}',
-            'success': False
+            'success': False,
+            'message': f'Label generation failed: {str(e)}',
         }, status=500)
 
-@csrf_exempt  
+
+@login_required_json
 @require_http_methods(["GET", "POST"])
 def get_variant_label_api(request, variant_id):
-    """
-    Varyant ID'sine göre ZPL etiketi döndür
-    URL: /urun/api/getlabel/variant/<id>/
-    """
+    """Varyant ID'sine göre ZPL etiketi döndür"""
     try:
-        # Varyantı bul
         varyant = get_object_or_404(UrunVaryanti, id=variant_id)
         urun = varyant.urun
-        
+
         pesin = str(urun.pesin_fiyat) if urun.pesin_fiyat is not None else str(urun.satis_fiyati or 0)
         taksit = str(urun.taksitli_fiyat) if urun.taksitli_fiyat is not None else pesin
         label_data = {
@@ -80,34 +72,28 @@ def get_variant_label_api(request, variant_id):
             'barcode': varyant_barkod_etiket_icin(varyant),
             'product_code': urun.urun_kodu or str(urun.id),
         }
-        
-        # ZPL generator - çalışan format
+
         zpl_content = generate_label(label_data)
-        
+
         if request.method == 'POST':
-            return JsonResponse({'zpl': zpl_content})
-        
-        # Content-Type: text/plain (RAW format)
+            return JsonResponse({'success': True, 'zpl': zpl_content})
+
         response = HttpResponse(zpl_content, content_type='text/plain; charset=utf-8')
         response['Content-Disposition'] = f'attachment; filename="variant_label_{variant_id}.prn"'
-        
         return response
-        
+
     except Exception as e:
         return JsonResponse({
-            'error': f'Variant label generation failed: {str(e)}',
-            'success': False
+            'success': False,
+            'message': f'Variant label generation failed: {str(e)}',
         }, status=500)
 
-@csrf_exempt
-@require_http_methods(["GET", "POST"])  
+
+@login_required_json
+@require_http_methods(["GET", "POST"])
 def test_label_api(request):
-    """
-    Test etiketi döndür
-    URL: /urun/api/getlabel/test/
-    """
+    """Test etiketi döndür"""
     try:
-        # Test verileri
         test_data = {
             'product_code': 'TEST001',
             'pesin_fiyat': '999',
@@ -116,44 +102,24 @@ def test_label_api(request):
             'barcode': '1234567890123',
         }
         zpl_content = generate_label(test_data)
-        
+
         if request.method == 'POST':
-            return JsonResponse({'zpl': zpl_content})
-        
+            return JsonResponse({'success': True, 'zpl': zpl_content})
+
         response = HttpResponse(zpl_content, content_type='text/plain; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="test_label.prn"'
-        
         return response
-        
+
     except Exception as e:
         return JsonResponse({
-            'error': f'Test label generation failed: {str(e)}',
-            'success': False
+            'success': False,
+            'message': f'Test label generation failed: {str(e)}',
         }, status=500)
 
-# ============================================================
-# QZ TRAY JSON API - nuvia-print-manager.js tarafından kullanılır
-# ============================================================
 
-from functools import wraps
-
-def login_required_json(view_func):
-    """JSON yanıtıyla login kontrolü"""
-    @wraps(view_func)
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return JsonResponse({'success': False, 'message': 'Oturum açmanız gerekiyor.'}, status=401)
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-
+@login_required_json
 def qztray_varyant_etiket(request, varyant_id):
-    """
-    QZ Tray için varyant etiketi JSON API'si.
-    URL: /urun/api/etiket/websocket/<varyant_id>/
-    """
-    if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'message': 'Oturum açmanız gerekiyor.'}, status=401)
+    """QZ Tray için varyant etiketi JSON API'si."""
     try:
         varyant = get_object_or_404(UrunVaryanti, id=varyant_id)
         urun = varyant.urun
@@ -171,23 +137,19 @@ def qztray_varyant_etiket(request, varyant_id):
         return JsonResponse({
             'success': True,
             'zpl_data': zpl_data,
-            'message': f'{varyant.varyasyon_adi} etiketi hazırlandı.'
+            'message': f'{varyant.varyasyon_adi} etiketi hazırlandı.',
         })
 
     except Exception as e:
         return JsonResponse({
             'success': False,
-            'message': f'Etiket oluşturulamadı: {str(e)}'
+            'message': f'Etiket oluşturulamadı: {str(e)}',
         }, status=500)
 
 
+@login_required_json
 def qztray_urun_toplu_etiket(request, urun_id):
-    """
-    QZ Tray için tüm varyantların toplu etiket JSON API'si.
-    URL: /urun/api/etiket/toplu-websocket/<urun_id>/
-    """
-    if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'message': 'Oturum açmanız gerekiyor.'}, status=401)
+    """QZ Tray için tüm varyantların toplu etiket JSON API'si."""
     try:
         urun = get_object_or_404(Urun, id=urun_id)
         varyantlar = urun.varyantlar.filter(aktif=True).select_related('beden', 'renk')
@@ -231,11 +193,11 @@ def qztray_urun_toplu_etiket(request, urun_id):
             'success': True,
             'etiket_listesi': etiket_listesi,
             'toplam_etiket': len(etiket_listesi),
-            'message': f'{len(etiket_listesi)} etiket hazırlandı.'
+            'message': f'{len(etiket_listesi)} etiket hazırlandı.',
         })
 
     except Exception as e:
         return JsonResponse({
             'success': False,
-            'message': f'Toplu etiket oluşturulamadı: {str(e)}'
+            'message': f'Toplu etiket oluşturulamadı: {str(e)}',
         }, status=500)

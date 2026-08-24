@@ -13,7 +13,7 @@ from kasa.models import Kasa, KasaHareket
 from log.models import AktiviteLog
 
 
-# @login_required  # Geçici olarak kaldırıldı - test için
+@login_required
 def gider_listesi(request):
     """Gider listesi view'ı"""
     
@@ -71,7 +71,7 @@ def gider_listesi(request):
     return render(request, 'gider/liste.html', context)
 
 
-# @login_required  # Geçici olarak kaldırıldı - test için
+@login_required
 def gider_ekle(request):
     """Gider ekleme view'ı"""
     
@@ -125,7 +125,7 @@ def gider_ekle(request):
     return render(request, 'gider/ekle.html', context)
 
 
-# @login_required  # Geçici olarak kaldırıldı - test için
+@login_required
 def gider_duzenle(request, pk):
     """Gider düzenleme view'ı"""
     
@@ -160,7 +160,7 @@ def gider_duzenle(request, pk):
     return render(request, 'gider/duzenle.html', context)
 
 
-# @login_required  # Geçici olarak kaldırıldı - test için
+@login_required
 def gider_sil(request, pk):
     """Gider silme view'ı"""
     
@@ -191,7 +191,7 @@ def gider_sil(request, pk):
     return render(request, 'gider/sil.html', context)
 
 
-# @login_required  # Geçici olarak kaldırıldı - test için
+@login_required
 def gider_detay(request, pk):
     """Gider detay view'ı"""
     
@@ -205,7 +205,7 @@ def gider_detay(request, pk):
     return render(request, 'gider/detay.html', context)
 
 
-# @login_required  # Geçici olarak kaldırıldı - test için
+@login_required
 def gider_rapor(request):
     """Gider raporları view'ı"""
     
@@ -269,7 +269,7 @@ def gider_rapor(request):
     return render(request, 'gider/rapor.html', context)
 
 
-# @login_required  # Geçici olarak kaldırıldı - test için
+@login_required
 def kategori_liste(request):
     """Gider kategorileri listesi"""
     kategoriler = GiderKategori.objects.annotate(
@@ -283,7 +283,7 @@ def kategori_liste(request):
     return render(request, 'gider/kategori_liste.html', context)
 
 
-# @login_required  # Geçici olarak kaldırıldı - test için
+@login_required
 def kategori_ekle(request):
     """Gider kategorisi ekleme"""
     
@@ -309,7 +309,7 @@ def kategori_ekle(request):
     return redirect('gider:kategori_liste')
 
 
-# @login_required  # Geçici olarak kaldırıldı - test için
+@login_required
 def kategori_duzenle(request, kategori_id):
     """Gider kategorisi düzenleme"""
     kategori = get_object_or_404(GiderKategori, id=kategori_id)
@@ -327,7 +327,7 @@ def kategori_duzenle(request, kategori_id):
     return redirect('gider:kategori_liste')
 
 
-# @login_required  # Geçici olarak kaldırıldı - test için
+@login_required
 def rapor(request):
     """Gider raporları"""
     bugün = date.today()

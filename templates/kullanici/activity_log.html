@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title|default:'Aktivite Logları' }}{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <h2 class="mb-4">{{ title|default:'Aktivite Logları' }}</h2>
+    <div class="table-responsive">
+        <table class="table table-sm">
+            <thead><tr><th>Tarih</th><th>Kullanıcı</th><th>İşlem</th><th>Açıklama</th></tr></thead>
+            <tbody>
+            {% for a in activities %}
+            <tr>
+                <td>{{ a.timestamp }}</td>
+                <td>{{ a.user }}</td>
+                <td>{{ a.action }}</td>
+                <td>{{ a.description|truncatechars:60 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-muted">Kayıt yok.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

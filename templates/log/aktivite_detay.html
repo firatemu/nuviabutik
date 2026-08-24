@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Aktivite Detayı{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between">
+            <h5 class="mb-0">Aktivite #{{ log.pk }}</h5>
+            <a href="{% url 'log:aktivite_loglari' %}" class="btn btn-sm btn-outline-secondary">Geri</a>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Kullanıcı</dt><dd class="col-sm-9">{{ log.kullanici }}</dd>
+                <dt class="col-sm-3">Tip</dt><dd class="col-sm-9">{{ log.get_aktivite_tipi_display }}</dd>
+                <dt class="col-sm-3">Başlık</dt><dd class="col-sm-9">{{ log.baslik }}</dd>
+                <dt class="col-sm-3">Tarih</dt><dd class="col-sm-9">{{ log.tarih }}</dd>
+                <dt class="col-sm-3">Açıklama</dt><dd class="col-sm-9">{{ log.aciklama|default:'—' }}</dd>
+            </dl>
+        </div>
+    </div>
+</div>
+{% endblock %}
