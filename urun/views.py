@@ -3,11 +3,17 @@ import re
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q, Sum, Avg
+from django.db.models import Q, Sum, Avg, Count
+from django.db.models.functions import Coalesce
+from django.core.cache import cache
+from django.utils import timezone
 from decimal import Decimal
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
 from .models import Urun, UrunKategoriUst, Renk, Beden, Marka, UrunVaryanti, StokHareket
 from .forms import StokGirisForm, StokCikisForm, StokDuzeltmeForm, StokSayimForm
 
@@ -72,78 +78,101 @@ def _parse_stok_miktari_post(raw):
 
 @login_required
 def urun_listesi(request):
-    """Ürün listesi - Optimized version"""
-
-    # Ürünleri getir - pagination ile optimize edildi
-    from django.core.paginator import Paginator
-    from django.db.models import Sum
-    from django.db.models.functions import Coalesce
-
+    """Ürün listesi - Modern kurumsal ve optimize edilmiş görünüm"""
     # Arama ve filtre parametreleri
     search_query = request.GET.get('q', '').strip()
-    kategori_filter = request.GET.get('kategori', '')
-    marka_filter = request.GET.get('marka', '')
-    cinsiyet_filter = request.GET.get('cinsiyet', '')
+    kategori_filter = request.GET.get('kategori', '').strip()
+    marka_filter = request.GET.get('marka', '').strip()
+    cinsiyet_filter = request.GET.get('cinsiyet', '').strip()
+    stok_filter = request.GET.get('stok_durumu', '').strip()
+    aktiflik_filter = request.GET.get('aktiflik', '').strip()
+    siralama = request.GET.get('siralama', 'yeni').strip()
+    
+    try:
+        per_page = int(request.GET.get('per_page', 50))
+        if per_page not in (25, 50, 100):
+            per_page = 50
+    except (ValueError, TypeError):
+        per_page = 50
 
-    # Base queryset (stok toplamı DB'de hesaplanır; property çağrıları engellenir)
-    urunler_queryset = Urun.objects.select_related('kategori', 'marka').annotate(
+    # Base queryset
+    urunler_queryset = Urun.objects.select_related('kategori', 'marka').prefetch_related(
+        'varyantlar__renk', 'varyantlar__beden'
+    ).annotate(
         stok_toplam=Coalesce(
             Sum('varyantlar__stok_miktari', filter=Q(varyantlar__aktif=True)),
             0
         )
-    ).all()
+    )
 
-    # Arama filtresi uygula
+    # Arama filtresi (ad, ürün kodu, kategori adı, marka adı, varyant barkodu)
     if search_query:
         urunler_queryset = urunler_queryset.filter(
             Q(ad__icontains=search_query) |
             Q(urun_kodu__icontains=search_query) |
             Q(kategori__ad__icontains=search_query) |
-            Q(marka__ad__icontains=search_query)
-        )
+            Q(marka__ad__icontains=search_query) |
+            Q(varyantlar__barkod__icontains=search_query)
+        ).distinct()
 
     # Kategori filtresi
-    if kategori_filter:
-        urunler_queryset = urunler_queryset.filter(kategori_id=kategori_filter)
+    if kategori_filter and kategori_filter.isdigit():
+        urunler_queryset = urunler_queryset.filter(kategori_id=int(kategori_filter))
 
     # Marka filtresi
-    if marka_filter:
-        urunler_queryset = urunler_queryset.filter(marka_id=marka_filter)
+    if marka_filter and marka_filter.isdigit():
+        urunler_queryset = urunler_queryset.filter(marka_id=int(marka_filter))
 
     # Cinsiyet filtresi
-    if cinsiyet_filter:
+    if cinsiyet_filter and cinsiyet_filter != 'hepsi':
         urunler_queryset = urunler_queryset.filter(cinsiyet=cinsiyet_filter)
 
-    urunler_queryset = urunler_queryset.order_by('-id')
+    # Stok durumu filtresi
+    if stok_filter == 'stokta_var':
+        urunler_queryset = urunler_queryset.filter(stok_toplam__gt=0)
+    elif stok_filter == 'tukendi':
+        urunler_queryset = urunler_queryset.filter(stok_toplam=0)
+    elif stok_filter == 'kritik':
+        urunler_queryset = urunler_queryset.filter(stok_toplam__gt=0, stok_toplam__lte=10)
 
-    # Pagination - 50 ürün per sayfa
-    paginator = Paginator(urunler_queryset, 50)
+    # Aktiflik filtresi (Varsayılan: Tümü, opsiyonel: aktif / pasif)
+    if aktiflik_filter == 'aktif':
+        urunler_queryset = urunler_queryset.filter(aktif=True)
+    elif aktiflik_filter == 'pasif':
+        urunler_queryset = urunler_queryset.filter(aktif=False)
+
+    # Sıralama
+    siralama_map = {
+        'yeni': '-id',
+        'eski': 'id',
+        'ad_asc': 'ad',
+        'ad_desc': '-ad',
+        'fiyat_asc': 'pesin_fiyat',
+        'fiyat_desc': '-pesin_fiyat',
+        'stok_asc': 'stok_toplam',
+        'stok_desc': '-stok_toplam',
+    }
+    urunler_queryset = urunler_queryset.order_by(siralama_map.get(siralama, '-id'))
+
+    # Sayfalama
+    paginator = Paginator(urunler_queryset, per_page)
     page_number = request.GET.get('page', 1)
     urunler = paginator.get_page(page_number)
 
-    # İstatistikler - Cache ile optimize edildi
-    from django.db.models import Count
-    from django.core.cache import cache
-
-    # Cache kontrolü - 5 dakika cache
-    cache_key = 'urun_listesi_stats'
+    # İstatistikler (Cache ile optimize edildi - 5 dakika)
+    cache_key = 'urun_listesi_stats_v2'
     cached_stats = cache.get(cache_key)
 
     if cached_stats:
-        # Cache'den istatistikleri al
-        toplam_urun, aktif_urun, kritik_stok, tukenen_stok = cached_stats
+        toplam_urun, aktif_urun, kritik_stok, tukenen_stok, toplam_stok_adedi = cached_stats
     else:
-        # İstatistikleri hesapla ve cache'le
-        # Tek sorguda temel istatistikler
         stats = Urun.objects.aggregate(
             toplam=Count('id'),
             aktif=Count('id', filter=Q(aktif=True))
         )
-
         toplam_urun = stats['toplam']
         aktif_urun = stats['aktif']
 
-        # Stok istatistikleri: ürün başına toplam stok (aktif varyantlardan) tek sorgu
         urun_stock = Urun.objects.annotate(
             stok_toplam=Coalesce(
                 Sum('varyantlar__stok_miktari', filter=Q(varyantlar__aktif=True)),
@@ -153,34 +182,224 @@ def urun_listesi(request):
 
         tukenen_stok = sum(1 for row in urun_stock if (row['stok_toplam'] or 0) == 0)
         kritik_stok = sum(1 for row in urun_stock if 0 < (row['stok_toplam'] or 0) <= 10)
+        toplam_stok_adedi = sum((row['stok_toplam'] or 0) for row in urun_stock)
 
-        # Cache'e kaydet (5 dakika)
-        cache.set(cache_key, (toplam_urun, aktif_urun,
-                  kritik_stok, tukenen_stok), 300)
+        cached_stats = (toplam_urun, aktif_urun, kritik_stok, tukenen_stok, toplam_stok_adedi)
+        cache.set(cache_key, cached_stats, 300)
 
     # Kategori ve marka listeleri
     kategoriler = UrunKategoriUst.objects.filter(aktif=True).order_by('ad')
     markalar = Marka.objects.filter(aktif=True).order_by('ad')
 
-    # Cinsiyet seçenekleri
-    cinsiyet_secenekleri = Urun.CINSIYET_SECENEKLERI
-
     context = {
         'urunler': urunler,
-        'title': 'Ürün Listesi',
+        'title': 'Ürün Yönetimi & Katalog',
         'toplam_urun': toplam_urun,
         'aktif_urun': aktif_urun,
         'kritik_stok': kritik_stok,
         'tukenen_stok': tukenen_stok,
+        'toplam_stok_adedi': toplam_stok_adedi,
         'paginator': paginator,
         'page_obj': urunler,
         'search_query': search_query,
         'kategoriler': kategoriler,
         'markalar': markalar,
-        'cinsiyet_secenekleri': cinsiyet_secenekleri,
+        'cinsiyet_secenekleri': Urun.CINSIYET_SECENEKLERI,
         'cinsiyet_filter': cinsiyet_filter,
+        'kategori_filter': kategori_filter,
+        'marka_filter': marka_filter,
+        'stok_filter': stok_filter,
+        'aktiflik_filter': aktiflik_filter,
+        'siralama': siralama,
+        'per_page': per_page,
     }
     return render(request, 'urun/liste.html', context)
+
+
+@login_required
+def ajax_urun_varyantlari(request, urun_id):
+    """Bir ürünün varyantlarını JSON olarak döner (hızlı önizleme modalı için)"""
+    urun = get_object_or_404(Urun, id=urun_id)
+    varyantlar = urun.varyantlar.select_related('renk', 'beden').all().order_by('renk__ad', 'beden__ad', 'id')
+
+    data = []
+    for v in varyantlar:
+        data.append({
+            'id': v.id,
+            'renk': v.renk.ad if v.renk else 'Standart',
+            'renk_hex': v.renk.hex_kod if v.renk and v.renk.hex_kod else '#6c757d',
+            'beden': v.beden.ad if v.beden else 'Standart',
+            'barkod': v.barkod or '—',
+            'stok_miktari': v.stok_miktari,
+            'aktif': v.aktif,
+            'varyasyon_adi': v.varyasyon_adi
+        })
+
+    return JsonResponse({
+        'success': True,
+        'urun': {
+            'id': urun.id,
+            'ad': urun.ad,
+            'urun_kodu': urun.urun_kodu or '—',
+            'kategori': str(urun.kategori) if urun.kategori else '—',
+            'marka': str(urun.marka) if urun.marka else '—',
+            'pesin_fiyat': float(urun.pesin_fiyat or 0),
+            'taksitli_fiyat': float(urun.taksitli_fiyat or 0),
+            'toplam_stok': urun.toplam_stok,
+            'resim_url': urun.resim.url if urun.resim else None,
+        },
+        'varyantlar': data
+    })
+
+
+@login_required
+def urun_excel_export(request):
+    """Filtrelenmiş ürün listesini kurumsal Excel (.xlsx) olarak indirir"""
+    search_query = request.GET.get('q', '').strip()
+    kategori_filter = request.GET.get('kategori', '').strip()
+    marka_filter = request.GET.get('marka', '').strip()
+    cinsiyet_filter = request.GET.get('cinsiyet', '').strip()
+    stok_filter = request.GET.get('stok_durumu', '').strip()
+    aktiflik_filter = request.GET.get('aktiflik', '').strip()
+    siralama = request.GET.get('siralama', 'yeni').strip()
+
+    urunler_queryset = Urun.objects.select_related('kategori', 'marka').annotate(
+        stok_toplam=Coalesce(
+            Sum('varyantlar__stok_miktari', filter=Q(varyantlar__aktif=True)),
+            0
+        )
+    )
+
+    if search_query:
+        urunler_queryset = urunler_queryset.filter(
+            Q(ad__icontains=search_query) |
+            Q(urun_kodu__icontains=search_query) |
+            Q(kategori__ad__icontains=search_query) |
+            Q(marka__ad__icontains=search_query) |
+            Q(varyantlar__barkod__icontains=search_query)
+        ).distinct()
+
+    if kategori_filter and kategori_filter.isdigit():
+        urunler_queryset = urunler_queryset.filter(kategori_id=int(kategori_filter))
+
+    if marka_filter and marka_filter.isdigit():
+        urunler_queryset = urunler_queryset.filter(marka_id=int(marka_filter))
+
+    if cinsiyet_filter and cinsiyet_filter != 'hepsi':
+        urunler_queryset = urunler_queryset.filter(cinsiyet=cinsiyet_filter)
+
+    if stok_filter == 'stokta_var':
+        urunler_queryset = urunler_queryset.filter(stok_toplam__gt=0)
+    elif stok_filter == 'tukendi':
+        urunler_queryset = urunler_queryset.filter(stok_toplam=0)
+    elif stok_filter == 'kritik':
+        urunler_queryset = urunler_queryset.filter(stok_toplam__gt=0, stok_toplam__lte=10)
+
+    if aktiflik_filter == 'aktif':
+        urunler_queryset = urunler_queryset.filter(aktif=True)
+    elif aktiflik_filter == 'pasif':
+        urunler_queryset = urunler_queryset.filter(aktif=False)
+
+    siralama_map = {
+        'yeni': '-id',
+        'eski': 'id',
+        'ad_asc': 'ad',
+        'ad_desc': '-ad',
+        'fiyat_asc': 'pesin_fiyat',
+        'fiyat_desc': '-pesin_fiyat',
+        'stok_asc': 'stok_toplam',
+        'stok_desc': '-stok_toplam',
+    }
+    urunler_queryset = urunler_queryset.order_by(siralama_map.get(siralama, '-id'))
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Ürün Kataloğu"
+    ws.views.sheetView[0].showGridLines = True
+
+    # Stiller
+    font_title = Font(name='Segoe UI', size=14, bold=True, color='0D3B66')
+    font_head = Font(name='Segoe UI', size=11, bold=True, color='FFFFFF')
+    font_data = Font(name='Segoe UI', size=10, color='222222')
+    font_data_bold = Font(name='Segoe UI', size=10, bold=True, color='222222')
+    fill_head = PatternFill(start_color='0D3B66', end_color='0D3B66', fill_type='solid')
+    fill_even = PatternFill(start_color='F8FAFC', end_color='F8FAFC', fill_type='solid')
+    border_thin = Border(
+        left=Side(style='thin', color='E2E8F0'),
+        right=Side(style='thin', color='E2E8F0'),
+        top=Side(style='thin', color='E2E8F0'),
+        bottom=Side(style='thin', color='E2E8F0'),
+    )
+
+    ws.merge_cells('A1:L1')
+    ws['A1'] = f"NUVİABUTİK — ÜRÜN LİSTESİ ({timezone.now().strftime('%d.%m.%Y %H:%M')})"
+    ws['A1'].font = font_title
+    ws['A1'].alignment = Alignment(horizontal='left', vertical='center')
+    ws.row_dimensions[1].height = 28
+
+    headers = [
+        ('Sıra', 8, Alignment(horizontal='center')),
+        ('Ürün Kodu', 14, Alignment(horizontal='center')),
+        ('Ürün Adı', 34, Alignment(horizontal='left')),
+        ('Kategori', 18, Alignment(horizontal='left')),
+        ('Marka', 16, Alignment(horizontal='left')),
+        ('Cinsiyet', 12, Alignment(horizontal='center')),
+        ('Alış Fiyatı (₺)', 14, Alignment(horizontal='right')),
+        ('Peşin Fiyat (₺)', 14, Alignment(horizontal='right')),
+        ('Taksitli Fiyat (₺)', 14, Alignment(horizontal='right')),
+        ('Toplam Stok', 14, Alignment(horizontal='right')),
+        ('Durum', 14, Alignment(horizontal='center')),
+        ('Aktiflik', 12, Alignment(horizontal='center')),
+    ]
+
+    header_row = 3
+    ws.row_dimensions[header_row].height = 24
+    for col_idx, (col_name, col_width, col_align) in enumerate(headers, 1):
+        cell = ws.cell(row=header_row, column=col_idx, value=col_name)
+        cell.font = font_head
+        cell.fill = fill_head
+        cell.alignment = col_align
+        cell.border = border_thin
+        ws.column_dimensions[get_column_letter(col_idx)].width = col_width
+
+    for row_idx, u in enumerate(urunler_queryset, 4):
+        durum_str = "Tükendi" if u.stok_toplam == 0 else ("Kritik" if u.stok_toplam <= 10 else "Yeterli")
+        cins_str = dict(Urun.CINSIYET_SECENEKLERI).get(u.cinsiyet, u.cinsiyet)
+        aktif_str = "Aktif" if u.aktif else "Pasif"
+        is_even = row_idx % 2 == 0
+        fill_row = fill_even if is_even else None
+
+        values = [
+            (row_idx - 3, Alignment(horizontal='center')),
+            (u.urun_kodu or '—', Alignment(horizontal='center')),
+            (u.ad, Alignment(horizontal='left')),
+            (u.kategori.ad if u.kategori else '—', Alignment(horizontal='left')),
+            (u.marka.ad if u.marka else '—', Alignment(horizontal='left')),
+            (cins_str, Alignment(horizontal='center')),
+            (float(u.alis_fiyati or 0), Alignment(horizontal='right')),
+            (float(u.pesin_fiyat or 0), Alignment(horizontal='right')),
+            (float(u.taksitli_fiyat or 0), Alignment(horizontal='right')),
+            (u.stok_toplam, Alignment(horizontal='right')),
+            (durum_str, Alignment(horizontal='center')),
+            (aktif_str, Alignment(horizontal='center')),
+        ]
+
+        ws.row_dimensions[row_idx].height = 20
+        for col_idx, (val, aln) in enumerate(values, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.alignment = aln
+            cell.font = font_data_bold if col_idx in (3, 8, 10) else font_data
+            cell.border = border_thin
+            if fill_row:
+                cell.fill = fill_row
+            if col_idx in (7, 8, 9):
+                cell.number_format = '#,##0.00'
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"urun_katalogu_{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
 
 
 @login_required

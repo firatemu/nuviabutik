@@ -10,6 +10,8 @@ app_name = 'urun'
 urlpatterns = [
     # Ürün listesi ve ekleme
     path('', views.urun_listesi, name='liste'),
+    path('excel-export/', views.urun_excel_export, name='excel_export'),
+    path('ajax/varyantlar/<int:urun_id>/', views.ajax_urun_varyantlari, name='ajax_urun_varyantlari'),
     path('ekle/', views.urun_ekle, name='ekle'),
     path('<int:urun_id>/', views.urun_detay, name='detay'),
     path('<int:urun_id>/duzenle/', views.urun_duzenle, name='duzenle'),

@@ -3,875 +3,549 @@
 {% load l10n %}
 {% load currency_filters %}
 
-{% block title %}Ürün Yönetimi - Stok Takip Sistemi{% endblock %}
+{% block title %}Ürün Yönetimi & Envanter Kataloğu — NuviaButik{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* Page Header Specific Styles */
-    .page-header {
-        background: linear-gradient(135deg, #27ae60, #229954);
-        color: #ffffff;
-        padding: 1rem 0;
-        margin-bottom: 1rem;
-        border-radius: 0 0 12px 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
-    }
-
-    .page-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: #ffffff;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    }
-
-    .page-subtitle {
-        opacity: 0.95;
-        margin-top: 0.25rem;
-        font-size: 0.875rem;
-        color: #f8f9fa;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    }
-
-    /* Stats Cards */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .stat-card {
-        background: white;
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: var(--shadow-md);
-        transition: all 0.3s ease;
-        border: 1px solid var(--border-color);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 4px;
-        height: 100%;
-        background: #2c3e50;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .stat-card .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-    }
-
-    .stat-card.primary .stat-icon {
-        background: rgba(44, 62, 80, 0.1);
-        color: #2c3e50;
-    }
-
-    .stat-card.success .stat-icon {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--success-color);
-    }
-
-    .stat-card.warning .stat-icon {
-        background: rgba(245, 158, 11, 0.1);
-        color: var(--warning-color);
-    }
-
-    .stat-card.danger .stat-icon {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--danger-color);
-    }
-
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        margin: 0;
-        color: var(--dark-color);
-    }
-
-    .stat-label {
-        font-size: 0.875rem;
-        color: #6b7280;
-        margin: 0;
-    }
-
-    /* Filter Section */
-    .filter-section {
-        background: white;
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        box-shadow: var(--shadow-md);
-        border: 1px solid var(--border-color);
-    }
-
-    .filter-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-
-    .filter-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--dark-color);
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .search-box {
-        position: relative;
-    }
-
-    .search-box input {
-        border-radius: 12px;
-        border: 2px solid var(--border-color);
-        padding: 0.75rem 1rem 0.75rem 3rem;
-        font-size: 0.95rem;
-        transition: all 0.3s ease;
-        width: 100%;
-    }
-
-    .search-box input:focus {
-        border-color: #2c3e50;
-        box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
-        outline: none;
-    }
-
-    .search-box .search-icon {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #9ca3af;
-        pointer-events: none;
-    }
-
-    .filter-select {
-        border-radius: 12px;
-        border: 2px solid var(--border-color);
-        padding: 0.75rem 1rem;
-        font-size: 0.95rem;
-        transition: all 0.3s ease;
-    }
-
-    .filter-select:focus {
-        border-color: #2c3e50;
-        box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
-        outline: none;
-    }
-
-    /* Table Styles */
-    .table-container {
-        background: white;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: var(--shadow-md);
-        border: 1px solid var(--border-color);
-    }
-
-    .product-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .product-table thead {
-        background: linear-gradient(135deg, var(--dark-color) 0%, #374151 100%);
-        color: white;
-    }
-
-    .product-table thead th {
-        padding: 0.75rem 1rem;
-        text-align: left;
-        font-weight: 600;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 2px solid #2c3e50;
-    }
-
-    .product-table thead th:first-child {
-        border-radius: 16px 0 0 0;
-    }
-
-    .product-table thead th:last-child {
-        border-radius: 0 16px 0 0;
-    }
-
-    .product-table tbody tr {
-        border-bottom: 1px solid var(--border-color);
-        transition: all 0.2s ease;
-    }
-
-    .product-table tbody tr:hover {
-        background-color: #f9fafb;
-        transform: scale(1.01);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    }
-
-    .product-table tbody tr:last-child {
-        border-bottom: none;
-    }
-
-    .product-table tbody td {
-        padding: 0.6rem 1rem;
-        vertical-align: middle;
-        font-size: 0.9rem;
-    }
-
-    /* Product Image in Table */
-    .product-img-wrapper {
-        width: 45px;
-        height: 45px;
-        border-radius: 8px;
-        overflow: hidden;
-        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .product-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .no-img-icon {
-        font-size: 1.5rem;
-        color: #d1d5db;
-    }
-
-    /* Product Code Badge */
-    .product-code-badge {
-        display: inline-block;
-        background: rgba(44, 62, 80, 0.1);
-        color: #2c3e50;
-        padding: 0.375rem 0.75rem;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        font-weight: 600;
-        font-family: 'Courier New', monospace;
-    }
-
-    /* Product Name */
-    .product-name-cell {
-        font-weight: 600;
-        color: var(--dark-color);
-        font-size: 0.95rem;
-    }
-
-    /* Badges */
-    .badge-custom {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.375rem 0.875rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        white-space: nowrap;
-    }
-
-    .badge-category {
-        background: rgba(59, 130, 246, 0.1);
-        color: var(--info-color);
-    }
-
-    .badge-brand {
-        background: rgba(139, 92, 246, 0.1);
-        color: #8b5cf6;
-    }
-
-    .badge-stock-high {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--success-color);
-    }
-
-    .badge-stock-low {
-        background: rgba(245, 158, 11, 0.1);
-        color: var(--warning-color);
-    }
-
-    .badge-stock-out {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--danger-color);
-    }
-
-    /* Price */
-    .price-cell {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: var(--success-color);
-    }
-
-    /* Action Buttons */
-    .action-buttons {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .btn-action {
-        padding: 0.4rem 0.75rem;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        text-align: center;
-        transition: all 0.2s ease;
-        border: none;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3rem;
-        text-decoration: none;
-    }
-
-    .btn-view {
-        background: var(--info-color);
-        color: white;
-    }
-
-    .btn-view:hover {
-        background: #2563eb;
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-        color: white;
-    }
-
-    .btn-edit {
-        background: var(--warning-color);
-        color: white;
-    }
-
-    .btn-edit:hover {
-        background: #d97706;
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-        color: white;
-    }
-
-    .btn-add {
-        background: var(--success-color);
-        color: white;
-        padding: 0.875rem 1.5rem;
-        border-radius: 12px;
-        font-weight: 600;
-        border: none;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
-        box-shadow: var(--shadow-md);
-    }
-
-    .btn-add:hover {
-        background: #059669;
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-lg);
-        color: white;
-    }
-
-    /* Pagination */
-    .pagination-wrapper {
-        display: flex;
-        justify-content: center;
-        margin-top: 2rem;
-    }
-
-    .pagination {
-        display: flex;
-        gap: 0.5rem;
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .page-item {
-        margin: 0;
-    }
-
-    .page-link {
-        padding: 0.625rem 1rem;
-        border-radius: 8px;
-        background: white;
-        border: 1px solid var(--border-color);
-        color: var(--dark-color);
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.2s ease;
-        display: block;
-    }
-
-    .page-link:hover {
-        background: #2c3e50;
-        color: white;
-        border-color: #2c3e50;
-        transform: translateY(-2px);
-    }
-
-    .page-item.active .page-link {
-        background: #2c3e50;
-        color: white;
-        border-color: #2c3e50;
-    }
-
-    /* Empty State */
-    .empty-state {
-        text-align: center;
-        padding: 4rem 2rem;
-        background: white;
-        border-radius: 16px;
-        box-shadow: var(--shadow-md);
-    }
-
-    .empty-icon {
-        font-size: 4rem;
-        color: #d1d5db;
-        margin-bottom: 1.5rem;
-    }
-
-    .empty-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: var(--dark-color);
-        margin-bottom: 0.75rem;
-    }
-
-    .empty-text {
-        color: #6b7280;
-        margin-bottom: 1.5rem;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .page-header {
-            padding: 0.75rem 0;
-        }
-
-        .page-title {
-            font-size: 1.125rem;
-        }
-
-        .stats-grid {
-            grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-
-        .table-container {
-            overflow-x: auto;
-        }
-
-        .product-table {
-            min-width: 800px;
-        }
-
-        .action-bar {
-            flex-direction: column;
-            gap: 1rem;
-        }
-    }
-
-    .action-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-    }
-
-    .badge-info {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.5rem 1rem;
-        border-radius: 12px;
-        font-size: 0.875rem;
-        font-weight: 600;
-        background: rgba(44, 62, 80, 0.1);
-        color: #2c3e50;
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/urun-listesi.css' %}?v=20260929">
 {% endblock %}
 
 {% block page_content %}
-<div class="container-fluid px-4">
-    <!-- Header -->
-    <div class="page-header">
-        <div class="container-fluid">
-            <h1 class="page-title">
-                <i class="fas fa-box-open"></i>
-                Ürün Yönetimi
-            </h1>
-            <p class="page-subtitle">Tüm ürünlerinizi görüntüleyin ve yönetin</p>
-        </div>
-    </div>
+<div class="ul-page">
 
-    <!-- Filters & Search -->
-    <div class="filter-section">
-        <div class="filter-header">
-            <h3 class="filter-title">
-                <i class="fas fa-filter"></i>
-                Filtrele ve Ara
-            </h3>
+    <!-- ===== STICKY HEADER & ACTION BAR ===== -->
+    <header class="ul-sticky-header">
+        <div class="ul-header-brand">
+            <div class="ul-header-icon">
+                <i class="fas fa-boxes-stacked"></i>
+            </div>
+            <div>
+                <h1 class="ul-header-title">Ürün Yönetimi</h1>
+                <p class="ul-header-subtitle">Envanter Kataloğu, Fiyatlandırma & Varyasyon Takibi</p>
+            </div>
         </div>
 
-        <form method="get" action="{% url 'urun:liste' %}" id="filterForm">
-            <div class="row g-3">
-                <!-- Search -->
-                <div class="col-md-4">
-                    <div class="search-box">
-                        <i class="fas fa-search search-icon"></i>
-                        <input type="text" name="q" class="form-control" placeholder="Ürün adı veya kodu ile ara..."
-                            value="{{ search_query|default:'' }}">
-                    </div>
+        <div class="ul-header-actions">
+            <!-- QZ Tray Durum Göstergesi -->
+            {% include "urun/etiket_status_widget.html" %}
+
+            <!-- Excel Export Butonu -->
+            <a href="{% url 'urun:excel_export' %}?q={{ search_query }}&kategori={{ kategori_filter }}&marka={{ marka_filter }}&cinsiyet={{ cinsiyet_filter }}&stok_durumu={{ stok_filter }}&aktiflik={{ aktiflik_filter }}&siralama={{ siralama }}"
+               class="btn-ul-export" title="Filtrelenmiş Ürün Listesini Excel Olarak İndir">
+                <i class="fas fa-file-excel"></i>
+                <span>Excel İndir</span>
+            </a>
+
+            <!-- Yeni Ürün Ekle -->
+            <a href="{% url 'urun:ekle' %}" class="btn-ul-primary">
+                <i class="fas fa-plus-circle"></i>
+                <span>Yeni Ürün Ekle</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- ===== KPI STATS CARDS ===== -->
+    <section class="ul-kpi-grid" aria-label="Ürün İstatistikleri">
+        <!-- Toplam Ürün -->
+        <article class="ul-kpi-card grad-blue">
+            <i class="fas fa-layer-group ul-kpi-bg-icon"></i>
+            <div class="ul-kpi-head">
+                <span class="ul-kpi-label">Toplam Model</span>
+                <span class="ul-kpi-badge">Katalog</span>
+            </div>
+            <div class="ul-kpi-value">{{ toplam_urun|default:0|turkish_int }}</div>
+            <div class="ul-kpi-sub">Kayıtlı ana ürün kartı</div>
+        </article>
+
+        <!-- Satıştaki Aktif Ürünler -->
+        <article class="ul-kpi-card grad-emerald">
+            <i class="fas fa-circle-check ul-kpi-bg-icon"></i>
+            <div class="ul-kpi-head">
+                <span class="ul-kpi-label">Satışta / Aktif</span>
+                <span class="ul-kpi-badge">Yayında</span>
+            </div>
+            <div class="ul-kpi-value">{{ aktif_urun|default:0|turkish_int }}</div>
+            <div class="ul-kpi-sub">Siparişe açık ürün</div>
+        </article>
+
+        <!-- Kritik Stok Seviyesi -->
+        <article class="ul-kpi-card grad-amber">
+            <i class="fas fa-triangle-exclamation ul-kpi-bg-icon"></i>
+            <div class="ul-kpi-head">
+                <span class="ul-kpi-label">Kritik Stok</span>
+                <span class="ul-kpi-badge">1 - 10 Adet</span>
+            </div>
+            <div class="ul-kpi-value">{{ kritik_stok|default:0|turkish_int }}</div>
+            <div class="ul-kpi-sub">Azalan stok uyarısı</div>
+        </article>
+
+        <!-- Tükenen Ürünler -->
+        <article class="ul-kpi-card grad-rose">
+            <i class="fas fa-circle-xmark ul-kpi-bg-icon"></i>
+            <div class="ul-kpi-head">
+                <span class="ul-kpi-label">Tükenenler</span>
+                <span class="ul-kpi-badge">0 Stok</span>
+            </div>
+            <div class="ul-kpi-value">{{ tukenen_stok|default:0|turkish_int }}</div>
+            <div class="ul-kpi-sub">Stoğu bitmiş ürün kartı</div>
+        </article>
+
+        <!-- Toplam Fiziksel Stok -->
+        <article class="ul-kpi-card grad-indigo">
+            <i class="fas fa-warehouse ul-kpi-bg-icon"></i>
+            <div class="ul-kpi-head">
+                <span class="ul-kpi-label">Toplam Stok</span>
+                <span class="ul-kpi-badge">Adet</span>
+            </div>
+            <div class="ul-kpi-value">{{ toplam_stok_adedi|default:0|turkish_int }}</div>
+            <div class="ul-kpi-sub">Depolardaki toplam miktar</div>
+        </article>
+    </section>
+
+    <!-- ===== FİLTRE & ARAMA ÇUBUĞU ===== -->
+    <section class="ul-filter-box">
+        <form method="get" action="{% url 'urun:liste' %}" id="urunFilterForm">
+            <div class="ul-filter-grid">
+                <!-- Arama Kutusu -->
+                <div class="ul-search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="q" id="searchQInput" class="ul-search-input"
+                           placeholder="Ürün adı, barkod veya 5 haneli kod ile ara..."
+                           value="{{ search_query|default:'' }}" autocomplete="off">
                 </div>
 
-                <!-- Category Filter -->
-                <div class="col-md-2">
-                    <select name="kategori" class="form-select filter-select" onchange="this.form.submit()">
+                <!-- Kategori Filtresi -->
+                <div>
+                    <select name="kategori" class="ul-select" onchange="this.form.submit()">
                         <option value="">Tüm Kategoriler</option>
-                        {% for kategori in kategoriler %}
-                        <option value="{{ kategori.id }}" {% if request.GET.kategori == kategori.id|stringformat:"s" %}selected{% endif %}>
-                            {{ kategori.ad }}
+                        {% for kat in kategoriler %}
+                        <option value="{{ kat.id }}" {% if kategori_filter == kat.id|stringformat:"s" %}selected{% endif %}>
+                            {{ kat.ad }}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <!-- Brand Filter -->
-                <div class="col-md-2">
-                    <select name="marka" class="form-select filter-select" onchange="this.form.submit()">
+                <!-- Marka Filtresi -->
+                <div>
+                    <select name="marka" class="ul-select" onchange="this.form.submit()">
                         <option value="">Tüm Markalar</option>
-                        {% for marka in markalar %}
-                        <option value="{{ marka.id }}" {% if request.GET.marka == marka.id|stringformat:"s" %}selected{% endif %}>
-                            {{ marka.ad }}
+                        {% for mrk in markalar %}
+                        <option value="{{ mrk.id }}" {% if marka_filter == mrk.id|stringformat:"s" %}selected{% endif %}>
+                            {{ mrk.ad }}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <!-- Gender Filter -->
-                <div class="col-md-2">
-                    <select name="cinsiyet" class="form-select filter-select" onchange="this.form.submit()">
+                <!-- Cinsiyet Filtresi -->
+                <div>
+                    <select name="cinsiyet" class="ul-select" onchange="this.form.submit()">
                         <option value="">Tüm Cinsiyetler</option>
-                        {% for value, label in cinsiyet_secenekleri %}
-                        <option value="{{ value }}" {% if cinsiyet_filter == value %}selected{% endif %}>
-                            {{ label }}
+                        {% for val, lbl in cinsiyet_secenekleri %}
+                        <option value="{{ val }}" {% if cinsiyet_filter == val %}selected{% endif %}>
+                            {{ lbl }}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <!-- Action Buttons -->
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-search me-1"></i> Ara
+                <!-- Stok Durumu Filtresi -->
+                <div>
+                    <select name="stok_durumu" class="ul-select" onchange="this.form.submit()">
+                        <option value="">Stok: Tümü</option>
+                        <option value="stokta_var" {% if stok_filter == 'stokta_var' %}selected{% endif %}>Stoğu Olanlar</option>
+                        <option value="kritik" {% if stok_filter == 'kritik' %}selected{% endif %}>Kritik Stok (1-10)</option>
+                        <option value="tukendi" {% if stok_filter == 'tukendi' %}selected{% endif %}>Tükenenler (0)</option>
+                    </select>
+                </div>
+
+                <!-- Sıralama -->
+                <div>
+                    <select name="siralama" class="ul-select" onchange="this.form.submit()">
+                        <option value="yeni" {% if siralama == 'yeni' %}selected{% endif %}>En Yeni Eklenenler</option>
+                        <option value="eski" {% if siralama == 'eski' %}selected{% endif %}>En Eski Eklenenler</option>
+                        <option value="ad_asc" {% if siralama == 'ad_asc' %}selected{% endif %}>Ürün Adı (A → Z)</option>
+                        <option value="ad_desc" {% if siralama == 'ad_desc' %}selected{% endif %}>Ürün Adı (Z → A)</option>
+                        <option value="fiyat_desc" {% if siralama == 'fiyat_desc' %}selected{% endif %}>Fiyat (Yüksekten Düşüğe)</option>
+                        <option value="fiyat_asc" {% if siralama == 'fiyat_asc' %}selected{% endif %}>Fiyat (Düşükten Yükseğe)</option>
+                        <option value="stok_desc" {% if siralama == 'stok_desc' %}selected{% endif %}>Stok (Çoktan Aza)</option>
+                        <option value="stok_asc" {% if siralama == 'stok_asc' %}selected{% endif %}>Stok (Azdan Çoğa)</option>
+                    </select>
+                </div>
+
+                <!-- Ara Butonu -->
+                <div>
+                    <button type="submit" class="btn-ul-filter">
+                        <i class="fas fa-filter me-1"></i> Filtrele
                     </button>
                 </div>
             </div>
 
-            {% if search_query or request.GET.kategori or request.GET.marka or request.GET.cinsiyet %}
-            <div class="mt-3">
-                <a href="{% url 'urun:liste' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-times me-1"></i> Filtreleri Temizle
-                </a>
+            <!-- Aktif Filtre Etiketleri (Chips) -->
+            {% if search_query or kategori_filter or marka_filter or cinsiyet_filter or stok_filter or aktiflik_filter %}
+            <div class="ul-active-chips">
+                <span class="ul-chip-label">Aktif Filtreler:</span>
+
+                {% if search_query %}
+                <span class="ul-chip">
+                    Arama: "{{ search_query }}"
+                    <a href="?kategori={{ kategori_filter }}&marka={{ marka_filter }}&cinsiyet={{ cinsiyet_filter }}&stok_durumu={{ stok_filter }}&aktiflik={{ aktiflik_filter }}&siralama={{ siralama }}"><i class="fas fa-times"></i></a>
+                </span>
+                {% endif %}
+
+                {% if kategori_filter %}
+                <span class="ul-chip">
+                    Kategori:
+                    {% for kat in kategoriler %}{% if kategori_filter == kat.id|stringformat:"s" %}{{ kat.ad }}{% endif %}{% endfor %}
+                    <a href="?q={{ search_query }}&marka={{ marka_filter }}&cinsiyet={{ cinsiyet_filter }}&stok_durumu={{ stok_filter }}&aktiflik={{ aktiflik_filter }}&siralama={{ siralama }}"><i class="fas fa-times"></i></a>
+                </span>
+                {% endif %}
+
+                {% if marka_filter %}
+                <span class="ul-chip">
+                    Marka:
+                    {% for mrk in markalar %}{% if marka_filter == mrk.id|stringformat:"s" %}{{ mrk.ad }}{% endif %}{% endfor %}
+                    <a href="?q={{ search_query }}&kategori={{ kategori_filter }}&cinsiyet={{ cinsiyet_filter }}&stok_durumu={{ stok_filter }}&aktiflik={{ aktiflik_filter }}&siralama={{ siralama }}"><i class="fas fa-times"></i></a>
+                </span>
+                {% endif %}
+
+                {% if cinsiyet_filter %}
+                <span class="ul-chip">
+                    Cinsiyet: {{ cinsiyet_filter|title }}
+                    <a href="?q={{ search_query }}&kategori={{ kategori_filter }}&marka={{ marka_filter }}&stok_durumu={{ stok_filter }}&aktiflik={{ aktiflik_filter }}&siralama={{ siralama }}"><i class="fas fa-times"></i></a>
+                </span>
+                {% endif %}
+
+                {% if stok_filter %}
+                <span class="ul-chip">
+                    Stok:
+                    {% if stok_filter == 'stokta_var' %}Stoğu Olanlar{% elif stok_filter == 'kritik' %}Kritik Stok{% elif stok_filter == 'tukendi' %}Tükenenler{% endif %}
+                    <a href="?q={{ search_query }}&kategori={{ kategori_filter }}&marka={{ marka_filter }}&cinsiyet={{ cinsiyet_filter }}&aktiflik={{ aktiflik_filter }}&siralama={{ siralama }}"><i class="fas fa-times"></i></a>
+                </span>
+                {% endif %}
+
+                <a href="{% url 'urun:liste' %}" class="ul-chip-clear">Tümünü Temizle</a>
             </div>
             {% endif %}
         </form>
-    </div>
+    </section>
 
-    <!-- Action Bar -->
-    <div class="action-bar">
-        <div style="display: flex; gap: 1rem; align-items: center;">
-            {% if search_query %}
-            <span class="badge-info">
-                <i class="fas fa-search"></i>
-                "{{ search_query }}" için {{ page_obj.paginator.count }} sonuç
-            </span>
-            {% else %}
-            <span class="badge-info">
-                <i class="fas fa-box"></i>
-                {{ page_obj.paginator.count }} ürün listeleniyor
-            </span>
-            {% endif %}
-
-            {% include "urun/etiket_status_widget.html" %}
-        </div>
-        <a href="{% url 'urun:ekle' %}" class="btn-add">
-            <i class="fas fa-plus"></i>
-            Yeni Ürün Ekle
-        </a>
-    </div>
-
-    <!-- Products Table -->
+    <!-- ===== ÜRÜN TABLOSU KARTI ===== -->
     {% if urunler %}
-    <div class="table-container">
-        <table class="product-table">
-            <thead>
-                <tr>
-                    <th style="width: 80px;">Görsel</th>
-                    <th style="width: 120px;">Ürün Kodu</th>
-                    <th>Ürün Adı</th>
-                    <th>Kategori</th>
-                    <th>Marka</th>
-                    <th style="width: 120px;">Stok</th>
-                    <th style="width: 120px;">Fiyat</th>
-                    <th style="width: 150px;" class="text-center">İşlemler</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for urun in urunler %}
-                <tr>
-                    <!-- Image -->
-                    <td>
-                        <div class="product-img-wrapper">
-                            {% if urun.resim %}
-                            <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}" class="product-img" loading="lazy">
-                            {% else %}
-                            <i class="fas fa-image no-img-icon"></i>
-                            {% endif %}
-                        </div>
-                    </td>
+    <div class="ul-table-card">
+        <div class="ul-table-head-bar">
+            <div class="ul-table-count">
+                <i class="fas fa-list-check text-primary"></i>
+                <span>Listelenen Ürünler</span>
+                <span class="ul-table-count-badge">{{ page_obj.paginator.count }} Ürün</span>
+            </div>
+            <div class="text-muted small">
+                Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+            </div>
+        </div>
 
-                    <!-- Product Code -->
-                    <td>
-                        {% if urun.urun_kodu %}
-                        <span class="product-code-badge">{{ urun.urun_kodu }}</span>
-                        {% else %}
-                        <span class="text-muted">-</span>
-                        {% endif %}
-                    </td>
+        <div class="ul-table-wrapper">
+            <table class="ul-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;" class="text-center">Görsel</th>
+                        <th style="width: 110px;" class="text-center">Ürün Kodu</th>
+                        <th>Ürün Bilgisi</th>
+                        <th style="width: 140px;">Kategori</th>
+                        <th style="width: 130px;">Marka</th>
+                        <th style="width: 150px;" class="text-end">Stok & Varyant</th>
+                        <th style="width: 150px;" class="text-end">Fiyatlandırma</th>
+                        <th style="width: 160px;" class="text-end">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for urun in urunler %}
+                    <tr>
+                        <!-- Görsel -->
+                        <td class="text-center">
+                            <div class="ul-img-box" data-img-url="{% if urun.resim %}{{ urun.resim.url }}{% endif %}" title="Büyütmek için tıkla">
+                                {% if urun.resim %}
+                                <img src="{{ urun.resim.url }}" alt="{{ urun.ad }}" class="ul-img-thumb" loading="lazy">
+                                {% else %}
+                                <i class="fas fa-shirt ul-img-placeholder"></i>
+                                {% endif %}
+                            </div>
+                        </td>
 
-                    <!-- Product Name -->
-                    <td>
-                        <div class="product-name-cell">{{ urun.ad }}</div>
-                        <small class="text-muted">
-                            {% if urun.cinsiyet == 'kadin' %}
-                            <i class="fas fa-venus" style="color: #e83e8c;"></i> Kadın
-                            {% elif urun.cinsiyet == 'erkek' %}
-                            <i class="fas fa-mars" style="color: #007bff;"></i> Erkek
-                            {% else %}
-                            <i class="fas fa-venus" style="color: #e83e8c;"></i> Kadın
-                            {% endif %}
-                        </small>
-                    </td>
-
-                    <!-- Category -->
-                    <td>
-                        <span class="badge-custom badge-category">
-                            <i class="fas fa-tag"></i>
-                            {{ urun.kategori.ad|default:"Kategorisiz" }}
-                        </span>
-                    </td>
-
-                    <!-- Brand -->
-                    <td>
-                        {% if urun.marka %}
-                        <span class="badge-custom badge-brand">
-                            <i class="fas fa-copyright"></i>
-                            {{ urun.marka.ad }}
-                        </span>
-                        {% else %}
-                        <span class="text-muted">-</span>
-                        {% endif %}
-                    </td>
-
-                    <!-- Stock -->
-                    <td>
-                        {% if urun.stok_toplam == 0 %}
-                        <span class="badge-custom badge-stock-out">
-                            <i class="fas fa-times-circle"></i>
-                            Tükendi
-                        </span>
-                        {% elif urun.stok_toplam <= 10 %} <span class="badge-custom badge-stock-low">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            {{ urun.stok_toplam }} adet
+                        <!-- Ürün Kodu (Kopyalanabilir) -->
+                        <td class="text-center">
+                            {% if urun.urun_kodu %}
+                            <span class="ul-code-badge copy-code-btn" data-code="{{ urun.urun_kodu }}" title="Kopyalamak için tıklayın">
+                                <span>{{ urun.urun_kodu }}</span>
+                                <i class="fas fa-copy"></i>
                             </span>
                             {% else %}
-                            <span class="badge-custom badge-stock-high">
-                                <i class="fas fa-check-circle"></i>
-                                {{ urun.stok_toplam }} adet
-                            </span>
+                            <span class="text-muted small">—</span>
                             {% endif %}
-                    </td>
+                        </td>
 
-                    <!-- Price -->
-                    <td>
-                        <div class="price-cell">{{ urun.satis_fiyati|turkish_currency }}</div>
-                    </td>
+                        <!-- Ürün Adı & Cinsiyet -->
+                        <td>
+                            <div class="ul-product-main">
+                                <a href="{% url 'urun:detay' urun.id %}" class="ul-product-name">
+                                    {{ urun.ad }}
+                                </a>
+                                <div class="ul-product-meta">
+                                    {% if urun.cinsiyet == 'kadin' %}
+                                    <span class="ul-badge-cinsiyet kadin"><i class="fas fa-venus"></i> Kadın</span>
+                                    {% elif urun.cinsiyet == 'erkek' %}
+                                    <span class="ul-badge-cinsiyet erkek"><i class="fas fa-mars"></i> Erkek</span>
+                                    {% else %}
+                                    <span class="ul-badge-cinsiyet kadin"><i class="fas fa-venus-mars"></i> Unisex</span>
+                                    {% endif %}
 
-                    <!-- Actions -->
-                    <td>
-                        <div class="action-buttons">
-                            <button type="button" class="btn-action"
-                                style="background: var(--success-color); color: white; border: none;"
-                                data-print-product="{{ urun.id|unlocalize }}" title="Etiket Yazdır">
-                                <i class="fas fa-print"></i>
-                                Yazdır
-                            </button>
+                                    {% if not urun.aktif %}
+                                    <span class="badge bg-secondary" style="font-size: 10px;">Pasif</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
 
-                            <a href="{% url 'urun:detay' urun.id %}" class="btn-action btn-view" title="Detaylar">
-                                <i class="fas fa-eye"></i>
-                                Detay
-                            </a>
+                        <!-- Kategori -->
+                        <td>
+                            <span class="ul-badge-kategori">
+                                <i class="fas fa-folder-open me-1 text-muted"></i>
+                                {{ urun.kategori.ad|default:"Kategorisiz" }}
+                            </span>
+                        </td>
 
-                            <a href="{% url 'urun:duzenle' urun.id %}" class="btn-action btn-edit" title="Düzenle">
-                                <i class="fas fa-edit"></i>
-                                Düzenle
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                        <!-- Marka -->
+                        <td>
+                            {% if urun.marka %}
+                            <span class="ul-badge-marka">
+                                <i class="fas fa-tag me-1 text-muted"></i>
+                                {{ urun.marka.ad }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
 
-    <!-- Pagination -->
-    {% if page_obj.has_other_pages %}
-    <div class="pagination-wrapper">
-        <ul class="pagination">
-            {% if page_obj.has_previous %}
-            <li class="page-item">
-                <a class="page-link"
-                    href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.kategori %}&kategori={{ request.GET.kategori }}{% endif %}{% if request.GET.marka %}&marka={{ request.GET.marka }}{% endif %}">
-                    <i class="fas fa-angle-double-left"></i>
-                </a>
-            </li>
-            <li class="page-item">
-                <a class="page-link"
-                    href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.kategori %}&kategori={{ request.GET.kategori }}{% endif %}{% if request.GET.marka %}&marka={{ request.GET.marka }}{% endif %}">
-                    <i class="fas fa-angle-left"></i>
-                </a>
-            </li>
-            {% endif %}
+                        <!-- Stok & Varyant -->
+                        <td class="text-end">
+                            <div class="ul-stock-box">
+                                {% if urun.stok_toplam == 0 %}
+                                <span class="ul-badge-stock out">
+                                    <i class="fas fa-circle-xmark"></i> Tükendi
+                                </span>
+                                {% elif urun.stok_toplam <= 10 %}
+                                <span class="ul-badge-stock low">
+                                    <i class="fas fa-triangle-exclamation"></i> {{ urun.stok_toplam|turkish_int }} adet
+                                </span>
+                                {% else %}
+                                <span class="ul-badge-stock high">
+                                    <i class="fas fa-circle-check"></i> {{ urun.stok_toplam|turkish_int }} adet
+                                </span>
+                                {% endif %}
 
-            {% for num in page_obj.paginator.page_range %}
-            {% if page_obj.number == num %}
-            <li class="page-item active">
-                <span class="page-link">{{ num }}</span>
-            </li>
-            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <li class="page-item">
-                <a class="page-link"
-                    href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.kategori %}&kategori={{ request.GET.kategori }}{% endif %}{% if request.GET.marka %}&marka={{ request.GET.marka }}{% endif %}">{{
-                    num }}</a>
+                                {% if urun.varyasyonlu %}
+                                <button type="button" class="btn-variant-pill btn-quick-variants" data-urun-id="{{ urun.id }}" title="Varyant Kırılımını Gör">
+                                    <i class="fas fa-layer-group"></i> {{ urun.varyantlar.count }} Varyant
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Fiyatlandırma -->
+                        <td class="text-end">
+                            <div class="ul-price-cell">
+                                <span class="ul-price-pesin">
+                                    {{ urun.pesin_fiyat|default:urun.satis_fiyati|turkish_currency }}
+                                </span>
+                                {% if urun.taksitli_fiyat and urun.taksitli_fiyat > 0 %}
+                                <span class="ul-price-taksit">
+                                    Taksit: {{ urun.taksitli_fiyat|turkish_currency }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- İşlemler -->
+                        <td class="text-end">
+                            <div class="ul-action-group">
+                                <!-- QZ Tray Etiket Yazdır -->
+                                <button type="button" class="btn-ul-action btn-print"
+                                        data-print-product="{{ urun.id|unlocalize }}"
+                                        title="Barkod Etiketi Yazdır (QZ Tray)">
+                                    <i class="fas fa-print"></i>
+                                </button>
+
+                                <!-- Varyasyon Yönetimi (Varyasyonlu ise) -->
+                                {% if urun.varyasyonlu %}
+                                <a href="{% url 'urun:varyasyon_yonet' urun.id %}" class="btn-ul-action btn-view" title="Varyasyonları Yönet">
+                                    <i class="fas fa-palette"></i>
+                                </a>
+                                {% endif %}
+
+                                <!-- Detay -->
+                                <a href="{% url 'urun:detay' urun.id %}" class="btn-ul-action btn-view" title="Ürün Detayları">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+
+                                <!-- Düzenle -->
+                                <a href="{% url 'urun:duzenle' urun.id %}" class="btn-ul-action btn-edit" title="Ürünü Düzenle">
+                                    <i class="fas fa-pen-to-square"></i>
+                                </a>
+
+                                <!-- Sil -->
+                                <a href="{% url 'urun:sil' urun.id %}" class="btn-ul-action btn-del" title="Ürünü Sil">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ===== SAYFALAMA ===== -->
+        {% if page_obj.has_other_pages %}
+        <div class="ul-pagination-wrapper">
+            <div class="text-muted small">
+                Toplam <strong>{{ page_obj.paginator.count }}</strong> üründen <strong>{{ page_obj.start_index }}-{{ page_obj.end_index }}</strong> arası gösteriliyor
+            </div>
+            <ul class="ul-pagination">
+                {% if page_obj.has_previous %}
+                <li class="ul-page-item">
+                    <a class="ul-page-link" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if kategori_filter %}&kategori={{ kategori_filter }}{% endif %}{% if marka_filter %}&marka={{ marka_filter }}{% endif %}{% if cinsiyet_filter %}&cinsiyet={{ cinsiyet_filter }}{% endif %}{% if stok_filter %}&stok_durumu={{ stok_filter }}{% endif %}{% if siralama %}&siralama={{ siralama }}{% endif %}" title="İlk Sayfa">
+                        <i class="fas fa-angles-left"></i>
+                    </a>
+                </li>
+                <li class="ul-page-item">
+                    <a class="ul-page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if kategori_filter %}&kategori={{ kategori_filter }}{% endif %}{% if marka_filter %}&marka={{ marka_filter }}{% endif %}{% if cinsiyet_filter %}&cinsiyet={{ cinsiyet_filter }}{% endif %}{% if stok_filter %}&stok_durumu={{ stok_filter }}{% endif %}{% if siralama %}&siralama={{ siralama }}{% endif %}" title="Önceki Sayfa">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="ul-page-item active">
+                    <span class="ul-page-link">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="ul-page-item">
+                    <a class="ul-page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if kategori_filter %}&kategori={{ kategori_filter }}{% endif %}{% if marka_filter %}&marka={{ marka_filter }}{% endif %}{% if cinsiyet_filter %}&cinsiyet={{ cinsiyet_filter }}{% endif %}{% if stok_filter %}&stok_durumu={{ stok_filter }}{% endif %}{% if siralama %}&siralama={{ siralama }}{% endif %}">{{ num }}</a>
                 </li>
                 {% endif %}
                 {% endfor %}
 
                 {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link"
-                        href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.kategori %}&kategori={{ request.GET.kategori }}{% endif %}{% if request.GET.marka %}&marka={{ request.GET.marka }}{% endif %}">
-                        <i class="fas fa-angle-right"></i>
+                <li class="ul-page-item">
+                    <a class="ul-page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if kategori_filter %}&kategori={{ kategori_filter }}{% endif %}{% if marka_filter %}&marka={{ marka_filter }}{% endif %}{% if cinsiyet_filter %}&cinsiyet={{ cinsiyet_filter }}{% endif %}{% if stok_filter %}&stok_durumu={{ stok_filter }}{% endif %}{% if siralama %}&siralama={{ siralama }}{% endif %}" title="Sonraki Sayfa">
+                        <i class="fas fa-chevron-right"></i>
                     </a>
                 </li>
-                <li class="page-item">
-                    <a class="page-link"
-                        href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if request.GET.kategori %}&kategori={{ request.GET.kategori }}{% endif %}{% if request.GET.marka %}&marka={{ request.GET.marka }}{% endif %}">
-                        <i class="fas fa-angle-double-right"></i>
+                <li class="ul-page-item">
+                    <a class="ul-page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if kategori_filter %}&kategori={{ kategori_filter }}{% endif %}{% if marka_filter %}&marka={{ marka_filter }}{% endif %}{% if cinsiyet_filter %}&cinsiyet={{ cinsiyet_filter }}{% endif %}{% if stok_filter %}&stok_durumu={{ stok_filter }}{% endif %}{% if siralama %}&siralama={{ siralama }}{% endif %}" title="Son Sayfa">
+                        <i class="fas fa-angles-right"></i>
                     </a>
                 </li>
                 {% endif %}
-        </ul>
-    </div>
-
-    <div class="text-center mt-3">
-        <small class="text-muted">
-            Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
-            (Toplam {{ page_obj.paginator.count }} ürün)
-        </small>
-    </div>
-    {% endif %}
-
-    {% else %}
-    <!-- Empty State -->
-    <div class="empty-state">
-        <div class="empty-icon">
-            <i class="fas fa-box-open"></i>
+            </ul>
         </div>
-        <h3 class="empty-title">
-            {% if search_query %}
-            Sonuç Bulunamadı
-            {% else %}
-            Henüz Ürün Yok
-            {% endif %}
-        </h3>
-        <p class="empty-text">
-            {% if search_query %}
-            "{{ search_query }}" araması için hiçbir ürün bulunamadı. Farklı bir arama terimi deneyin.
-            {% else %}
-            Sistemde henüz ürün bulunmuyor. Hemen ilk ürününüzü ekleyerek başlayın!
-            {% endif %}
-        </p>
-        {% if search_query %}
-        <a href="{% url 'urun:liste' %}" class="btn-add">
-            <i class="fas fa-arrow-left"></i>
-            Tüm Ürünleri Görüntüle
-        </a>
-        {% else %}
-        <a href="{% url 'urun:ekle' %}" class="btn-add">
-            <i class="fas fa-plus"></i>
-            İlk Ürünü Ekle
-        </a>
         {% endif %}
     </div>
+
+    {% else %}
+    <!-- Boş Durum (Empty State) -->
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4 bg-white">
+        <div class="mb-3 text-muted">
+            <i class="fas fa-boxes-packing fa-4x text-secondary opacity-50"></i>
+        </div>
+        <h3 class="fw-bold text-dark">
+            {% if search_query or kategori_filter or marka_filter or cinsiyet_filter or stok_filter %}
+            Filtrelere Uygun Ürün Bulunamadı
+            {% else %}
+            Katalogda Henüz Ürün Yok
+            {% endif %}
+        </h3>
+        <p class="text-muted mb-4">
+            {% if search_query or kategori_filter or marka_filter or cinsiyet_filter or stok_filter %}
+            Seçtiğiniz arama kriterlerine uyan kayıt bulunamadı. Filtreleri temizleyip tekrar deneyebilirsiniz.
+            {% else %}
+            Sistemde kayıtlı ürün bulunmuyor. Yeni ürün ekleyerek envanterinizi oluşturmaya başlayabilirsiniz.
+            {% endif %}
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+            {% if search_query or kategori_filter or marka_filter or cinsiyet_filter or stok_filter %}
+            <a href="{% url 'urun:liste' %}" class="btn btn-outline-secondary px-4 py-2">
+                <i class="fas fa-arrow-left me-1"></i> Filtreleri Temizle
+            </a>
+            {% endif %}
+            <a href="{% url 'urun:ekle' %}" class="btn-ul-primary px-4 py-2">
+                <i class="fas fa-plus-circle me-1"></i> Yeni Ürün Ekle
+            </a>
+        </div>
+    </div>
     {% endif %}
+
+</div>
+
+<!-- ===== HIZLI VARYANT İNCELEME MODALI ===== -->
+<div class="modal fade" id="quickVariantModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-light border-0 py-3">
+                <div>
+                    <h5 class="modal-title fw-bold" id="modalUrunAd">Ürün Varyasyonları</h5>
+                    <span class="text-muted small" id="modalUrunKod">Kod: —</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table variant-modal-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Renk</th>
+                                <th>Beden</th>
+                                <th class="text-center">Barkod</th>
+                                <th class="text-end">Mevcut Stok</th>
+                                <th class="text-center">Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalVariantBody">
+                            <!-- DOM API ile güvenli doldurulur -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 py-2 d-flex justify-content-between">
+                <a href="#" id="modalManageVariantsLink" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-palette me-1"></i> Varyasyon Yönetimine Git
+                </a>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== GÖRSEL BÜYÜTME (LIGHTBOX) MODALI ===== -->
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0 shadow-none text-center">
+            <div class="modal-body p-0 position-relative">
+                <button type="button" class="btn btn-dark btn-sm position-absolute top-0 end-0 m-2 rounded-circle" data-bs-dismiss="modal" style="width: 32px; height: 32px;">
+                    <i class="fas fa-times"></i>
+                </button>
+                <img src="" id="lightboxImg" alt="Büyük Ürün Görseli" class="img-fluid rounded-4 shadow-lg" style="max-height: 80vh; background: #fff;">
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Modern WebSocket Print Manager (QZ Tray Integration) -->
+<!-- QZ Tray WebSocket Entegrasyonu -->
 <script src="{% static 'js/qz-tray.js' %}"></script>
 <script src="{% static 'js/nuvia-bridge.js' %}"></script>
 <script src="{% static 'js/nuvia-print-manager.js' %}"></script>
-
-<script>
-    // Auto-submit on filter change and smooth scroll
-    document.addEventListener('DOMContentLoaded', function () {
-        // Smooth scroll to top on pagination
-        const pageLinks = document.querySelectorAll('.page-link');
-        pageLinks.forEach(link => {
-            link.addEventListener('click', function () {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
-        });
-
-        // Search on Enter
-        const searchInput = document.querySelector('input[name="q"]');
-        const filterForm = document.getElementById('filterForm');
-
-        if (searchInput && filterForm) {
-            searchInput.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    filterForm.submit();
-                }
-            });
-        }
-    });
-</script>
+<script src="{% static 'js/urun-listesi.js' %}?v=20260929"></script>
 {% endblock %}
