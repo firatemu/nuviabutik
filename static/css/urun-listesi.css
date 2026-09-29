@@ -398,8 +398,6 @@
 }
 
 .ul-table thead th {
-    position: sticky;
-    top: 60px; /* Header altı */
     background: #f8fafc;
     color: #475569;
     font-size: 0.72rem;
@@ -408,7 +406,6 @@
     letter-spacing: 0.6px;
     padding: 10px 14px;
     border-bottom: 2px solid #cbd5e1;
-    z-index: 10;
     white-space: nowrap;
 }
 
