@@ -1171,6 +1171,18 @@
                     <i class="fas fa-warehouse text-primary"></i>
                     Stok Yönetimi Ana
                 </a>
+                <a class="nav-link {% if request.resolver_match.url_name == 'sayim_ekrani' %}active{% endif %}"
+                    href="javascript:void(0)"
+                    onclick="openPageTab('Hızlı Stok Sayımı', '{% url 'urun:sayim_ekrani' %}'); closeSidebar(); return false;">
+                    <i class="fas fa-boxes-stacked text-success"></i>
+                    Hızlı Stok Sayımı
+                </a>
+                <a class="nav-link {% if request.resolver_match.url_name == 'sayim_listesi' %}active{% endif %}"
+                    href="javascript:void(0)"
+                    onclick="openPageTab('Sayım Geçmişi', '{% url 'urun:sayim_listesi' %}'); closeSidebar(); return false;">
+                    <i class="fas fa-history text-info"></i>
+                    Sayım Geçmişi
+                </a>
                 <a class="nav-link {% if request.resolver_match.url_name == 'sayim_eksigi' %}active{% endif %}"
                     href="javascript:void(0)"
                     onclick="openPageTab('Sayım Eksiği', '{% url 'urun:sayim_eksigi' %}'); closeSidebar(); return false;">
@@ -1629,6 +1641,77 @@
         var navLinks = document.querySelectorAll('.sidebar .nav-link');
         for (var k = 0; k < navLinks.length; k++) {
             navLinks[k].style.display = 'flex';
+        }
+
+        // ===== MENU SEARCH FILTER =====
+        var menuSearchInput = document.getElementById('menuSearch');
+        if (menuSearchInput) {
+            function normalizeMenuTr(text) {
+                if (!text) return '';
+                return text
+                    .replace(/İ/g, 'i')
+                    .replace(/I/g, 'ı')
+                    .replace(/Ş/g, 's')
+                    .replace(/ş/g, 's')
+                    .replace(/Ç/g, 'c')
+                    .replace(/ç/g, 'c')
+                    .replace(/Ğ/g, 'g')
+                    .replace(/ğ/g, 'g')
+                    .replace(/Ü/g, 'u')
+                    .replace(/ü/g, 'u')
+                    .replace(/Ö/g, 'o')
+                    .replace(/ö/g, 'o')
+                    .replace(/ı/g, 'i')
+                    .toLowerCase()
+                    .trim();
+            }
+
+            menuSearchInput.addEventListener('input', function () {
+                var query = normalizeMenuTr(this.value);
+                var sections = document.querySelectorAll('#sidebarNav .nav-section');
+                var singleLinks = document.querySelectorAll('#sidebarNav .nav.flex-column > .nav-link');
+
+                singleLinks.forEach(function (link) {
+                    var text = normalizeMenuTr(link.textContent);
+                    if (!query || text.indexOf(query) !== -1) {
+                        link.style.display = 'flex';
+                    } else {
+                        link.style.display = 'none';
+                    }
+                });
+
+                sections.forEach(function (section) {
+                    var header = section.querySelector('.menu-header');
+                    var headerText = header ? normalizeMenuTr(header.textContent) : '';
+                    var headerMatches = query && headerText.indexOf(query) !== -1;
+
+                    var links = section.querySelectorAll('.nav-link');
+                    var anyLinkVisible = false;
+
+                    links.forEach(function (link) {
+                        var text = normalizeMenuTr(link.textContent);
+                        if (!query || headerMatches || text.indexOf(query) !== -1) {
+                            link.style.display = 'flex';
+                            anyLinkVisible = true;
+                        } else {
+                            link.style.display = 'none';
+                        }
+                    });
+
+                    if (!query || anyLinkVisible || headerMatches) {
+                        section.style.display = '';
+                    } else {
+                        section.style.display = 'none';
+                    }
+                });
+            });
+
+            menuSearchInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    this.value = '';
+                    this.dispatchEvent(new Event('input'));
+                }
+            });
         }
 
         window.openTabsDropdown = function () { /* noop */ };

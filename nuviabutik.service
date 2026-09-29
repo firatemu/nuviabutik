@@ -10,6 +10,7 @@ Requires=postgresql.service
 Type=exec
 User=www-data
 Group=www-data
+RuntimeDirectory=gunicorn
 WorkingDirectory=/srv/apps/nuviabutik
 Environment=DJANGO_SETTINGS_MODULE=stoktakip.settings
 EnvironmentFile=/srv/apps/nuviabutik/.env

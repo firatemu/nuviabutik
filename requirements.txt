@@ -8,5 +8,7 @@ pillow==11.3.0
 psycopg2-binary==2.9.10
 python-decouple==3.8
 redis==6.4.0
+hiredis==3.3.0
+python-barcode==0.16.1
 reportlab==4.4.3
 whitenoise==6.9.0

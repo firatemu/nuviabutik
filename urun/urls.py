@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import label_views
 from . import etiket_views
+from . import sayim_views
 from .label_views import qztray_varyant_etiket, qztray_urun_toplu_etiket
 
 app_name = 'urun'
@@ -49,6 +50,17 @@ urlpatterns = [
     path('stok/sayim-fazlasi/', views.sayim_fazlasi_view, name='sayim_fazlasi'),
     path('stok/hareketler/', views.stok_hareket_listesi,
          name='stok_hareket_listesi'),
+
+    # ============ KURUMSAL STOK SAYIM MODÜLÜ ============
+    path('sayim/', sayim_views.sayim_ekrani_view, name='sayim_ekrani'),
+    path('sayim/barkod-sorgula/', sayim_views.sayim_barkod_sorgula, name='sayim_barkod_sorgula'),
+    path('sayim/urun-ara/', sayim_views.sayim_urun_ara, name='sayim_urun_ara'),
+    path('sayim/kaydet/', sayim_views.sayim_kaydet, name='sayim_kaydet'),
+    path('sayim/taslak-kaydet/', sayim_views.sayim_taslak_kaydet, name='sayim_taslak_kaydet'),
+    path('sayim/excel-export/', sayim_views.sayim_excel_export, name='sayim_excel_export'),
+    path('sayim/liste/', sayim_views.sayim_listesi_view, name='sayim_listesi'),
+    path('sayim/<int:sayim_id>/detay/', sayim_views.sayim_detay_view, name='sayim_detay'),
+    path('sayim/<int:sayim_id>/sil/', sayim_views.sayim_sil_view, name='sayim_sil'),
 
     # Fiyat yönetimi
     path('fiyat-guncelleme/', views.fiyat_guncelleme, name='fiyat_guncelleme'),

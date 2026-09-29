@@ -33,6 +33,8 @@ MENU_ROLE_MAP = {
     'rapor:gunluk_satis': ('admin', 'manager'),
     'rapor:satici_raporu': ('admin', 'manager'),
     'rapor:kar_zarar': ('admin', 'manager'),
+    'urun:sayim_ekrani': ('admin', 'manager', 'stock_clerk'),
+    'urun:sayim_listesi': ('admin', 'manager', 'stock_clerk'),
 }
 
 

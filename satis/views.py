@@ -82,10 +82,11 @@ def satis_ekrani(request):
     # Sonraki sipariş numarasını preview olarak göster (sayacı artırmaz)
     siparis_no_preview = SiparisNumarasi.sonraki_numara_preview()
 
-    # Satış elemanı açılır listesi: yalnızca bu kullanıcı adları (büyük/küçük harf duyarsız)
+    # Satış elemanı açılır listesi: yalnızca 'Satış Elemanı' rolündeki aktif kullanıcılar
     from kullanici.models import CustomUser
-    satis_elemanlari = CustomUser.objects.filter(is_active=True).filter(
-        Q(username__iexact='cagla') | Q(username__iexact='sevgi')
+    satis_elemanlari = CustomUser.objects.filter(
+        is_active=True,
+        role='satici'
     ).order_by('first_name', 'last_name', 'username')
 
     eleman_list = list(satis_elemanlari)

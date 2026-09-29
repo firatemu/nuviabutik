@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sayım Detayı #{{ sayim.sayim_no }} — NuviaButik{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid py-3">
+    <!-- Üst Başlık & Butonlar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="{% url 'urun:sayim_listesi' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h2 class="mb-0">
+                    <i class="fas fa-clipboard-check text-primary me-2"></i>Sayım Detayı:
+                    <span class="font-monospace text-primary">#{{ sayim.sayim_no }}</span>
+                </h2>
+                {% if sayim.durum == 'tamamlandi' %}
+                <span class="badge bg-success px-3 py-2 ms-2"><i class="fas fa-check-circle me-1"></i>Tamamlandı</span>
+                {% elif sayim.durum == 'taslak' %}
+                <span class="badge bg-warning text-dark px-3 py-2 ms-2"><i class="fas fa-clock me-1"></i>Taslak</span>
+                {% endif %}
+            </div>
+            <p class="text-muted mb-0 small">
+                {{ sayim.baslik|default:'Stok Sayımı' }}
+                {% if sayim.aciklama %} — <em>{{ sayim.aciklama }}</em>{% endif %}
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'urun:sayim_excel_export' %}?sayim_id={{ sayim.id }}" class="btn btn-success fw-bold">
+                <i class="fas fa-file-excel me-1"></i> Excel Olarak İndir
+            </a>
+            {% if sayim.durum == 'taslak' %}
+            <a href="{% url 'urun:sayim_ekrani' %}?sayim_id={{ sayim.id }}" class="btn btn-warning fw-bold">
+                <i class="fas fa-play me-1"></i> Sayıma Devam Et
+            </a>
+            {% endif %}
+            <a href="{% url 'urun:sayim_listesi' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-list me-1"></i> Tüm Sayımlar
+            </a>
+        </div>
+    </div>
+
+    <!-- Metrik Kartları -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3">
+                <div class="text-muted small">Toplam Çeşit</div>
+                <h3 class="mb-0 fw-bold">{{ sayim.toplam_cesit }}</h3>
+                <small class="text-muted">Sayım yapılan ürün</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3">
+                <div class="text-muted small">Sayılan Miktar / Sistem</div>
+                <h3 class="mb-0 fw-bold text-primary">{{ sayim.toplam_sayilan }} <span class="fs-6 text-muted fw-normal">/ {{ sayim.toplam_sistem }}</span></h3>
+                <small class="text-muted">Fiziksel / Kayıtlı Stok</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3">
+                <div class="text-muted small">Sayım Eksiği</div>
+                <h3 class="mb-0 fw-bold text-danger">-{{ sayim.toplam_eksik_adet }}</h3>
+                <small class="text-danger">{{ sayim.eksik_kalem_sayisi }} çeşit eksik çıktı</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3">
+                <div class="text-muted small">Sayım Fazlası</div>
+                <h3 class="mb-0 fw-bold text-success">+{{ sayim.toplam_fazla_adet }}</h3>
+                <small class="text-success">{{ sayim.fazla_kalem_sayisi }} çeşit fazla çıktı</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtre & Arama Araç Çubuğu -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="btn-group btn-group-sm" role="group">
+                <a href="?{% if q %}q={{ q }}{% endif %}" class="btn {% if not fark_tipi %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                    Tüm Kalemler ({{ sayim.toplam_cesit }})
+                </a>
+                <a href="?fark=eksik{% if q %}&q={{ q }}{% endif %}" class="btn {% if fark_tipi == 'eksik' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                    Eksikler ({{ sayim.eksik_kalem_sayisi }})
+                </a>
+                <a href="?fark=fazla{% if q %}&q={{ q }}{% endif %}" class="btn {% if fark_tipi == 'fazla' %}btn-success{% else %}btn-outline-success{% endif %}">
+                    Fazlalar ({{ sayim.fazla_kalem_sayisi }})
+                </a>
+                <a href="?fark=esit{% if q %}&q={{ q }}{% endif %}" class="btn {% if fark_tipi == 'esit' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                    Eşitler ({{ sayim.esit_kalem_sayisi }})
+                </a>
+            </div>
+
+            <form method="get" class="d-flex gap-2">
+                {% if fark_tipi %}<input type="hidden" name="fark" value="{{ fark_tipi }}">{% endif %}
+                <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Barkod, Ürün Adı, Kod..." style="width: 240px;">
+                <button type="submit" class="btn btn-sm btn-outline-primary"><i class="fas fa-search"></i></button>
+                {% if q %}<a href="?{% if fark_tipi %}fark={{ fark_tipi }}{% endif %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-times"></i></a>{% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Kalemler Tablosu -->
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 50px;" class="text-center">#</th>
+                        <th>Ürün Bilgisi</th>
+                        <th style="width: 140px;" class="text-center">Barkod</th>
+                        <th style="width: 120px;" class="text-center">Renk / Beden</th>
+                        <th style="width: 120px;" class="text-end">Sistem Stoğu</th>
+                        <th style="width: 120px;" class="text-end">Sayılan Miktar</th>
+                        <th style="width: 120px;" class="text-center">Fark</th>
+                        <th style="width: 180px;">Oluşan Hareket Fişi</th>
+                        <th style="width: 110px;" class="text-end">Birim Fiyat</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in detaylar %}
+                    {% with v=d.varyant u=d.varyant.urun %}
+                    <tr>
+                        <td class="text-center text-muted fw-bold">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="fw-bold">{{ u.ad }}</div>
+                            <small class="text-muted">Kod: {{ u.urun_kodu }} | Kat: {{ u.kategori|default:'—' }}</small>
+                        </td>
+                        <td class="text-center font-monospace">{{ v.barkod }}</td>
+                        <td class="text-center">
+                            <span class="badge bg-light text-dark border">{{ v.renk.ad|default:'Standart' }} / {{ v.beden.ad|default:'Tek Beden' }}</span>
+                        </td>
+                        <td class="text-end text-muted fw-semibold">{{ d.sistem_stok }}</td>
+                        <td class="text-end fw-bold">{{ d.sayilan_miktar }}</td>
+                        <td class="text-center">
+                            {% if d.fark < 0 %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                                <i class="fas fa-arrow-down me-1"></i>{{ d.fark }} (Eksik)
+                            </span>
+                            {% elif d.fark > 0 %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                <i class="fas fa-arrow-up me-1"></i>+{{ d.fark }} (Fazla)
+                            </span>
+                            {% else %}
+                            <span class="badge bg-light text-secondary border px-2 py-1">
+                                <i class="fas fa-check me-1"></i>0 (Eşit)
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if d.stok_hareket %}
+                            <div class="small">
+                                {% if d.stok_hareket.hareket_tipi == 'sayim_eksik' %}
+                                <span class="badge bg-danger">Sayım Eksiği (-{{ d.stok_hareket.miktar }})</span>
+                                {% elif d.stok_hareket.hareket_tipi == 'sayim_fazla' %}
+                                <span class="badge bg-success">Sayım Fazlası (+{{ d.stok_hareket.miktar }})</span>
+                                {% endif %}
+                                <div class="text-muted" style="font-size: 10px;">ID: #{{ d.stok_hareket.id }}</div>
+                            </div>
+                            {% else %}
+                            <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold">₺{{ d.birim_fiyat|floatformat:2 }}</td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            Bu filtreye uygun kayıt bulunamadı.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

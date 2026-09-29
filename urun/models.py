@@ -1074,3 +1074,206 @@ class YaziciAyarlari(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.yazici_ad}"
+
+
+# ============== STOK SAYIM MODELLERİ ==============
+
+class StokSayimi(models.Model):
+    """Kurumsal Stok Sayımı Modeli"""
+    DURUM_CHOICES = [
+        ('taslak', 'Taslak'),
+        ('tamamlandi', 'Tamamlandı'),
+        ('iptal', 'İptal'),
+    ]
+
+    sayim_no = models.CharField(
+        max_length=30,
+        unique=True,
+        verbose_name="Sayım Numarası"
+    )
+    baslik = models.CharField(
+        max_length=150,
+        blank=True,
+        null=True,
+        verbose_name="Sayım Başlığı"
+    )
+    aciklama = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Açıklama / Notlar"
+    )
+    durum = models.CharField(
+        max_length=20,
+        choices=DURUM_CHOICES,
+        default='taslak',
+        verbose_name="Durum"
+    )
+    kullanici = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='baslatilan_sayimlar',
+        verbose_name="Başlatan Personel"
+    )
+    tamamlayan = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tamamlanan_sayimlar',
+        verbose_name="Tamamlayan Personel"
+    )
+    # İstatistikler (Hızlı listeleme & raporlama için)
+    toplam_cesit = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Toplam Ürün Çeşidi"
+    )
+    toplam_sayilan = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Toplam Sayılan Adet"
+    )
+    toplam_sistem = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Toplam Sistem Stoğu"
+    )
+    fazla_kalem_sayisi = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Fazla Kalem Sayısı"
+    )
+    eksik_kalem_sayisi = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Eksik Kalem Sayısı"
+    )
+    esit_kalem_sayisi = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Eşit Kalem Sayısı"
+    )
+    toplam_fazla_adet = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Toplam Fazla Adet"
+    )
+    toplam_eksik_adet = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Toplam Eksik Adet"
+    )
+    olusturma_tarihi = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Oluşturulma Tarihi"
+    )
+    guncelleme_tarihi = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Güncellenme Tarihi"
+    )
+    tamamlanma_tarihi = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Tamamlanma Tarihi"
+    )
+
+    class Meta:
+        db_table = 'urun_stok_sayimi'
+        verbose_name = 'Stok Sayımı'
+        verbose_name_plural = 'Stok Sayımları'
+        ordering = ['-olusturma_tarihi']
+
+    def __str__(self):
+        return f"{self.sayim_no} ({self.get_durum_display()})"
+
+    @classmethod
+    def yeni_sayim_no(cls):
+        """Benzersiz SYM-YYYYMMDD-XXXX sayım numarası üretir"""
+        from django.utils import timezone
+        import datetime
+        bugun = timezone.now().date()
+        prefix = f"SYM{bugun.strftime('%Y%m%d')}"
+        
+        # Bugün oluşturulan son sayım numarasını bul
+        son_sayim = cls.objects.filter(sayim_no__startswith=prefix).order_by('-sayim_no').first()
+        if son_sayim and len(son_sayim.sayim_no) >= 15:
+            try:
+                son_sira = int(son_sayim.sayim_no[11:])
+                yeni_sira = son_sira + 1
+            except ValueError:
+                yeni_sira = 1
+        else:
+            yeni_sira = 1
+        
+        return f"{prefix}{yeni_sira:04d}"
+
+    def istatistikleri_guncelle(self):
+        """Detay kalemlerinden istatistikleri yeniden hesaplar"""
+        detaylar = self.detaylar.all()
+        self.toplam_cesit = detaylar.count()
+        self.toplam_sayilan = sum(d.sayilan_miktar for d in detaylar)
+        self.toplam_sistem = sum(d.sistem_stok for d in detaylar)
+        self.fazla_kalem_sayisi = detaylar.filter(fark__gt=0).count()
+        self.eksik_kalem_sayisi = detaylar.filter(fark__lt=0).count()
+        self.esit_kalem_sayisi = detaylar.filter(fark=0).count()
+        self.toplam_fazla_adet = sum(d.fark for d in detaylar if d.fark > 0)
+        self.toplam_eksik_adet = sum(abs(d.fark) for d in detaylar if d.fark < 0)
+        self.save(update_fields=[
+            'toplam_cesit', 'toplam_sayilan', 'toplam_sistem',
+            'fazla_kalem_sayisi', 'eksik_kalem_sayisi', 'esit_kalem_sayisi',
+            'toplam_fazla_adet', 'toplam_eksik_adet', 'guncelleme_tarihi'
+        ])
+
+
+class StokSayimiDetay(models.Model):
+    """Stok Sayımı Kalem Detayı"""
+    sayim = models.ForeignKey(
+        StokSayimi,
+        on_delete=models.CASCADE,
+        related_name='detaylar',
+        verbose_name="Sayım"
+    )
+    varyant = models.ForeignKey(
+        'UrunVaryanti',
+        on_delete=models.CASCADE,
+        related_name='sayim_detaylari',
+        verbose_name="Ürün Varyantı"
+    )
+    sistem_stok = models.IntegerField(
+        default=0,
+        verbose_name="Sistem Stoğu"
+    )
+    sayilan_miktar = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Sayılan Miktar"
+    )
+    fark = models.IntegerField(
+        default=0,
+        verbose_name="Fark (Sayılan - Sistem)"
+    )
+    birim_fiyat = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Birim Fiyat"
+    )
+    stok_hareket = models.ForeignKey(
+        StokHareket,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sayim_detayi',
+        verbose_name="İlişkili Stok Hareketi"
+    )
+    son_okuma_tarihi = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Son Okuma Tarihi"
+    )
+
+    class Meta:
+        db_table = 'urun_stok_sayimi_detay'
+        verbose_name = 'Stok Sayımı Detayı'
+        verbose_name_plural = 'Stok Sayımı Detayları'
+        unique_together = ['sayim', 'varyant']
+        ordering = ['-son_okuma_tarihi']
+
+    def __str__(self):
+        return f"{self.sayim.sayim_no} - {self.varyant} ({self.sayilan_miktar})"
+
+    def save(self, *args, **kwargs):
+        self.fark = self.sayilan_miktar - self.sistem_stok
+        super().save(*args, **kwargs)
+
