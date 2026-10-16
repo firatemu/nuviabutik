@@ -248,6 +248,59 @@ gunicorn stoktakip.wsgi:application --bind 127.0.0.1:8000
 - 📱 Responsive tasarım ile hızlı yükleme
 - 🔄 AJAX ile sayfa yenilenmeden işlemler
 
+## 💻 WSL / Local Geliştirme
+
+Sunucudaki kodu WSL'de (veya herhangi bir Linux/macOS makinede) çalıştırmak için:
+
+### Hızlı Kurulum (tek komut)
+
+```bash
+git clone https://github.com/firatemu/nuviabutik.git ~/projects/nuviabutik
+cd ~/projects/nuviabutik
+bash scripts/setup-wsl.sh
+```
+
+Script; repoyu çeker, venv kurar, `requirements.txt`'i yükler, `.env` üretir,
+SQLite veritabanını migrate eder ve `admin/admin` süper kullanıcısını oluşturur.
+
+### Çalıştırma
+
+```bash
+cd ~/projects/nuviabutik
+source venv/bin/activate
+export DJANGO_SETTINGS_MODULE=stoktakip.local
+python manage.py runserver 0.0.0.0:8000
+```
+
+Tarayıcı: <http://127.0.0.1:8000/kullanici/login/> — `admin` / `admin`
+
+### Mimari Notlar
+
+| Konu | Sunucu (prod) | Local (WSL) |
+| --- | --- | --- |
+| `DJANGO_SETTINGS_MODULE` | `stoktakip.settings` | `stoktakip.local` |
+| `DEBUG` | False | True |
+| Veritabanı | PostgreSQL | SQLite (ek kurulum yok) |
+| Cache | Redis | LocMem (RAM içi) |
+| Static | WhiteNoise | Django runserver |
+| Print Agent | Aktif | Pasif (debug bayrağı) |
+
+`stoktakip/local.py` yalnızca DB/cache/security override eder; tüm app
+kodu, migration'lar ve iş mantığı birebir aynıdır.
+
+### Sunucudan Senkron
+
+WSL'de güncel kodu çekmek için:
+
+```bash
+cd ~/projects/nuviabutik
+git pull origin main
+source venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+```
+
 ## 🆘 Sorun Giderme
 
 ### Yaygın Sorunlar
